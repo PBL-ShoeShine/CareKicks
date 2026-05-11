@@ -4,11 +4,14 @@ import 'modules/admin/pemindai/view/pemindai_view.dart';
 import 'app.dart';
 
 void main() {
+  // Pakai yang ini karena ada pengecekan binding-nya (lebih aman)
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  // Panggil class CareKicksApp karena tema dan konfigurasinya ada di situ
+  runApp(const CareKicksApp());
 }
 
-void main() => runApp(const CareKicksApp());
+// HAPUS atau comment baris yang di bawah ini:
+// void main() => runApp(const CareKicksApp());
 
 class CareKicksApp extends StatelessWidget {
   const CareKicksApp({super.key});
@@ -24,7 +27,6 @@ class CareKicksApp extends StatelessWidget {
         textTheme: GoogleFonts.interTextTheme(base.textTheme),
         scaffoldBackgroundColor: const Color(0xFFF7F8FA),
       ),
-      // Langsung arahkan ke halaman scanner milik Anisa
       home: const PemindaiView(),
     );
   }
