@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:vibration/vibration.dart';
+// Sesuaikan jumlah "../" dengan kedalaman foldermu menuju core/network/api_service.dart
+import '../../../../core/network/api_service.dart';
+// Import halaman detail yang baru saja dibuat
+import 'detail_pemindai_view.dart';
 
-// Definisi warna agar konsisten
 const _brand = Color(0xFF1FB6C1);
 const _scanLine = Color(0xFF7CE7F1);
 
@@ -14,11 +17,10 @@ class PemindaiView extends StatefulWidget {
 }
 
 class _PemindaiViewState extends State<PemindaiView> {
-  int _tab = 2; // Default tab Pemindai
+  int _tab = 2;
   bool isScanCompleted = false;
   bool _torchOn = false;
 
-  // Controller kamera (untuk flash/torch)
   final MobileScannerController _scannerController = MobileScannerController(
     torchEnabled: false,
     detectionSpeed: DetectionSpeed.normal,
@@ -30,16 +32,11 @@ class _PemindaiViewState extends State<PemindaiView> {
     super.dispose();
   }
 
-  // Feedback getar saja saat QR terdeteksi
   Future<void> _playFeedback() async {
     try {
       final hasVibrator = await Vibration.hasVibrator() ?? false;
-      if (hasVibrator) {
-        Vibration.vibrate(duration: 120, amplitude: 128);
-      }
-    } catch (_) {
-      debugPrint('Gagal menjalankan getaran');
-    }
+      if (hasVibrator) Vibration.vibrate(duration: 120, amplitude: 128);
+    } catch (_) {}
   }
 
   @override
@@ -114,25 +111,57 @@ class _PemindaiViewState extends State<PemindaiView> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // KAMERA
         MobileScanner(
           controller: _scannerController,
-          onDetect: (capture) {
+          onDetect: (capture) async {
             if (!isScanCompleted) {
               final code = capture.barcodes.firstOrNull?.rawValue;
               if (code != null) {
                 setState(() => isScanCompleted = true);
-                _playFeedback(); // Hanya getar
-                _showResultDialog(code);
+                _playFeedback();
+
+                // 1. Tampilkan loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(
+                    child: CircularProgressIndicator(color: _brand),
+                  ),
+                );
+
+                // 2. Tembak data ke API
+                final resultData = await ApiService.cekSepatu(code);
+
+                // 3. Tutup loading
+                if (mounted) Navigator.pop(context);
+
+                if (resultData != null && resultData['success'] == true) {
+                  // SKENARIO BERHASIL: REDIRECT KE HALAMAN DETAIL
+                  if (mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DetailPemindaiView(
+                          dataOrder:
+                              resultData['data'], // Melempar data ke halaman sebelah
+                        ),
+                      ),
+                    ).then((_) {
+                      // Mengaktifkan kembali scanner saat kembali dari halaman detail
+                      if (mounted) setState(() => isScanCompleted = false);
+                    });
+                  }
+                } else {
+                  // SKENARIO GAGAL: TETAP TAMPILKAN POP-UP DIALOG
+                  if (mounted) {
+                    _showErrorDialog(code, resultData?['message']);
+                  }
+                }
               }
             }
           },
         ),
-
-        // Overlay terang (0.15)
         Container(color: Colors.black.withOpacity(0.15)),
-
-        // Hint pill
         Positioned(
           top: 24,
           left: 16,
@@ -164,11 +193,7 @@ class _PemindaiViewState extends State<PemindaiView> {
             ),
           ),
         ),
-
-        // Frame scanner + animated line
         const Center(child: _ScannerFrame()),
-
-        // Tombol Flash / Torch
         Positioned(
           bottom: 32,
           left: 0,
@@ -206,29 +231,26 @@ class _PemindaiViewState extends State<PemindaiView> {
     );
   }
 
-  // DIALOG RESULT YANG SUDAH DIREVISI (Tahan banting terhadap tombol Back HP)
-  void _showResultDialog(String code) {
+  void _showErrorDialog(String code, String? errorMessage) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text("QR Terdeteksi"),
-        content: Text("Isi QR: $code"),
+        title: const Text(
+          "Data Tidak Ditemukan",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+        ),
+        content: Text(errorMessage ?? "Kode QR tidak terdaftar di sistem."),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
           TextButton(
-            onPressed: () {
-              // Cukup tutup dialognya saja
-              Navigator.pop(context);
-            },
-            child: const Text("Scan Lagi"),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Scan Lagi", style: TextStyle(color: _brand)),
           ),
         ],
       ),
     ).then((_) {
-      // Akan selalu dieksekusi saat dialog tertutup dari mana pun (tombol "Scan Lagi" atau Back HP)
-      if (mounted) {
-        setState(() => isScanCompleted = false);
-      }
+      if (mounted) setState(() => isScanCompleted = false);
     });
   }
 
@@ -294,7 +316,6 @@ class _PemindaiViewState extends State<PemindaiView> {
   }
 }
 
-// WIDGET ANIMASI GARIS SCANNER
 class _ScannerFrame extends StatefulWidget {
   const _ScannerFrame();
   @override
