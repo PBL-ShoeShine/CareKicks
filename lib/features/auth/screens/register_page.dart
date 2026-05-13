@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../controller/auth_controller.dart';
 import 'login_page.dart';
+import '../../admin/dashboard/screens/dashboard_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -76,8 +77,14 @@ class _RegisterPageState extends State<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Register berhasil!')),
       );
-      // Navigate to home page atau dashboard
-      // Navigator.of(context).pushReplacementNamed('/home');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => DashboardPage(
+            token: _authController.token ?? '',
+            user: _authController.user ?? {},
+          ),
+        ),
+      );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_authController.errorMessage ?? 'Register gagal')),

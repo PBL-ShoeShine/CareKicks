@@ -7,14 +7,12 @@ class ApiService {
 
   static Future<Map<String, dynamic>?> cekSepatu(String qrCode) async {
     try {
-      // Mengirim POST request ke rute admin pemindai
       final response = await http.post(
         Uri.parse('$baseUrl/admin/pemindai/verify'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'qr_code': qrCode}),
       );
 
-      // Membaca balasan dari server (sukses maupun error dari backend)
       if (response.statusCode == 200 ||
           response.statusCode == 404 ||
           response.statusCode == 400) {
@@ -28,15 +26,15 @@ class ApiService {
     return null;
   }
 
-  static Future<Map<String, dynamic>?> login(String email, String password) async {
+  static Future<Map<String, dynamic>?> login(
+    String email,
+    String password,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/user/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       if (response.statusCode == 200 ||
@@ -82,5 +80,69 @@ class ApiService {
     }
     return null;
   }
-}
 
+  static Future<Map<String, dynamic>?> getDashboard({
+    required String token,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/admin/dashboard'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 404 ||
+          response.statusCode == 401) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> getActivities({
+    required String token,
+    String? status,
+    String? search,
+    int? limit,
+  }) async {
+    try {
+      final queryParams = {
+        if (status != null && status != 'all') 'status': status,
+        if (search != null && search.isNotEmpty) 'search': search,
+        if (limit != null) 'limit': limit.toString(),
+      };
+
+      final uri = Uri.parse(
+        '$baseUrl/admin/dashboard',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 404 ||
+          response.statusCode == 401) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+}
