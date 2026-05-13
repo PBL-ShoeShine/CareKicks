@@ -1,3 +1,4 @@
+import 'package:carekicks/features/auth/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'modules/admin/pemindai/view/pemindai_view.dart';
@@ -27,7 +28,7 @@ class CareKicksApp extends StatelessWidget {
         textTheme: GoogleFonts.interTextTheme(base.textTheme),
         scaffoldBackgroundColor: const Color(0xFFF7F8FA),
       ),
-      home: const PemindaiView(),
+      home: SplashScreen(),
     );
   }
 }
