@@ -2,7 +2,10 @@ import 'package:flutter/foundation.dart';
 import '../../../core/network/api_service.dart';
 
 class AuthService {
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(
+    String email,
+    String password,
+  ) async {
     try {
       if (email.isEmpty || password.isEmpty) {
         return {
@@ -14,10 +17,7 @@ class AuthService {
       final response = await ApiService.login(email, password);
 
       if (response == null) {
-        return {
-          'success': false,
-          'message': 'Gagal menghubungi server',
-        };
+        return {'success': false, 'message': 'Gagal menghubungi server'};
       }
 
       if (response.containsKey('message')) {
@@ -31,17 +31,11 @@ class AuthService {
             'user': response['user'],
           };
         } else {
-          return {
-            'success': false,
-            'message': message,
-          };
+          return {'success': false, 'message': message};
         }
       }
 
-      return {
-        'success': false,
-        'message': 'Respon tidak valid dari server',
-      };
+      return {'success': false, 'message': 'Respon tidak valid dari server'};
     } catch (e) {
       debugPrint('Error in AuthService.login: $e');
       return {
@@ -59,24 +53,15 @@ class AuthService {
   }) async {
     try {
       if (nama.isEmpty || noHp.isEmpty || email.isEmpty || password.isEmpty) {
-        return {
-          'success': false,
-          'message': 'Semua field tidak boleh kosong',
-        };
+        return {'success': false, 'message': 'Semua field tidak boleh kosong'};
       }
 
       if (!email.contains('@')) {
-        return {
-          'success': false,
-          'message': 'Format email tidak valid',
-        };
+        return {'success': false, 'message': 'Format email tidak valid'};
       }
 
       if (password.length < 6) {
-        return {
-          'success': false,
-          'message': 'Password minimal 6 karakter',
-        };
+        return {'success': false, 'message': 'Password minimal 6 karakter'};
       }
 
       final response = await ApiService.register(
@@ -87,10 +72,7 @@ class AuthService {
       );
 
       if (response == null) {
-        return {
-          'success': false,
-          'message': 'Gagal menghubungi server',
-        };
+        return {'success': false, 'message': 'Gagal menghubungi server'};
       }
 
       if (response.containsKey('message')) {
@@ -104,17 +86,11 @@ class AuthService {
             'user': response['user'],
           };
         } else {
-          return {
-            'success': false,
-            'message': message,
-          };
+          return {'success': false, 'message': message};
         }
       }
 
-      return {
-        'success': false,
-        'message': 'Respon tidak valid dari server',
-      };
+      return {'success': false, 'message': 'Respon tidak valid dari server'};
     } catch (e) {
       debugPrint('Error in AuthService.register: $e');
       return {
@@ -124,4 +100,3 @@ class AuthService {
     }
   }
 }
-

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../history/screens/history_page.dart';
+import '../../input_off/screens/input_off_page.dart';
 import '../controller/dashboard_controller.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -374,7 +375,15 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                             const SizedBox(height: 12),
                             ElevatedButton.icon(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) => InputOffPage(token: widget.token),
+                                  ),
+                                );
+                              },
                               icon: const Icon(Icons.edit),
                               label: const Text('Input Manual'),
                               style: ElevatedButton.styleFrom(

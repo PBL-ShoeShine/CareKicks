@@ -4,6 +4,7 @@ import '../controller/history_controller.dart';
 
 class HistoryPage extends StatefulWidget {
   final String token;
+
   const HistoryPage({super.key, required this.token});
 
   @override
@@ -13,16 +14,17 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage> {
   late HistoryController _historyController;
   final TextEditingController _searchController = TextEditingController();
+
   String _selectedStatus = 'all';
 
-  // final List<String> _statusList = [
-  //   'all',
-  //   'pending',
-  //   'diproses',
-  //   'washing',
-  //   'pickup',
-  //   'selesai'
-  // ];
+  final List<String> _statusList = [
+    'all',
+    'pending',
+    'diproses',
+    'washing',
+    'pickup',
+    'selesai',
+  ];
 
   @override
   void initState() {
@@ -35,7 +37,7 @@ class _HistoryPageState extends State<HistoryPage> {
     _historyController.fetchHistory(
       token: widget.token,
       status: _selectedStatus,
-      search: _searchController.text,
+      search: _searchController.text.trim(),
       limit: 50,
     );
   }
@@ -45,6 +47,73 @@ class _HistoryPageState extends State<HistoryPage> {
     _searchController.dispose();
     _historyController.dispose();
     super.dispose();
+  }
+
+  String _formatCurrency(dynamic value) {
+    final number = double.tryParse(value.toString()) ?? 0;
+    final intValue = number.toInt();
+
+    final formatted = intValue.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+$)'),
+      (match) => '${match[1]}.',
+    );
+
+    return 'Rp $formatted';
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '-';
+
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  String _formatStatus(String? status) {
+    if (status == null || status.isEmpty) return 'PENDING';
+    return status.toUpperCase();
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'diproses':
+        return Colors.blue;
+      case 'washing':
+        return Colors.purple;
+      case 'pickup':
+        return Colors.teal;
+      case 'selesai':
+        return Colors.green;
+      case 'cancel':
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'all':
+        return 'Semua';
+      case 'pending':
+        return 'Pending';
+      case 'diproses':
+        return 'Diproses';
+      case 'washing':
+        return 'Washing';
+      case 'pickup':
+        return 'Pickup';
+      case 'selesai':
+        return 'Selesai';
+      default:
+        return status;
+    }
   }
 
   @override
@@ -66,16 +135,14 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
       body: Column(
         children: [
-          // Search and Filter Section
           Container(
             padding: const EdgeInsets.all(16),
             color: AppColors.primaryBlue,
             child: Column(
               children: [
-                // Search Bar
                 TextField(
                   controller: _searchController,
-                  onChanged: (value) => _fetchData(),
+                  onChanged: (_) => _fetchData(),
                   decoration: InputDecoration(
                     hintText: 'Cari merk atau jenis sepatu...',
                     prefixIcon: const Icon(Icons.search),
@@ -88,49 +155,53 @@ class _HistoryPageState extends State<HistoryPage> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 12),
-                // Filter Chips
-                // SizedBox(
-                //   height: 40,
-                //   child: ListView.builder(
-                //     scrollDirection: Axis.horizontal,
-                //     itemCount: _statusList.length,
-                //     itemBuilder: (context, index) {
-                //       final status = _statusList[index];
-                //       final isSelected = _selectedStatus == status;
-                //       return Padding(
-                //         padding: const EdgeInsets.only(right: 8),
-                //         child: FilterChip(
-                //           label: Text(
-                //             status[0].toUpperCase() + status.substring(1),
-                //             style: TextStyle(
-                //               color: isSelected ? Colors.white : Colors.black87,
-                //               fontSize: 12,
-                //             ),
-                //           ),
-                //           selected: isSelected,
-                //           onSelected: (selected) {
-                //             setState(() {
-                //               _selectedStatus = status;
-                //             });
-                //             _fetchData();
-                //           },
-                //           selectedColor: AppColors.primaryDark,
-                //           backgroundColor: Colors.white,
-                //           checkmarkColor: Colors.white,
-                //           shape: RoundedRectangleBorder(
-                //             borderRadius: BorderRadius.circular(20),
-                //           ),
-                //         ),
-                //       );
-                //     },
-                //   ),
-                // ),
+
+                SizedBox(
+                  height: 38,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _statusList.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final status = _statusList[index];
+                      final isSelected = _selectedStatus == status;
+
+                      return ChoiceChip(
+                        label: Text(_statusLabel(status)),
+                        selected: isSelected,
+                        selectedColor: Colors.white,
+                        backgroundColor: AppColors.primaryBlue.withOpacity(
+                          0.25,
+                        ),
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? AppColors.primaryBlue
+                              : Colors.white,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                        side: BorderSide(
+                          color: isSelected
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.4),
+                        ),
+                        onSelected: (_) {
+                          setState(() {
+                            _selectedStatus = status;
+                          });
+                          _fetchData();
+                        },
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
 
-          // List Section
           Expanded(
             child: ListenableBuilder(
               listenable: _historyController,
@@ -172,6 +243,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     itemCount: history.length,
                     itemBuilder: (context, index) {
                       final item = history[index];
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(12),
@@ -196,30 +268,37 @@ class _HistoryPageState extends State<HistoryPage> {
                                 color: AppColors.primaryBlue,
                               ),
                             ),
+
                             const SizedBox(width: 12),
+
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    item['nama_sepatu'] ?? 'Sepatu',
+                                    item['nama_sepatu']?.toString() ?? 'Sepatu',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
+
+                                  const SizedBox(height: 2),
+
                                   Text(
-                                    '${item['layanan']} - ${item['customer']}',
+                                    '${item['layanan'] ?? '-'} - ${item['customer'] ?? '-'}',
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey,
                                     ),
                                   ),
+
                                   const SizedBox(height: 4),
+
                                   Text(
-                                    item['tanggal_order'] != null
-                                        ? _formatDate(item['tanggal_order'])
-                                        : '-',
+                                    _formatDate(
+                                      item['tanggal_order']?.toString(),
+                                    ),
                                     style: const TextStyle(
                                       fontSize: 10,
                                       color: Colors.grey,
@@ -228,6 +307,7 @@ class _HistoryPageState extends State<HistoryPage> {
                                 ],
                               ),
                             ),
+
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
@@ -238,15 +318,14 @@ class _HistoryPageState extends State<HistoryPage> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: _getStatusColor(
-                                      item['status_order'],
+                                      item['status_order']?.toString(),
                                     ),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    item['status_order']
-                                            ?.toString()
-                                            .toUpperCase() ??
-                                        'PENDING',
+                                    _formatStatus(
+                                      item['status_order']?.toString(),
+                                    ),
                                     style: const TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
@@ -254,9 +333,11 @@ class _HistoryPageState extends State<HistoryPage> {
                                     ),
                                   ),
                                 ),
+
                                 const SizedBox(height: 8),
+
                                 Text(
-                                  'Rp ${item['total_harga']}',
+                                  _formatCurrency(item['total_harga']),
                                   style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -277,31 +358,5 @@ class _HistoryPageState extends State<HistoryPage> {
         ],
       ),
     );
-  }
-
-  String _formatDate(String dateStr) {
-    try {
-      final date = DateTime.parse(dateStr);
-      return '${date.day}/${date.month}/${date.year}';
-    } catch (e) {
-      return dateStr;
-    }
-  }
-
-  Color _getStatusColor(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return Colors.orange;
-      case 'diproses':
-        return Colors.blue;
-      case 'selesai':
-        return Colors.green;
-      case 'washing':
-        return Colors.purple;
-      case 'pickup':
-        return Colors.teal;
-      default:
-        return Colors.grey;
-    }
   }
 }

@@ -1,9 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://172.16.162.151:3000/api/v1';
+  static const String baseUrl = 'http://192.168.18.15:3000/api/v1';
 
   static Future<Map<String, dynamic>?> cekSepatu(String qrCode) async {
     try {
@@ -144,5 +145,76 @@ class ApiService {
       debugPrint('Gagal menghubungi backend: $e');
     }
     return null;
+  }
+
+  static Future<Map<String, dynamic>?> getServices({
+    required String token,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/admin/inputoff/services'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 404 ||
+          response.statusCode == 500) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+        debugPrint('Response: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> createOfflineOrder({
+    required String token,
+    required Map<String, dynamic> orderData,
+    required File fotoSebelum,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/admin/inputoff'),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      orderData.forEach((key, value) {
+        if (key == 'services') {
+          request.fields[key] = jsonEncode(value);
+        } else {
+          request.fields[key] = value.toString();
+        }
+      });
+
+      request.files.add(
+        await http.MultipartFile.fromPath('foto_sebelum', fotoSebelum.path),
+      );
+
+      final response = await request.send();
+      final responseString = await response.stream.bytesToString();
+
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: $responseString');
+
+      if (responseString.isNotEmpty) {
+        return jsonDecode(responseString);
+      }
+
+      return {'success': false, 'message': 'Response kosong dari server'};
+    } catch (e) {
+      debugPrint('Gagal membuat pesanan: $e');
+      return {'success': false, 'message': 'Gagal membuat pesanan: $e'};
+    }
   }
 }
