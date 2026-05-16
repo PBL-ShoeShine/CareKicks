@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'modules/admin/pemindai/view/pemindai_view.dart';
+import 'features/admin/antrean/models/antrean_model.dart';
+import 'features/admin/manajemen_staff/models/manajemen_staff.model.dart';
 import 'app.dart';
 
 void main() {

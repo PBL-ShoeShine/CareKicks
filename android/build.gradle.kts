@@ -3,6 +3,12 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    // Tambahan untuk memaksa penggunaan Java 17 pada semua package/modul
+    tasks.withType<JavaCompile>().configureEach {
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
+    }
 }
 
 val newBuildDir: Directory =
@@ -15,6 +21,7 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
