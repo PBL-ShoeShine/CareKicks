@@ -49,14 +49,18 @@ class _DashboardPageState extends State<DashboardPage> {
       body: ListenableBuilder(
         listenable: _dashboardController,
         builder: (context, child) {
-          if (_dashboardController.isLoading) {
+          if (_dashboardController.isLoading &&
+              _dashboardController.dashboardData == null) {
             return const Center(child: CircularProgressIndicator());
           }
 
           // ── TAMBAHAN: pindahkan isi body lama ke sini ──
 
-          return SingleChildScrollView(
-            child: Column(
+          return RefreshIndicator(
+            onRefresh: () => _dashboardController.fetchDashboard(widget.token),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
               children: [
                 // HEADER
                 Container(
@@ -553,7 +557,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
               ],
-            ),
+            ),)
           );
         },
       ),
