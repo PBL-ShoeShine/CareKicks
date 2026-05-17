@@ -475,7 +475,7 @@ class _InputOffPageState extends State<InputOffPage> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: _controller.services.length,
-        separatorBuilder: (_, __) =>
+        separatorBuilder: (_, _) =>
             const Divider(height: 1, color: Color(0xFFF1F5F9)),
         itemBuilder: (context, index) {
           final service = _controller.services[index];

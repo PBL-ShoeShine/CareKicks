@@ -5,7 +5,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.18.15:3000/api/v1';
+  static const String baseUrl = 'http://192.168.0.2:3000/api/v1';
 
   static Future<Map<String, dynamic>?> cekSepatu(String qrCode) async {
     try {
@@ -259,11 +259,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'nama': nama,
-          'email': email,
-          'no_hp': noHp,
-        }),
+        body: jsonEncode({'nama': nama, 'email': email, 'no_hp': noHp}),
       );
 
       if (response.statusCode == 200 ||
@@ -292,9 +288,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'imageUrl': imageUrl,
-        }),
+        body: jsonEncode({'imageUrl': imageUrl}),
       );
 
       if (response.statusCode == 200 ||
@@ -401,7 +395,10 @@ class ApiService {
           return jsonDecode(responseString);
         } catch (e) {
           debugPrint('JSON Decode Error (Create): $e');
-          return {'success': false, 'message': 'Respon server tidak valid (Bukan JSON)'};
+          return {
+            'success': false,
+            'message': 'Respon server tidak valid (Bukan JSON)',
+          };
         }
       }
 
@@ -424,9 +421,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'is_active': isActive,
-        }),
+        body: jsonEncode({'is_active': isActive}),
       );
 
       if (response.statusCode == 200 ||
@@ -496,7 +491,10 @@ class ApiService {
           return jsonDecode(responseString);
         } catch (e) {
           debugPrint('JSON Decode Error (Update): $e');
-          return {'success': false, 'message': 'Respon server tidak valid (Bukan JSON)'};
+          return {
+            'success': false,
+            'message': 'Respon server tidak valid (Bukan JSON)',
+          };
         }
       }
 
@@ -531,6 +529,187 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('Gagal menghapus layanan: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> getTrackingList({
+    required String token,
+    String? status,
+    String? search,
+  }) async {
+    try {
+      final queryParams = {
+        if (status != null && status.isNotEmpty && status != 'all')
+          'status': status,
+        if (search != null && search.isNotEmpty) 'search': search,
+      };
+
+      final uri = Uri.parse(
+        '$baseUrl/admin/tracking',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 404 ||
+          response.statusCode == 500) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> getTrackingDetail({
+    required String token,
+    required int orderId,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/admin/tracking/$orderId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 404 ||
+          response.statusCode == 500) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> updateTrackingStatus({
+    required String token,
+    required int orderId,
+    required String status,
+    String? keterangan,
+    double? latitude,
+    double? longitude,
+    int? idStaff,
+    int? idDetailOrders,
+    String? fotoType,
+    bool? isValidation,
+    File? foto,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/admin/tracking/$orderId'),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      request.fields['status'] = status;
+      if (keterangan != null && keterangan.isNotEmpty) {
+        request.fields['keterangan'] = keterangan;
+      }
+      if (latitude != null) request.fields['latitude'] = latitude.toString();
+      if (longitude != null) request.fields['longitude'] = longitude.toString();
+      if (idStaff != null) request.fields['id_staff'] = idStaff.toString();
+      if (idDetailOrders != null) {
+        request.fields['id_detail_orders'] = idDetailOrders.toString();
+      }
+      if (fotoType != null && fotoType.isNotEmpty) {
+        request.fields['foto_type'] = fotoType;
+      }
+      if (isValidation != null) {
+        request.fields['is_validation'] = isValidation.toString();
+      }
+
+      if (foto != null) {
+        final extension = foto.path.split('.').last.toLowerCase();
+        String mimeType = 'image/jpeg';
+        if (extension == 'png') mimeType = 'image/png';
+        if (extension == 'webp') mimeType = 'image/webp';
+
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'foto',
+            foto.path,
+            contentType: MediaType.parse(mimeType),
+          ),
+        );
+      }
+
+      final response = await request.send();
+      final responseString = await response.stream.bytesToString();
+
+      debugPrint('UPDATE Tracking Status: ${response.statusCode}');
+      debugPrint('UPDATE Tracking Response: $responseString');
+
+      if (responseString.isNotEmpty) {
+        try {
+          return jsonDecode(responseString);
+        } catch (e) {
+          debugPrint('JSON Decode Error (Tracking Update): $e');
+          return {
+            'success': false,
+            'message': 'Respon server tidak valid (Bukan JSON)',
+          };
+        }
+      }
+
+      return {'success': false, 'message': 'Response kosong dari server'};
+    } catch (e) {
+      debugPrint('Gagal memperbarui status tracking: $e');
+      return {
+        'success': false,
+        'message': 'Gagal memperbarui status tracking: $e',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getRouteOsrm({
+    required double originLat,
+    required double originLng,
+    required double destLat,
+    required double destLng,
+  }) async {
+    try {
+      final uri =
+          Uri.parse(
+            'https://router.project-osrm.org/route/v1/driving/'
+            '$originLng,$originLat;$destLng,$destLat',
+          ).replace(
+            queryParameters: {
+              'overview': 'full',
+              'geometries': 'polyline',
+              'steps': 'true',
+            },
+          );
+
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+
+      debugPrint('Error OSRM: ${response.statusCode}');
+    } catch (e) {
+      debugPrint('Gagal menghubungi OSRM: $e');
     }
     return null;
   }
