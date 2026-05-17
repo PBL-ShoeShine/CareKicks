@@ -38,7 +38,7 @@ class _AntreanScreenState extends State<AntreanScreen>
     _loadData();
   }
 
-    Future<void> _loadData() async {
+  Future<void> _loadData() async {
     await _controller.fetchAntrean(_tabs[_currentTab]['status']!);
   }
 
@@ -256,16 +256,22 @@ class _AntreanScreenState extends State<AntreanScreen>
                       : _placeholder(),
                 ),
                 const SizedBox(width: 12),
-                // Info
+                // Info — FIX OVERFLOW DI SINI
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Text('#${antrean.kodeOrder}',
+                          Expanded(
+                            child: Text(
+                              '#${antrean.kodeOrder}',
                               style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 15)),
+                                  fontWeight: FontWeight.bold, fontSize: 15),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -291,6 +297,8 @@ class _AntreanScreenState extends State<AntreanScreen>
                             : '-',
                         style: TextStyle(
                             fontSize: 13, color: Colors.grey.shade700),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                       const SizedBox(height: 2),
                       Row(

@@ -1,22 +1,19 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/network/api_service.dart';
 import '../models/manajemen_staff.model.dart';
 
-class ManajemenStaffController {
-  final String _base = '${ApiService.baseUrl}/admin/manajemen_staff';
+class ManajemenStaffService {
+  static final String _base = '${ApiService.baseUrl}/admin/manajemen_staff';
 
-  // Ganti dengan token dari login (nanti disambungkan ke shared_preferences)
-  final String token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Miwicm9sZSI6InNob3BzX2FkbWluIiwiaWF0IjoxNzc4NTE1NDk2LCJleHAiOjE3NzkxMjAyOTZ9.WpRu7dujxVQPFUzLI18QIqXiEqByAFmuF9orj9VRuMo';
-
-  Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer $token',
-  };
+  static Map<String, String> _headers(String token) => {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
 
   // 1. Ambil semua staff
-  Future<List<ManajemenStaffModel>> getAllStaff({String? search}) async {
+  static Future<List<ManajemenStaffModel>> getAllStaff(
+      String token, {String? search}) async {
     try {
       final uri = Uri.parse(_base).replace(
         queryParameters: search != null && search.isNotEmpty
@@ -24,7 +21,7 @@ class ManajemenStaffController {
             : null,
       );
 
-      final response = await http.get(uri, headers: _headers);
+      final response = await http.get(uri, headers: _headers(token));
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
@@ -38,7 +35,8 @@ class ManajemenStaffController {
   }
 
   // 2. Tambah staff baru
-  Future<void> createStaff({
+  static Future<void> createStaff({
+    required String token,
     required String nama,
     required String email,
     required String noHp,
@@ -48,7 +46,7 @@ class ManajemenStaffController {
     try {
       final response = await http.post(
         Uri.parse('$_base/register'),
-        headers: _headers,
+        headers: _headers(token),
         body: jsonEncode({
           'nama': nama,
           'email': email,
@@ -68,11 +66,12 @@ class ManajemenStaffController {
   }
 
   // 3. Update staff
-  Future<void> updateStaff(String id, Map<String, dynamic> updateData) async {
+  static Future<void> updateStaff(
+      String token, String id, Map<String, dynamic> updateData) async {
     try {
       final response = await http.patch(
         Uri.parse('$_base/$id'),
-        headers: _headers,
+        headers: _headers(token),
         body: jsonEncode(updateData),
       );
       final data = jsonDecode(response.body);
@@ -86,11 +85,11 @@ class ManajemenStaffController {
   }
 
   // 4. Hapus staff
-  Future<void> deleteStaff(String id) async {
+  static Future<void> deleteStaff(String token, String id) async {
     try {
       final response = await http.delete(
         Uri.parse('$_base/$id'),
-        headers: _headers,
+        headers: _headers(token),
       );
       final data = jsonDecode(response.body);
 

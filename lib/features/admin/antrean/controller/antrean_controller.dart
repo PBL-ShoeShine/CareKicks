@@ -4,9 +4,6 @@ import 'package:http/http.dart' as http;
 import '../models/antrean_model.dart';
 
 class AntreanController extends ChangeNotifier {
-  // Ganti dengan IP komputer kamu:
-  // Emulator Android  → 10.0.2.2
-  // HP fisik (WiFi)   → IP lokal komputer, misal 192.168.1.5
   static const String _baseUrl = 'http://192.168.110.217:3000/api/v1';
 
   List<AntreanModel> _antreanList = [];
@@ -23,6 +20,10 @@ class AntreanController extends ChangeNotifier {
   }
 
   Future<void> fetchAntrean(String status) async {
+    print('=== FETCH ANTREAN ===');
+    print('TOKEN: $_token');
+    print('STATUS: $status');
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -36,6 +37,9 @@ class AntreanController extends ChangeNotifier {
         },
       );
 
+      print('RESPONSE CODE: ${response.statusCode}');
+      print('RESPONSE BODY: ${response.body}');
+
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
         final List data = json['data'] ?? [];
@@ -44,6 +48,7 @@ class AntreanController extends ChangeNotifier {
         _errorMessage = 'Gagal mengambil data antrean';
       }
     } catch (e) {
+      print('ERROR: $e');
       _errorMessage = 'Tidak dapat terhubung ke server';
     }
 
