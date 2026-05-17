@@ -5,7 +5,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.0.2:3000/api/v1';
+  static const String baseUrl = 'http://192.168.18.164:3000/api/v1';
 
   static Future<Map<String, dynamic>?> cekSepatu(String qrCode) async {
     try {
