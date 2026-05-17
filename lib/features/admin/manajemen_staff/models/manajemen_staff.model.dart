@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 enum StaffRole { WASHER, COURIER }
+
 enum StaffStatus { aktif, sedang_tugas, cuti, non_aktif }
 
 class ManajemenStaffModel {
@@ -24,7 +25,7 @@ class ManajemenStaffModel {
 
   factory ManajemenStaffModel.fromJson(Map<String, dynamic> json) {
     final profile = json['staff_profile'] ?? json;
-    
+
     // Parsing Role dari Text[] (Array) Supabase
     List<StaffRole> parsedRoles = [];
     if (profile['role'] != null && profile['role'] is List) {
@@ -35,8 +36,13 @@ class ManajemenStaffModel {
           parsedRoles.add(StaffRole.WASHER);
         }
       }
-    } else if (profile['role'] is String) { // Fallback jika masih string biasa
-       parsedRoles = [profile['role'].toString().toUpperCase() == 'COURIER' ? StaffRole.COURIER : StaffRole.WASHER];
+    } else if (profile['role'] is String) {
+      // Fallback jika masih string biasa
+      parsedRoles = [
+        profile['role'].toString().toUpperCase() == 'COURIER'
+            ? StaffRole.COURIER
+            : StaffRole.WASHER,
+      ];
     }
 
     // Pastikan minimal ada 1 role jika kosong
@@ -57,29 +63,41 @@ class ManajemenStaffModel {
     if (s == null) return StaffStatus.aktif;
     switch (s.toUpperCase()) {
       case 'SEDANG TUGAS':
-      case 'SEDANG_TUGAS': return StaffStatus.sedang_tugas;
-      case 'CUTI':         return StaffStatus.cuti;
+      case 'SEDANG_TUGAS':
+        return StaffStatus.sedang_tugas;
+      case 'CUTI':
+        return StaffStatus.cuti;
       case 'NON AKTIF':
-      case 'NON_AKTIF':    return StaffStatus.non_aktif;
-      default:             return StaffStatus.aktif;
+      case 'NON_AKTIF':
+        return StaffStatus.non_aktif;
+      default:
+        return StaffStatus.aktif;
     }
   }
 
   String get statusLabel {
     switch (status) {
-      case StaffStatus.aktif:        return 'AKTIF';
-      case StaffStatus.sedang_tugas: return 'SEDANG TUGAS';
-      case StaffStatus.cuti:         return 'CUTI';
-      case StaffStatus.non_aktif:    return 'NON AKTIF';
+      case StaffStatus.aktif:
+        return 'AKTIF';
+      case StaffStatus.sedang_tugas:
+        return 'SEDANG TUGAS';
+      case StaffStatus.cuti:
+        return 'CUTI';
+      case StaffStatus.non_aktif:
+        return 'NON AKTIF';
     }
   }
 
   Color get statusColor {
     switch (status) {
-      case StaffStatus.aktif:        return const Color(0xFF2ECC71);
-      case StaffStatus.sedang_tugas: return const Color(0xFFFF9F43);
-      case StaffStatus.cuti:         return const Color(0xFF95A5A6);
-      case StaffStatus.non_aktif:    return const Color(0xFFE74C3C);
+      case StaffStatus.aktif:
+        return const Color(0xFF2ECC71);
+      case StaffStatus.sedang_tugas:
+        return const Color(0xFFFF9F43);
+      case StaffStatus.cuti:
+        return const Color(0xFF95A5A6);
+      case StaffStatus.non_aktif:
+        return const Color(0xFFE74C3C);
     }
   }
 }

@@ -1,11 +1,10 @@
 import 'dart:convert';
+import 'package:carekicks/core/network/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../models/antrean_model.dart';
 
 class AntreanController extends ChangeNotifier {
-  static const String _baseUrl = 'http://192.168.18.164:3000/api/v1';
-
   List<AntreanModel> _antreanList = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -30,7 +29,7 @@ class AntreanController extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/admin/antrean?status=$status'),
+        Uri.parse('${ApiService.baseUrl}/admin/antrean?status=$status'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_token',
@@ -49,7 +48,7 @@ class AntreanController extends ChangeNotifier {
       }
     } catch (e) {
       print('ERROR: $e');
-      _errorMessage = 'Tidak dapat terhubung ke server 1';
+      _errorMessage = 'Tidak dapat terhubung ke server';
     }
 
     _isLoading = false;
@@ -59,13 +58,14 @@ class AntreanController extends ChangeNotifier {
   Future<bool> updateStatus(int idOrder, String status) async {
     try {
       final response = await http.patch(
-        Uri.parse('$_baseUrl/admin/antrean/$idOrder/status'),
+        Uri.parse('${ApiService.baseUrl}/admin/antrean/$idOrder/status'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_token',
         },
         body: jsonEncode({'status': status}),
       );
+
       return response.statusCode == 200;
     } catch (e) {
       return false;

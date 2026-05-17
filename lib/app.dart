@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Poppins',
       ),
       // GANTI home-nya sementara untuk testing:
-      home: AntreanScreen(token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Miwicm9sZSI6InNob3BzX2FkbWluIiwiaWF0IjoxNzc4NDIwNjA0LCJleHAiOjE3NzkwMjU0MDR9.4y9cykPKhvbk1z2REyeP4OfryuPBQ7WY4i-DQejxXBM'),
+      home: const SplashScreen(),
     );
   }
 }

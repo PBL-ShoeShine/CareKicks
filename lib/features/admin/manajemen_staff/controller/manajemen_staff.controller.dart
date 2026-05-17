@@ -54,7 +54,9 @@ class ManajemenStaffController {
           'email': email,
           'no_hp': noHp,
           'id_shops': int.tryParse(idShops) ?? idShops,
-          'role': roles.map((e) => e.name).toList(), // Kirim sebagai array string
+          'role': roles
+              .map((e) => e.name)
+              .toList(), // Kirim sebagai array string
           'password': password,
         }),
       );
