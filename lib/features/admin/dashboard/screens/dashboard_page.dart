@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/custom_scaffold.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../history/screens/history_page.dart';
 import '../../input_off/screens/input_off_page.dart';
@@ -18,7 +19,6 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   late DashboardController _dashboardController;
-  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -42,21 +42,16 @@ class _DashboardPageState extends State<DashboardPage> {
     return 'Rp $formatter';
   }
 
-  // ── TAMBAHAN: method untuk memilih halaman sesuai tab ──
-  Widget _buildBody() {
-    switch (_selectedIndex) {
-      case 1:
-        return AntreanScreen(token: widget.token);
-      case 2:
-        return const Center(child: Text('Pemindai'));
-      case 3:
-        return const Center(child: Text('Inventaris'));
-      case 4:
-        return const Center(child: Text('Logistik'));
-      default:
-        return _buildDashboardContent();
-    }
-  }
+  @override
+  Widget build(BuildContext context) {
+    return CustomScaffold(
+      backgroundColor: const Color(0xFFEFEFEF),
+      body: ListenableBuilder(
+        listenable: _dashboardController,
+        builder: (context, child) {
+          if (_dashboardController.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
   // ── TAMBAHAN: pindahkan isi body lama ke sini ──
   Widget _buildDashboardContent() {
@@ -362,15 +357,18 @@ class _DashboardPageState extends State<DashboardPage> {
                               fontSize: 12,
                               color: Colors.white70,
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          ElevatedButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(Icons.camera_alt),
-                            label: const Text('Buka Kamera'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: AppColors.primaryDark,
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                // You might want to switch to the Scanner tab here
+                                // For now, we keep it as is or could use a callback
+                              },
+                              icon: const Icon(Icons.camera_alt),
+                              label: const Text('Buka Kamera'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: AppColors.primaryDark,
+                              ),
                             ),
                           ),
                         ],
@@ -561,45 +559,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     const SizedBox(height: 30),
                   ],
                 ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFEFEFEF),
-      body: _buildBody(), // ── DIUBAH: pakai _buildBody() ──
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primaryBlue,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+              ],
+            ),
+          );
         },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.queue), label: 'Antrean'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_scanner),
-            label: 'Pemindai',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory),
-            label: 'Inventaris',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.local_shipping),
-            label: 'Logistik',
-          ),
-        ],
       ),
     );
   }

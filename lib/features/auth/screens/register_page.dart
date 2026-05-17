@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/custom_scaffold.dart';
 import '../controller/auth_controller.dart';
 import 'login_page.dart';
-import '../../admin/dashboard/screens/dashboard_page.dart';
+import '../../admin/admin_main_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -79,7 +80,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => DashboardPage(
+          builder: (_) => AdminMainPage(
             token: _authController.token ?? '',
             user: _authController.user ?? {},
           ),
@@ -94,7 +95,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CustomScaffold(
+      useSafeArea: false,
       backgroundColor: const Color(0xFFEFEFEF),
       body: ListenableBuilder(
         listenable: _authController,
@@ -197,7 +199,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   ),
                                 )
                               : const Text(
-                                  "Sign in",
+                                  "Sign up",
                                   style: TextStyle(color: Colors.white),
                                 ),
                         ),

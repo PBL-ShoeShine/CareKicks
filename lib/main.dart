@@ -1,10 +1,6 @@
 import 'package:carekicks/features/auth/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'modules/admin/pemindai/view/pemindai_view.dart';
-import 'features/admin/antrean/models/antrean_model.dart';
-import 'features/admin/manajemen_staff/models/manajemen_staff.model.dart';
-import 'app.dart';
 
 void main() {
   // Pakai yang ini karena ada pengecekan binding-nya (lebih aman)
@@ -30,7 +26,7 @@ class CareKicksApp extends StatelessWidget {
         textTheme: GoogleFonts.interTextTheme(base.textTheme),
         scaffoldBackgroundColor: const Color(0xFFF7F8FA),
       ),
-      home: SplashScreen(),
+      home: const SplashScreen(),
     );
   }
 }

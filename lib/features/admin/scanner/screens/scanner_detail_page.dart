@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/custom_scaffold.dart';
 
 const _brand = Color(0xFF1FB6C1);
 
-class DetailPemindaiView extends StatelessWidget {
+class ScannerDetailPage extends StatelessWidget {
   // Variabel untuk menangkap data lemparan dari halaman scanner
   final Map<String, dynamic> dataOrder;
 
-  const DetailPemindaiView({super.key, required this.dataOrder});
+  const ScannerDetailPage({super.key, required this.dataOrder});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +21,7 @@ class DetailPemindaiView extends StatelessWidget {
     // Karena detail_orders adalah array/list, kita sediakan default list kosong
     final details = dataOrder['detail_orders'] as List? ?? [];
 
-    return Scaffold(
+    return CustomScaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text(

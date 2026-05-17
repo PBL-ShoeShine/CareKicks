@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/widgets/custom_scaffold.dart';
 import '../../../core/constants/app_colors.dart';
 import 'login_page.dart';
 
@@ -27,7 +28,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CustomScaffold(
+      useSafeArea: false,
       backgroundColor: AppColors.primaryDark,
       body: Center(
         child: Column(
