@@ -3,8 +3,13 @@ import '../controller/manajemen_staff.controller.dart';
 import '../models/manajemen_staff.model.dart';
 
 class ManajemenStaffFormScreen extends StatefulWidget {
+  final String token;
   final ManajemenStaffModel? existingStaff;
-  const ManajemenStaffFormScreen({super.key, this.existingStaff});
+  const ManajemenStaffFormScreen({
+    super.key,
+    required this.token,
+    this.existingStaff,
+  });
 
   @override
   State<ManajemenStaffFormScreen> createState() =>
@@ -13,28 +18,35 @@ class ManajemenStaffFormScreen extends StatefulWidget {
 
 class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final ManajemenStaffController _controller = ManajemenStaffController();
+  late ManajemenStaffController _controller;
 
-  final _namaController    = TextEditingController();
-  final _emailController   = TextEditingController();
-  final _noHpController    = TextEditingController();
+  final _namaController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _noHpController = TextEditingController();
   final _idShopsController = TextEditingController();
+  final _passwordController = TextEditingController(); // Tambahan password
 
   bool _isLoading = false;
-  StaffRole _selectedRole = StaffRole.WASHER;
+  bool _obscurePassword = true;
+
+  // Ubah menjadi list untuk multi-select
+  List<StaffRole> _selectedRoles = [StaffRole.WASHER];
+  StaffStatus _selectedStatus = StaffStatus.aktif;
 
   bool get _isEditMode => widget.existingStaff != null;
 
   @override
   void initState() {
     super.initState();
+    _controller = ManajemenStaffController(token: widget.token);
     if (_isEditMode) {
       final s = widget.existingStaff!;
-      _namaController.text    = s.nama;
-      _emailController.text   = s.email;
-      _noHpController.text    = s.noHp;
+      _namaController.text = s.nama;
+      _emailController.text = s.email;
+      _noHpController.text = s.noHp;
       _idShopsController.text = s.idShops;
-      _selectedRole           = s.role;
+      _selectedRoles = List.from(s.roles); // Salin role yang sudah ada
+      _selectedStatus = s.status;
     }
   }
 
@@ -44,7 +56,26 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
     _emailController.dispose();
     _noHpController.dispose();
     _idShopsController.dispose();
+    _passwordController.dispose();
     super.dispose();
+  }
+
+  void _toggleRole(StaffRole role) {
+    setState(() {
+      if (_selectedRoles.contains(role)) {
+        if (_selectedRoles.length > 1) {
+          _selectedRoles.remove(role);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Karyawan minimal harus memiliki 1 peran (role)'),
+            ),
+          );
+        }
+      } else {
+        _selectedRoles.add(role);
+      }
+    });
   }
 
   Future<void> _submit() async {
@@ -54,38 +85,89 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
     try {
       if (_isEditMode) {
         await _controller.updateStaff(widget.existingStaff!.id, {
-          'nama':     _namaController.text.trim(),
-          'email':    _emailController.text.trim(),
-          'no_hp':    _noHpController.text.trim(),
+          'nama': _namaController.text.trim(),
+          'email': _emailController.text.trim(),
+          'no_hp': _noHpController.text.trim(),
           'id_shops': int.tryParse(_idShopsController.text.trim()),
-          'role':     _selectedRole.name,
+          'role': _selectedRoles
+              .map((e) => e.name)
+              .toList(), // Kirim sebagai Array
+          'status': _selectedStatus.name.toUpperCase(), // Kirim status
         });
       } else {
         await _controller.createStaff(
-          nama:    _namaController.text.trim(),
-          email:   _emailController.text.trim(),
-          noHp:    _noHpController.text.trim(),
+          nama: _namaController.text.trim(),
+          email: _emailController.text.trim(),
+          noHp: _noHpController.text.trim(),
           idShops: _idShopsController.text.trim(),
-          role:    _selectedRole,
+          roles: _selectedRoles,
+          password: _passwordController.text.trim(),
         );
       }
 
       if (mounted) {
-        Navigator.pop(context, true);
+        Navigator.pop(
+          context,
+          true,
+        ); // True berarti butuh refresh di halaman depan
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isEditMode
-              ? 'Data staff berhasil diperbarui'
-              : 'Akun staff berhasil dibuat'),
+            content: Text(
+              _isEditMode
+                  ? 'Data staff berhasil diperbarui'
+                  : 'Akun staff berhasil dibuat',
+            ),
           ),
         );
       }
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal: $e')));
+      }
+    }
+  }
+
+  // Fungsi Hapus yang dipindah ke halaman Edit
+  Future<void> _deleteStaff() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Staff'),
+        content: Text('Yakin ingin menghapus ${widget.existingStaff!.nama}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        await _controller.deleteStaff(widget.existingStaff!.id);
+        if (mounted) {
+          Navigator.pop(context, true); // Kembali dan refresh
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Staff berhasil dihapus')),
+          );
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Gagal menghapus: $e')));
+        }
       }
     }
   }
@@ -95,17 +177,19 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: _isEditMode
-        ? AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            leading: const BackButton(color: Color(0xFF1A1A2E)),
-            title: const Text('Edit Karyawan',
-              style: TextStyle(
-                color: Color(0xFF1A1A2E),
-                fontWeight: FontWeight.w600,
-              )),
-          )
-        : null,
+          ? AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              leading: const BackButton(color: Color(0xFF1A1A2E)),
+              title: const Text(
+                'Edit Karyawan',
+                style: TextStyle(
+                  color: Color(0xFF1A1A2E),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -114,12 +198,12 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header (mode tambah)
                 if (!_isEditMode) ...[
                   const SizedBox(height: 16),
                   Center(
                     child: Container(
-                      width: 40, height: 4,
+                      width: 40,
+                      height: 4,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(2),
@@ -128,12 +212,14 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
                   ),
                   const SizedBox(height: 24),
                   const Center(
-                    child: Text('Daftarkan Staf Baru',
+                    child: Text(
+                      'Daftarkan Staf Baru',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1A1A2E),
-                      )),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 6),
                   const Center(
@@ -147,77 +233,144 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
                 ] else
                   const SizedBox(height: 16),
 
-                // Nama
+                // Hanya muncul di Edit Mode
+                if (_isEditMode) ...[
+                  _label('Status Karyawan'),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F8FA),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<StaffStatus>(
+                        value: _selectedStatus,
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(
+                            value: StaffStatus.aktif,
+                            child: Text('Aktif'),
+                          ),
+                          DropdownMenuItem(
+                            value: StaffStatus.cuti,
+                            child: Text('Cuti'),
+                          ),
+                          DropdownMenuItem(
+                            value: StaffStatus.sedang_tugas,
+                            child: Text('Sedang Tugas'),
+                          ),
+                          DropdownMenuItem(
+                            value: StaffStatus.non_aktif,
+                            child: Text('Non Aktif / Resign'),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null)
+                            setState(() => _selectedStatus = val);
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
                 _label('Nama Lengkap'),
                 _buildField(
                   controller: _namaController,
                   hint: 'Contoh: Budi Santoso',
                   validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Nama wajib diisi' : null,
+                      ? 'Nama wajib diisi'
+                      : null,
                 ),
                 const SizedBox(height: 20),
 
-                // Email
                 _label('Email'),
                 _buildField(
                   controller: _emailController,
                   hint: 'budi@shoecare.pro',
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Email wajib diisi';
+                    if (v == null || v.trim().isEmpty)
+                      return 'Email wajib diisi';
                     if (!v.contains('@')) return 'Format email tidak valid';
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                // No HP
                 _label('No. HP'),
                 _buildField(
                   controller: _noHpController,
                   hint: '08xxxxxxxxxx',
                   keyboardType: TextInputType.phone,
                   validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'No HP wajib diisi' : null,
+                      ? 'No HP wajib diisi'
+                      : null,
                 ),
                 const SizedBox(height: 20),
 
-                // ID Shops
                 _label('ID Toko'),
                 _buildField(
                   controller: _idShopsController,
                   hint: 'Contoh: 1',
                   keyboardType: TextInputType.number,
                   validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'ID Toko wajib diisi' : null,
+                      ? 'ID Toko wajib diisi'
+                      : null,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
-                // Role
-                _label('Pilih Role Staf'),
+                // Kata Sandi hanya wajib saat buat akun baru
+                if (!_isEditMode) ...[
+                  _label('Kata Sandi'),
+                  _buildField(
+                    controller: _passwordController,
+                    hint: 'Masukkan kata sandi',
+                    obscureText: _obscurePassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Kata sandi wajib diisi'
+                        : null,
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                _label('Pilih Role Staf (Bisa Pilih Lebih Dari Satu)'),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
                       child: _RoleButton(
                         role: StaffRole.WASHER,
-                        isSelected: _selectedRole == StaffRole.WASHER,
-                        onTap: () => setState(() => _selectedRole = StaffRole.WASHER),
+                        isSelected: _selectedRoles.contains(StaffRole.WASHER),
+                        onTap: () => _toggleRole(StaffRole.WASHER),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _RoleButton(
                         role: StaffRole.COURIER,
-                        isSelected: _selectedRole == StaffRole.COURIER,
-                        onTap: () => setState(() => _selectedRole = StaffRole.COURIER),
+                        isSelected: _selectedRoles.contains(StaffRole.COURIER),
+                        onTap: () => _toggleRole(StaffRole.COURIER),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 36),
 
-                // Tombol submit
                 SizedBox(
                   width: double.infinity,
                   height: 54,
@@ -231,29 +384,69 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
                       elevation: 0,
                     ),
                     child: _isLoading
-                      ? const SizedBox(
-                          width: 22, height: 22,
-                          child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2.5),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _isEditMode ? 'Simpan Perubahan' : 'Buat Akun Staf',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
                             ),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.person_add_outlined,
-                              color: Colors.white, size: 18),
-                          ],
-                        ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _isEditMode
+                                    ? 'Simpan Perubahan'
+                                    : 'Buat Akun Staf',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                _isEditMode
+                                    ? Icons.save
+                                    : Icons.person_add_outlined,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ],
+                          ),
                   ),
                 ),
+
+                // Tombol Hapus hanya muncul di mode Edit
+                if (_isEditMode) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: OutlinedButton(
+                      onPressed: _isLoading ? null : _deleteStaff,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Hapus Karyawan',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.delete_outline, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
               ],
             ),
@@ -265,23 +458,28 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
 
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
-    child: Text(text,
+    child: Text(
+      text,
       style: const TextStyle(
         fontWeight: FontWeight.w600,
         fontSize: 13,
         color: Color(0xFF1A1A2E),
-      )),
+      ),
+    ),
   );
 
   Widget _buildField({
     required TextEditingController controller,
     required String hint,
+    bool obscureText = false,
+    Widget? suffixIcon,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      obscureText: obscureText,
       validator: validator,
       style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A2E)),
       decoration: InputDecoration(
@@ -289,6 +487,7 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
         hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
         filled: true,
         fillColor: const Color(0xFFF7F8FA),
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
@@ -305,7 +504,10 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -325,8 +527,8 @@ class _RoleButton extends StatelessWidget {
   });
 
   Color get _color => role == StaffRole.WASHER
-    ? const Color(0xFF5C6BC0)
-    : const Color(0xFF27AE60);
+      ? const Color(0xFF5C6BC0)
+      : const Color(0xFF27AE60);
 
   @override
   Widget build(BuildContext context) {
@@ -336,7 +538,9 @@ class _RoleButton extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          color: isSelected ? _color.withOpacity(0.08) : const Color(0xFFF7F8FA),
+          color: isSelected
+              ? _color.withOpacity(0.08)
+              : const Color(0xFFF7F8FA),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? _color : const Color(0xFFE0E0E0),
@@ -348,8 +552,8 @@ class _RoleButton extends StatelessWidget {
           children: [
             Icon(
               role == StaffRole.WASHER
-                ? Icons.local_laundry_service_outlined
-                : Icons.local_shipping_outlined,
+                  ? Icons.local_laundry_service_outlined
+                  : Icons.local_shipping_outlined,
               color: isSelected ? _color : Colors.grey,
               size: 28,
             ),

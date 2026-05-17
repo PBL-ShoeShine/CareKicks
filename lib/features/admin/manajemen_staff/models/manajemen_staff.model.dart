@@ -9,7 +9,7 @@ class ManajemenStaffModel {
   final String email;
   final String noHp;
   final String idShops;
-  final StaffRole role;
+  final List<StaffRole> roles; // Diubah menjadi List untuk multi-role
   final StaffStatus status;
 
   ManajemenStaffModel({
@@ -18,28 +18,49 @@ class ManajemenStaffModel {
     required this.email,
     required this.noHp,
     required this.idShops,
-    required this.role,
+    required this.roles,
     required this.status,
   });
 
   factory ManajemenStaffModel.fromJson(Map<String, dynamic> json) {
     final profile = json['staff_profile'] ?? json;
+    
+    // Parsing Role dari Text[] (Array) Supabase
+    List<StaffRole> parsedRoles = [];
+    if (profile['role'] != null && profile['role'] is List) {
+      for (var r in profile['role']) {
+        if (r.toString().toUpperCase() == 'COURIER') {
+          parsedRoles.add(StaffRole.COURIER);
+        } else {
+          parsedRoles.add(StaffRole.WASHER);
+        }
+      }
+    } else if (profile['role'] is String) { // Fallback jika masih string biasa
+       parsedRoles = [profile['role'].toString().toUpperCase() == 'COURIER' ? StaffRole.COURIER : StaffRole.WASHER];
+    }
+
+    // Pastikan minimal ada 1 role jika kosong
+    if (parsedRoles.isEmpty) parsedRoles = [StaffRole.WASHER];
+
     return ManajemenStaffModel(
       id: (json['id_staff_profile'] ?? json['id'] ?? '').toString(),
       nama: profile['nama'] ?? '',
       email: profile['email'] ?? '',
       noHp: profile['no_hp'] ?? '',
       idShops: (profile['id_shops'] ?? '').toString(),
-      role: profile['role'] == 'COURIER' ? StaffRole.COURIER : StaffRole.WASHER,
+      roles: parsedRoles.toSet().toList(), // toSet agar tidak ada duplikat
       status: _parseStatus(profile['status']),
     );
   }
 
   static StaffStatus _parseStatus(String? s) {
-    switch (s) {
-      case 'sedang_tugas': return StaffStatus.sedang_tugas;
-      case 'cuti':         return StaffStatus.cuti;
-      case 'non_aktif':    return StaffStatus.non_aktif;
+    if (s == null) return StaffStatus.aktif;
+    switch (s.toUpperCase()) {
+      case 'SEDANG TUGAS':
+      case 'SEDANG_TUGAS': return StaffStatus.sedang_tugas;
+      case 'CUTI':         return StaffStatus.cuti;
+      case 'NON AKTIF':
+      case 'NON_AKTIF':    return StaffStatus.non_aktif;
       default:             return StaffStatus.aktif;
     }
   }

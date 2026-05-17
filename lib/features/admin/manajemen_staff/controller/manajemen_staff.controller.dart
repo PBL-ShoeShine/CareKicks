@@ -1,14 +1,13 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../../../../core/network/api_service.dart';
+import '../../../../core/network/api_service.dart'; // Sesuaikan path jika error
 import '../models/manajemen_staff.model.dart';
 
 class ManajemenStaffController {
   final String _base = '${ApiService.baseUrl}/admin/manajemen_staff';
+  final String token;
 
-  // Ganti dengan token dari login (nanti disambungkan ke shared_preferences)
-  final String token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Miwicm9sZSI6InNob3BzX2FkbWluIiwiaWF0IjoxNzc4NTE1NDk2LCJleHAiOjE3NzkxMjAyOTZ9.WpRu7dujxVQPFUzLI18QIqXiEqByAFmuF9orj9VRuMo';
+  ManajemenStaffController({required this.token});
 
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
@@ -37,13 +36,14 @@ class ManajemenStaffController {
     }
   }
 
-  // 2. Tambah staff baru
+  // 2. Tambah staff baru (ada password)
   Future<void> createStaff({
     required String nama,
     required String email,
     required String noHp,
     required String idShops,
-    required StaffRole role,
+    required List<StaffRole> roles,
+    required String password,
   }) async {
     try {
       final response = await http.post(
@@ -54,7 +54,8 @@ class ManajemenStaffController {
           'email': email,
           'no_hp': noHp,
           'id_shops': int.tryParse(idShops) ?? idShops,
-          'role': role.name,
+          'role': roles.map((e) => e.name).toList(), // Kirim sebagai array string
+          'password': password,
         }),
       );
       final data = jsonDecode(response.body);
@@ -67,7 +68,7 @@ class ManajemenStaffController {
     }
   }
 
-  // 3. Update staff
+  // 3. Update staff (bisa update status dan role array)
   Future<void> updateStaff(String id, Map<String, dynamic> updateData) async {
     try {
       final response = await http.patch(

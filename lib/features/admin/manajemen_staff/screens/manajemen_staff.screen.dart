@@ -4,26 +4,31 @@ import '../models/manajemen_staff.model.dart';
 import 'manajemen_staff_form.screen.dart';
 
 class ManajemenStaffScreen extends StatefulWidget {
-  const ManajemenStaffScreen({super.key});
+  final String token;
+  const ManajemenStaffScreen({super.key, required this.token});
 
   @override
   State<ManajemenStaffScreen> createState() => _ManajemenStaffScreenState();
 }
 
 class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
-  final ManajemenStaffController _controller = ManajemenStaffController();
+  late ManajemenStaffController _controller;
   final TextEditingController _searchController = TextEditingController();
 
   List<ManajemenStaffModel> _allStaff = [];
   List<ManajemenStaffModel> _filteredStaff = [];
   bool _isLoading = true;
   String? _errorMessage;
+  
+  // State untuk filter
+  List<StaffRole> _activeFilterRoles = [];
 
   @override
   void initState() {
     super.initState();
+    _controller = ManajemenStaffController(token: widget.token);
     _loadStaff();
-    _searchController.addListener(_onSearch);
+    _searchController.addListener(_applySearchAndFilter);
   }
 
   @override
@@ -38,7 +43,7 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
       final staff = await _controller.getAllStaff();
       setState(() {
         _allStaff = staff;
-        _filteredStaff = staff;
+        _applySearchAndFilter(); // Terapkan filter saat data masuk
         _isLoading = false;
       });
     } catch (e) {
@@ -46,60 +51,103 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
     }
   }
 
-  void _onSearch() {
+  void _applySearchAndFilter() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredStaff = _allStaff.where((s) =>
-        s.nama.toLowerCase().contains(query) ||
-        s.email.toLowerCase().contains(query)
-      ).toList();
+      _filteredStaff = _allStaff.where((s) {
+        // 1. Pencarian berdasarkan nama, email ATAU role
+        final matchSearch = s.nama.toLowerCase().contains(query) ||
+            s.email.toLowerCase().contains(query) ||
+            s.roles.any((r) => r.name.toLowerCase().contains(query));
+
+        // 2. Pencarian berdasarkan filter role (Bottom Sheet)
+        final matchFilter = _activeFilterRoles.isEmpty || 
+            s.roles.any((r) => _activeFilterRoles.contains(r));
+
+        return matchSearch && matchFilter;
+      }).toList();
     });
   }
 
-  Future<void> _deleteStaff(ManajemenStaffModel staff) async {
-    final confirm = await showDialog<bool>(
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Staff'),
-        content: Text('Yakin ingin menghapus ${staff.nama}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Hapus'),
-          ),
-        ],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Filter Berdasarkan Role', 
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  CheckboxListTile(
+                    title: const Text('Washer'),
+                    value: _activeFilterRoles.contains(StaffRole.WASHER),
+                    activeColor: const Color(0xFF1A1A2E),
+                    onChanged: (bool? value) {
+                      setModalState(() {
+                        if (value == true) {
+                          _activeFilterRoles.add(StaffRole.WASHER);
+                        } else {
+                          _activeFilterRoles.remove(StaffRole.WASHER);
+                        }
+                      });
+                    },
+                  ),
+                  CheckboxListTile(
+                    title: const Text('Courier'),
+                    value: _activeFilterRoles.contains(StaffRole.COURIER),
+                    activeColor: const Color(0xFF1A1A2E),
+                    onChanged: (bool? value) {
+                      setModalState(() {
+                        if (value == true) {
+                          _activeFilterRoles.add(StaffRole.COURIER);
+                        } else {
+                          _activeFilterRoles.remove(StaffRole.COURIER);
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A1A2E),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        _applySearchAndFilter();
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Terapkan Filter', style: TextStyle(color: Colors.white)),
+                    ),
+                  )
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
-
-    if (confirm == true) {
-      try {
-        await _controller.deleteStaff(staff.id);
-        _loadStaff();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Staff berhasil dihapus')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal menghapus: $e')),
-          );
-        }
-      }
-    }
   }
 
   void _goToForm({ManajemenStaffModel? staff}) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ManajemenStaffFormScreen(existingStaff: staff),
+        builder: (_) => ManajemenStaffFormScreen(
+          token: widget.token,
+          existingStaff: staff,
+        ),
       ),
     );
     if (result == true) _loadStaff();
@@ -139,7 +187,7 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
                     child: TextField(
                       controller: _searchController,
                       decoration: const InputDecoration(
-                        hintText: 'Cari staf...',
+                        hintText: 'Cari staf atau role...',
                         hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
                         prefixIcon: Icon(Icons.search, color: Colors.grey, size: 20),
                         border: InputBorder.none,
@@ -149,13 +197,20 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F0F0),
-                    borderRadius: BorderRadius.circular(12),
+                GestureDetector(
+                  onTap: _showFilterBottomSheet,
+                  child: Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      color: _activeFilterRoles.isNotEmpty 
+                          ? const Color(0xFF1A1A2E) 
+                          : const Color(0xFFF0F0F0),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.tune, 
+                      color: _activeFilterRoles.isNotEmpty ? Colors.white : Colors.grey, 
+                      size: 20),
                   ),
-                  child: const Icon(Icons.tune, color: Colors.grey, size: 20),
                 ),
               ],
             ),
@@ -190,8 +245,7 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
                         itemBuilder: (context, index) {
                           return _StaffCard(
                             staff: _filteredStaff[index],
-                            onEdit: () => _goToForm(staff: _filteredStaff[index]),
-                            onDelete: () => _deleteStaff(_filteredStaff[index]),
+                            onTap: () => _goToForm(staff: _filteredStaff[index]), // Klik langsung ke form edit
                           );
                         },
                       ),
@@ -213,41 +267,17 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
 
 class _StaffCard extends StatelessWidget {
   final ManajemenStaffModel staff;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback onTap;
 
   const _StaffCard({
     required this.staff,
-    required this.onEdit,
-    required this.onDelete,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onLongPress: () {
-        showModalBottomSheet(
-          context: context,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          builder: (_) => Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit Staff'),
-                onTap: () { Navigator.pop(context); onEdit(); },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text('Hapus Staff',
-                  style: TextStyle(color: Colors.red)),
-                onTap: () { Navigator.pop(context); onDelete(); },
-              ),
-            ],
-          ),
-        );
-      },
+      onTap: onTap, // Opsi 2: Klik masuk ke halaman edit
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
@@ -264,7 +294,6 @@ class _StaffCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Avatar
             CircleAvatar(
               radius: 28,
               backgroundColor: const Color(0xFFEEF2FF),
@@ -278,7 +307,6 @@ class _StaffCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,7 +321,6 @@ class _StaffCard extends StatelessWidget {
                             color: Color(0xFF1A1A2E),
                           )),
                       ),
-                      // Status badge
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
@@ -316,31 +343,34 @@ class _StaffCard extends StatelessWidget {
                   Text(staff.email,
                     style: const TextStyle(color: Colors.grey, fontSize: 12)),
                   const SizedBox(height: 8),
-
-                  // Role chip
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: staff.role == StaffRole.WASHER
-                        ? const Color(0xFFEEF2FF)
-                        : const Color(0xFFE8F8F2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      staff.role.name,
-                      style: TextStyle(
-                        color: staff.role == StaffRole.WASHER
-                          ? const Color(0xFF5C6BC0)
-                          : const Color(0xFF27AE60),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
+                  
+                  // Menampilkan Multi-Role di Card
+                  Wrap(
+                    spacing: 6,
+                    children: staff.roles.map((role) {
+                      bool isWasher = role == StaffRole.WASHER;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isWasher ? const Color(0xFFEEF2FF) : const Color(0xFFE8F8F2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          role.name,
+                          style: TextStyle(
+                            color: isWasher ? const Color(0xFF5C6BC0) : const Color(0xFF27AE60),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  )
                 ],
               ),
             ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right, color: Colors.grey), // Indikator bisa diklik
           ],
         ),
       ),
