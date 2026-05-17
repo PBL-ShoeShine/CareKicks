@@ -170,7 +170,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Pesanan Aktif',
+                                  'Jumlah Pesanan',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey,
@@ -424,7 +424,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Aktivitas Terkini',
+                            'Aktivitas Selesai',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -569,10 +569,7 @@ Color _getStatusColor(String? status) {
       return Colors.blue;
     case 'selesai':
       return Colors.green;
-    case 'sedang disposses':
-      return Colors.blue;
-    case 'menunggu':
-      return Colors.grey;
+
     default:
       return Colors.grey;
   }

@@ -20,14 +20,7 @@ class _TrackingPageState extends State<TrackingPage> {
 
   String _selectedStatus = 'all';
 
-  final List<String> _statusList = [
-    'all',
-    'pending',
-    'diproses',
-    'washing',
-    'pickup',
-    'selesai',
-  ];
+  final List<String> _statusList = ['all', 'pending', 'diproses', 'selesai'];
 
   @override
   void initState() {
@@ -59,10 +52,7 @@ class _TrackingPageState extends State<TrackingPage> {
         return 'Pending';
       case 'diproses':
         return 'Diproses';
-      case 'washing':
-        return 'Washing';
-      case 'pickup':
-        return 'Pickup';
+
       case 'selesai':
         return 'Selesai';
       default:
@@ -76,10 +66,6 @@ class _TrackingPageState extends State<TrackingPage> {
         return Colors.orange;
       case 'diproses':
         return Colors.blue;
-      case 'washing':
-        return Colors.purple;
-      case 'pickup':
-        return Colors.teal;
       case 'selesai':
         return Colors.green;
       default:
