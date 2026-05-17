@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/antrean_model.dart';
 
 class AntreanController extends ChangeNotifier {
-  static const String _baseUrl = 'http://192.168.110.217:3000/api/v1';
+  static const String _baseUrl = 'http://192.168.18.164:3000/api/v1';
 
   List<AntreanModel> _antreanList = [];
   bool _isLoading = false;
@@ -49,7 +49,7 @@ class AntreanController extends ChangeNotifier {
       }
     } catch (e) {
       print('ERROR: $e');
-      _errorMessage = 'Tidak dapat terhubung ke server';
+      _errorMessage = 'Tidak dapat terhubung ke server 1';
     }
 
     _isLoading = false;

@@ -5,7 +5,8 @@ import '../models/antrean_model.dart';
 
 class AntreanScreen extends StatefulWidget {
   final String token;
-  const AntreanScreen({super.key, required this.token});
+  final Map<String, dynamic> user;
+  const AntreanScreen({super.key, required this.token, required this.user});
 
   @override
   State<AntreanScreen> createState() => _AntreanScreenState();
@@ -92,19 +93,23 @@ class _AntreanScreenState extends State<AntreanScreen>
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Bengkel Sepatu',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-              Text('Admin Toko',
-                  style:
-                      TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+              const Text(
+                'Bengkel Sepatu',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              ),
+              Text(
+                'Admin Toko',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
             ],
           ),
           const Spacer(),
           Stack(
             children: [
               IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  onPressed: () {}),
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () {},
+              ),
               const Positioned(
                 top: 10,
                 right: 10,
@@ -126,22 +131,28 @@ class _AntreanScreenState extends State<AntreanScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2)),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Manajemen Antrean',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryDark)),
+          const Text(
+            'Manajemen Antrean',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryDark,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Kelola setiap pasang sepatu dengan presisi artisan.',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+          Text(
+            'Kelola setiap pasang sepatu dengan presisi artisan.',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          ),
         ],
       ),
     );
@@ -155,8 +166,7 @@ class _AntreanScreenState extends State<AntreanScreen>
         labelColor: AppColors.primaryBlue,
         unselectedLabelColor: Colors.grey.shade500,
         indicatorColor: AppColors.primaryBlue,
-        labelStyle:
-            const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         tabs: _tabs.map((t) => Tab(text: t['label'])).toList(),
       ),
     );
@@ -168,7 +178,8 @@ class _AntreanScreenState extends State<AntreanScreen>
       builder: (context, _) {
         if (_controller.isLoading) {
           return const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryBlue));
+            child: CircularProgressIndicator(color: AppColors.primaryBlue),
+          );
         }
         if (_controller.errorMessage != null) {
           return Center(
@@ -177,15 +188,20 @@ class _AntreanScreenState extends State<AntreanScreen>
               children: [
                 Icon(Icons.wifi_off, size: 48, color: Colors.grey.shade400),
                 const SizedBox(height: 12),
-                Text(_controller.errorMessage!,
-                    style: TextStyle(color: Colors.grey.shade600)),
+                Text(
+                  _controller.errorMessage!,
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _loadData,
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue),
-                  child: const Text('Coba Lagi',
-                      style: TextStyle(color: Colors.white)),
+                    backgroundColor: AppColors.primaryBlue,
+                  ),
+                  child: const Text(
+                    'Coba Lagi',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -196,11 +212,16 @@ class _AntreanScreenState extends State<AntreanScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.inbox_outlined,
-                    size: 48, color: Colors.grey.shade400),
+                Icon(
+                  Icons.inbox_outlined,
+                  size: 48,
+                  color: Colors.grey.shade400,
+                ),
                 const SizedBox(height: 12),
-                Text('Tidak ada antrean',
-                    style: TextStyle(color: Colors.grey.shade600)),
+                Text(
+                  'Tidak ada antrean',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
               ],
             ),
           );
@@ -211,8 +232,7 @@ class _AntreanScreenState extends State<AntreanScreen>
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: _controller.antreanList.length,
-            itemBuilder: (context, i) =>
-                _buildCard(_controller.antreanList[i]),
+            itemBuilder: (context, i) => _buildCard(_controller.antreanList[i]),
           ),
         );
       },
@@ -232,9 +252,10 @@ class _AntreanScreenState extends State<AntreanScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2)),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Padding(
@@ -248,11 +269,13 @@ class _AntreanScreenState extends State<AntreanScreen>
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: detail?.fotoSebelum != null
-                      ? Image.network(detail!.fotoSebelum!,
+                      ? Image.network(
+                          detail!.fotoSebelum!,
                           width: 56,
                           height: 56,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholder())
+                          errorBuilder: (_, __, ___) => _placeholder(),
+                        )
                       : _placeholder(),
                 ),
                 const SizedBox(width: 12),
@@ -267,7 +290,9 @@ class _AntreanScreenState extends State<AntreanScreen>
                             child: Text(
                               '#${antrean.kodeOrder}',
                               style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 15),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
                             ),
@@ -275,7 +300,9 @@ class _AntreanScreenState extends State<AntreanScreen>
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: statusColor.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(8),
@@ -283,9 +310,10 @@ class _AntreanScreenState extends State<AntreanScreen>
                             child: Text(
                               antrean.statusOrder.toUpperCase(),
                               style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: statusColor),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: statusColor,
+                              ),
                             ),
                           ),
                         ],
@@ -296,20 +324,28 @@ class _AntreanScreenState extends State<AntreanScreen>
                             ? '${detail.merk} - ${detail.warna}'
                             : '-',
                         style: TextStyle(
-                            fontSize: 13, color: Colors.grey.shade700),
+                          fontSize: 13,
+                          color: Colors.grey.shade700,
+                        ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          Icon(Icons.access_time,
-                              size: 12, color: Colors.orange.shade400),
+                          Icon(
+                            Icons.access_time,
+                            size: 12,
+                            color: Colors.orange.shade400,
+                          ),
                           const SizedBox(width: 4),
-                          Text(_formatTgl(antrean.tglOrder),
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.orange.shade600)),
+                          Text(
+                            _formatTgl(antrean.tglOrder),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.orange.shade600,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -326,25 +362,35 @@ class _AntreanScreenState extends State<AntreanScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryBlue,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      icon: const Icon(Icons.play_arrow,
-                          color: Colors.white, size: 18),
-                      label: Text(btnLabel,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600)),
+                      icon: const Icon(
+                        Icons.play_arrow,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      label: Text(
+                        btnLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       onPressed: () async {
                         final ok = await _controller.updateStatus(
-                            antrean.idOrders, nextStatus);
+                          antrean.idOrders,
+                          nextStatus,
+                        );
                         if (ok && mounted) {
                           _loadData();
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('Status diubah ke $nextStatus'),
-                            backgroundColor: AppColors.successGreen,
-                          ));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Status diubah ke $nextStatus'),
+                              backgroundColor: AppColors.successGreen,
+                            ),
+                          );
                         }
                       },
                     ),
@@ -359,13 +405,19 @@ class _AntreanScreenState extends State<AntreanScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.check_circle,
-                            color: AppColors.successGreen, size: 18),
+                        Icon(
+                          Icons.check_circle,
+                          color: AppColors.successGreen,
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
-                        Text('Pesanan Selesai',
-                            style: TextStyle(
-                                color: AppColors.successGreen,
-                                fontWeight: FontWeight.w600)),
+                        Text(
+                          'Pesanan Selesai',
+                          style: TextStyle(
+                            color: AppColors.successGreen,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -380,8 +432,9 @@ class _AntreanScreenState extends State<AntreanScreen>
       width: 56,
       height: 56,
       decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(12)),
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Icon(Icons.photo_outlined, color: Colors.grey.shade400),
     );
   }
