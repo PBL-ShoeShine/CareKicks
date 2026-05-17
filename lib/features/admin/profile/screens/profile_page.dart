@@ -4,6 +4,7 @@ import '../../../../core/widgets/custom_scaffold.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../controller/profile_controller.dart';
 import '../../m_layanan/screens/m_layanan_page.dart';
+import '../../manajemen_staff/screens/manajemen_staff.screen.dart';
 
 class ProfilePage extends StatefulWidget {
   final String token;
@@ -347,12 +348,20 @@ class _ProfilePageState extends State<ProfilePage> {
                         },
                       ),
                       const SizedBox(height: 12),
+                      // ── DISAMBUNGKAN KE ManajemenStaffScreen ──
                       _buildMenuCard(
                         icon: Icons.people,
                         title: 'Manajemen Karyawan',
                         subtitle: 'Akses staf dan jadwal kerja',
                         onTap: () {
-                          // Navigate to staff management
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ManajemenStaffScreen(
+                                token: widget.token,
+                              ),
+                            ),
+                          );
                         },
                       ),
                     ],
@@ -380,18 +389,14 @@ class _ProfilePageState extends State<ProfilePage> {
                         icon: Icons.storefront,
                         title: 'Profil Toko',
                         subtitle: 'Lokasi, deskripsi, dan kontak',
-                        onTap: () {
-                          // Navigate to shop profile
-                        },
+                        onTap: () {},
                       ),
                       const SizedBox(height: 12),
                       _buildMenuCard(
                         icon: Icons.schedule,
                         title: 'Jam Operasional',
                         subtitle: 'Waktu buka dan tutup layanan',
-                        onTap: () {
-                          // Navigate to operating hours
-                        },
+                        onTap: () {},
                       ),
                     ],
                   ),
@@ -425,9 +430,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         icon: Icons.lock_outline,
                         title: 'Ubah Kata Sandi',
                         subtitle: 'Perbarui keamanan akun Anda',
-                        onTap: () {
-                          // Navigate to change password
-                        },
+                        onTap: () {},
                       ),
                     ],
                   ),
@@ -447,7 +450,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
-                          // Show logout confirmation
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
@@ -462,7 +464,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                                 ElevatedButton(
                                   onPressed: () {
-                                    // Perform logout
                                     Navigator.pop(context);
                                     Navigator.pop(context);
                                   },
