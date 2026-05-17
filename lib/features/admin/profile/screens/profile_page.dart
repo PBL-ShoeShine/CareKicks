@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/widgets/custom_scaffold.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../controller/profile_controller.dart';
 import '../../m_layanan/screens/m_layanan_page.dart';
@@ -137,7 +138,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CustomScaffold(
       appBar: AppBar(
         title: const Text("Profil Saya"),
         leading: IconButton(

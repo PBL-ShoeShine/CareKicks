@@ -1,3 +1,4 @@
+import 'package:carekicks/core/widgets/custom_scaffold.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../controller/m_layanan_controller.dart';
@@ -85,7 +86,7 @@ class _MLayananPageState extends State<MLayananPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CustomScaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text(
@@ -342,3 +343,4 @@ class _MLayananPageState extends State<MLayananPage> {
     );
   }
 }
+    

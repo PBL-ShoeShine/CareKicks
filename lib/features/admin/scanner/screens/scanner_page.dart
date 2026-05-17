@@ -1,28 +1,24 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/custom_scaffold.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:vibration/vibration.dart';
-// Sesuaikan jumlah "../" dengan kedalaman foldermu menuju core/network/api_service.dart
 import '../../../../core/network/api_service.dart';
-import '../../../../features/admin/dashboard/screens/dashboard_page.dart';
-import '../../../../features/admin/tracking/screens/tracking_page.dart';
-// Import halaman detail yang baru saja dibuat
-import 'detail_pemindai_view.dart';
+import 'scanner_detail_page.dart';
 
 const _brand = Color(0xFF1FB6C1);
 const _scanLine = Color(0xFF7CE7F1);
 
-class PemindaiView extends StatefulWidget {
+class ScannerPage extends StatefulWidget {
   final String token;
   final Map<String, dynamic> user;
 
-  const PemindaiView({super.key, required this.token, required this.user});
+  const ScannerPage({super.key, required this.token, required this.user});
 
   @override
-  State<PemindaiView> createState() => _PemindaiViewState();
+  State<ScannerPage> createState() => _ScannerPageState();
 }
 
-class _PemindaiViewState extends State<PemindaiView> {
-  int _tab = 2;
+class _ScannerPageState extends State<ScannerPage> {
   bool isScanCompleted = false;
   bool _torchOn = false;
 
@@ -46,17 +42,13 @@ class _PemindaiViewState extends State<PemindaiView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _topBar(),
-            Expanded(child: _viewfinder()),
-          ],
-        ),
+    return CustomScaffold(
+      body: Column(
+        children: [
+          _topBar(),
+          Expanded(child: _viewfinder()),
+        ],
       ),
-      bottomNavigationBar: _bottomNav(),
     );
   }
 
@@ -125,7 +117,6 @@ class _PemindaiViewState extends State<PemindaiView> {
                 setState(() => isScanCompleted = true);
                 _playFeedback();
 
-                // 1. Tampilkan loading
                 showDialog(
                   context: context,
                   barrierDismissible: false,
@@ -134,30 +125,24 @@ class _PemindaiViewState extends State<PemindaiView> {
                   ),
                 );
 
-                // 2. Tembak data ke API
                 final resultData = await ApiService.cekSepatu(code);
 
-                // 3. Tutup loading
                 if (mounted) Navigator.pop(context);
 
                 if (resultData != null && resultData['success'] == true) {
-                  // SKENARIO BERHASIL: REDIRECT KE HALAMAN DETAIL
                   if (mounted) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DetailPemindaiView(
-                          dataOrder:
-                              resultData['data'], // Melempar data ke halaman sebelah
+                        builder: (context) => ScannerDetailPage(
+                          dataOrder: resultData['data'],
                         ),
                       ),
                     ).then((_) {
-                      // Mengaktifkan kembali scanner saat kembali dari halaman detail
                       if (mounted) setState(() => isScanCompleted = false);
                     });
                   }
                 } else {
-                  // SKENARIO GAGAL: TETAP TAMPILKAN POP-UP DIALOG
                   if (mounted) {
                     _showErrorDialog(code, resultData?['message']);
                   }
@@ -257,93 +242,6 @@ class _PemindaiViewState extends State<PemindaiView> {
     ).then((_) {
       if (mounted) setState(() => isScanCompleted = false);
     });
-  }
-
-  Widget _bottomNav() {
-    final items = const [
-      (Icons.dashboard_outlined, 'Dashboard'),
-      (Icons.assignment_outlined, 'Antrean'),
-      (Icons.qr_code_scanner, 'Pemindai'),
-      (Icons.inventory_2_outlined, 'Inventaris'),
-      (Icons.local_shipping_outlined, 'Tracking'),
-    ];
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 16,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.fromLTRB(8, 10, 8, (bottomInset + 16).clamp(24, 60)),
-      child: Row(
-        children: List.generate(items.length, (i) {
-          final active = i == _tab;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => _handleTabTap(i),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: active ? _brand.withOpacity(0.10) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      items[i].$1,
-                      size: 22,
-                      color: active ? _brand : Colors.grey.shade500,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      items[i].$2,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: active ? _brand : Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  void _handleTabTap(int index) {
-    if (index == _tab) return;
-
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DashboardPage(token: widget.token, user: widget.user),
-        ),
-      );
-      return;
-    }
-
-    if (index == 4) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => TrackingPage(token: widget.token, user: widget.user),
-        ),
-      );
-      return;
-    }
-
-    setState(() => _tab = index);
   }
 }
 

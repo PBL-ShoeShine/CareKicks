@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:carekicks/core/widgets/custom_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -31,7 +32,7 @@ class _AddItemPageState extends State<AddItemPage> {
     'Alat Gosok',
     'Finishing',
     'Alat Lap',
-    'Accessories'
+    'Accessories',
   ];
 
   final List<String> _satuanList = ['pcs', 'ml', 'unit', 'gram', 'kg'];
@@ -55,9 +56,9 @@ class _AddItemPageState extends State<AddItemPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengambil gambar: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal mengambil gambar: $e')));
       }
     }
   }
@@ -74,7 +75,7 @@ class _AddItemPageState extends State<AddItemPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CustomScaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -122,22 +123,24 @@ class _AddItemPageState extends State<AddItemPage> {
                         ? Stack(
                             fit: StackFit.expand,
                             children: [
-                              Image.file(
-                                _selectedImage!,
-                                fit: BoxFit.cover,
-                              ),
+                              Image.file(_selectedImage!, fit: BoxFit.cover),
                               Positioned(
                                 right: 8,
                                 top: 8,
                                 child: GestureDetector(
-                                  onTap: () => setState(() => _selectedImage = null),
+                                  onTap: () =>
+                                      setState(() => _selectedImage = null),
                                   child: Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: const BoxDecoration(
                                       color: Colors.red,
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -153,7 +156,11 @@ class _AddItemPageState extends State<AddItemPage> {
                                   color: Color(0xFFB3C5FF),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.add_a_photo_outlined, color: Colors.white, size: 25),
+                                child: const Icon(
+                                  Icons.add_a_photo_outlined,
+                                  color: Colors.white,
+                                  size: 25,
+                                ),
                               ),
                               const SizedBox(height: 16),
                               Text(
@@ -177,16 +184,17 @@ class _AddItemPageState extends State<AddItemPage> {
                 ),
               ),
               const SizedBox(height: 32),
-              
+
               // Form Fields
               _buildLabel('Nama Barang'),
               _buildTextField(
                 controller: _namaController,
                 hint: 'Contoh: Sikat Sepatu Bulu Kuda',
-                validator: (v) => v == null || v.isEmpty ? 'Nama barang harus diisi' : null,
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Nama barang harus diisi' : null,
               ),
               const SizedBox(height: 24),
-              
+
               _buildLabel('Deskripsi'),
               _buildTextField(
                 controller: _deskripsiController,
@@ -194,7 +202,7 @@ class _AddItemPageState extends State<AddItemPage> {
                 maxLines: 4,
               ),
               const SizedBox(height: 24),
-              
+
               _buildLabel('Kategori'),
               _buildDropdownField(
                 value: _selectedKategori,
@@ -202,7 +210,7 @@ class _AddItemPageState extends State<AddItemPage> {
                 onChanged: (v) => setState(() => _selectedKategori = v!),
               ),
               const SizedBox(height: 24),
-              
+
               Row(
                 children: [
                   Expanded(
@@ -227,7 +235,8 @@ class _AddItemPageState extends State<AddItemPage> {
                         _buildDropdownField(
                           value: _selectedSatuan,
                           items: _satuanList,
-                          onChanged: (v) => setState(() => _selectedSatuan = v!),
+                          onChanged: (v) =>
+                              setState(() => _selectedSatuan = v!),
                         ),
                       ],
                     ),
@@ -235,7 +244,7 @@ class _AddItemPageState extends State<AddItemPage> {
                 ],
               ),
               const SizedBox(height: 24),
-              
+
               _buildLabel('Minimum Stok'),
               _buildTextField(
                 controller: _stokMinimumController,
@@ -258,7 +267,7 @@ class _AddItemPageState extends State<AddItemPage> {
           ),
         ),
       ),
-      bottomSheet: Container(
+      floatingActionButton: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -336,7 +345,10 @@ class _AddItemPageState extends State<AddItemPage> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: GoogleFonts.inter(color: Colors.grey.shade500),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         filled: true,
         fillColor: Colors.white,
         enabledBorder: OutlineInputBorder(
@@ -383,7 +395,9 @@ class _AddItemPageState extends State<AddItemPage> {
                 item,
                 style: GoogleFonts.inter(
                   fontSize: 16,
-                  color: item == 'Pilih Kategori' ? Colors.grey.shade500 : const Color(0xFF191C1E),
+                  color: item == 'Pilih Kategori'
+                      ? Colors.grey.shade500
+                      : const Color(0xFF191C1E),
                 ),
               ),
             );
@@ -408,7 +422,9 @@ class _AddItemPageState extends State<AddItemPage> {
       namaItem: _namaController.text,
       kategori: _selectedKategori,
       stokSaatIni: double.tryParse(_stokAwalController.text) ?? 0,
-      stokMaksimum: (double.tryParse(_stokAwalController.text) ?? 0) * 2, // Mocking max stock
+      stokMaksimum:
+          (double.tryParse(_stokAwalController.text) ?? 0) *
+          2, // Mocking max stock
       stokMinimum: double.tryParse(_stokMinimumController.text) ?? 5,
       satuan: _selectedSatuan,
       fotoInven: _selectedImage,
@@ -421,7 +437,9 @@ class _AddItemPageState extends State<AddItemPage> {
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_controller.errorMessage ?? 'Gagal menyimpan barang')),
+        SnackBar(
+          content: Text(_controller.errorMessage ?? 'Gagal menyimpan barang'),
+        ),
       );
     }
   }

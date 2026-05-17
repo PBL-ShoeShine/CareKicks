@@ -26,7 +26,7 @@ class CareKicksApp extends StatelessWidget {
         textTheme: GoogleFonts.interTextTheme(base.textTheme),
         scaffoldBackgroundColor: const Color(0xFFF7F8FA),
       ),
-      home: SplashScreen(),
+      home: const SplashScreen(),
     );
   }
 }

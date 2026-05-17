@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:carekicks/core/widgets/custom_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -103,7 +104,7 @@ class _AddLayananPageState extends State<AddLayananPage> {
   Widget build(BuildContext context) {
     final bool isEdit = widget.service != null;
 
-    return Scaffold(
+    return CustomScaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(

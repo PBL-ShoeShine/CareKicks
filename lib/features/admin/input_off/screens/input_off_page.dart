@@ -1,3 +1,4 @@
+import 'package:carekicks/core/widgets/custom_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -138,7 +139,7 @@ class _InputOffPageState extends State<InputOffPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CustomScaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
         title: Column(
@@ -543,3 +544,4 @@ class _InputOffPageState extends State<InputOffPage> {
     );
   }
 }
+   

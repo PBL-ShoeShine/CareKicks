@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/custom_scaffold.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../modules/admin/pemindai/view/pemindai_view.dart';
-import '../../dashboard/screens/dashboard_page.dart';
 import '../controller/tracking_list_controller.dart';
 import 'tracking_detail_page.dart';
 
@@ -50,34 +49,6 @@ class _TrackingPageState extends State<TrackingPage> {
       status: _selectedStatus,
       search: _searchController.text.trim(),
     );
-  }
-
-  void _handleTabTap(int index) {
-    if (index == 4) return;
-
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DashboardPage(token: widget.token, user: widget.user),
-        ),
-      );
-      return;
-    }
-
-    if (index == 2) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => PemindaiView(token: widget.token, user: widget.user),
-        ),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Menu ini belum tersedia')));
   }
 
   String _statusLabel(String status) {
@@ -149,7 +120,7 @@ class _TrackingPageState extends State<TrackingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CustomScaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
         title: const Text(
@@ -391,29 +362,6 @@ class _TrackingPageState extends State<TrackingPage> {
                 );
               },
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 4,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primaryBlue,
-        unselectedItemColor: Colors.grey,
-        onTap: _handleTabTap,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.queue), label: 'Antrean'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_scanner),
-            label: 'Pemindai',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory),
-            label: 'Inventaris',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.local_shipping),
-            label: 'Tracking',
           ),
         ],
       ),
