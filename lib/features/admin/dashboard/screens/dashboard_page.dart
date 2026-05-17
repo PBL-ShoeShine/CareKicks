@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../modules/admin/pemindai/view/pemindai_view.dart';
 import '../../history/screens/history_page.dart';
 import '../../input_off/screens/input_off_page.dart';
 import '../../profile/screens/profile_page.dart';
+import '../../tracking/screens/tracking_page.dart';
 import '../controller/dashboard_controller.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -39,6 +41,34 @@ class _DashboardPageState extends State<DashboardPage> {
       (match) => '${match[1]}.',
     );
     return 'Rp $formatter';
+  }
+
+  void _handleTabTap(int index) {
+    if (index == _selectedIndex) return;
+
+    if (index == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TrackingPage(token: widget.token, user: widget.user),
+        ),
+      );
+      return;
+    }
+
+    if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PemindaiView(token: widget.token, user: widget.user),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
@@ -557,11 +587,7 @@ class _DashboardPageState extends State<DashboardPage> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primaryBlue,
         unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+        onTap: _handleTabTap,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.queue), label: 'Antrean'),
@@ -575,7 +601,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.local_shipping),
-            label: 'Logistik',
+            label: 'Tracking',
           ),
         ],
       ),

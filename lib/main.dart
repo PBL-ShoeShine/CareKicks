@@ -1,8 +1,6 @@
 import 'package:carekicks/features/auth/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'modules/admin/pemindai/view/pemindai_view.dart';
-import 'app.dart';
 
 void main() {
   // Pakai yang ini karena ada pengecekan binding-nya (lebih aman)

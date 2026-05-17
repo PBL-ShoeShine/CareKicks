@@ -256,7 +256,7 @@ class _MLayananPageState extends State<MLayananPage> {
                           ),
                           Switch(
                             value: isActive,
-                            activeColor: AppColors.successGreen,
+                            activeThumbColor: AppColors.successGreen,
                             onChanged: (value) {
                               _controller.toggleStatus(
                                 widget.token,
