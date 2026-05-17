@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../modules/admin/pemindai/view/pemindai_view.dart';
 import '../../history/screens/history_page.dart';
+import '../../input_off/screens/input_off_page.dart';
+import '../../profile/screens/profile_page.dart';
+import '../../tracking/screens/tracking_page.dart';
 import '../controller/dashboard_controller.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -39,6 +43,34 @@ class _DashboardPageState extends State<DashboardPage> {
     return 'Rp $formatter';
   }
 
+  void _handleTabTap(int index) {
+    if (index == _selectedIndex) return;
+
+    if (index == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TrackingPage(token: widget.token, user: widget.user),
+        ),
+      );
+      return;
+    }
+
+    if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PemindaiView(token: widget.token, user: widget.user),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,38 +93,54 @@ class _DashboardPageState extends State<DashboardPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 25,
-                                backgroundColor: AppColors.primaryBlue,
-                                child: const Icon(
-                                  Icons.store,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _dashboardController.shopName ??
-                                        'Bengkel Sepatu',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProfilePage(
+                                      token: widget.token,
+                                      user: widget.user,
                                     ),
                                   ),
-                                  const Text(
-                                    'Kurator Toko',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 25,
+                                    backgroundColor: AppColors.primaryBlue,
+                                    child: const Icon(
+                                      Icons.store,
+                                      color: Colors.white,
                                     ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _dashboardController.shopName ??
+                                            'Bengkel Sepatu',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const Text(
+                                        'Kurator Toko',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
+                            ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.notifications_none),
@@ -374,7 +422,15 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                             const SizedBox(height: 12),
                             ElevatedButton.icon(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        InputOffPage(token: widget.token),
+                                  ),
+                                );
+                              },
                               icon: const Icon(Icons.edit),
                               label: const Text('Input Manual'),
                               style: ElevatedButton.styleFrom(
@@ -404,8 +460,8 @@ class _DashboardPageState extends State<DashboardPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (_) => HistoryPage(token: widget.token),
+                                  builder: (_) =>
+                                      HistoryPage(token: widget.token),
                                 ),
                               );
                             },
@@ -531,11 +587,7 @@ class _DashboardPageState extends State<DashboardPage> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primaryBlue,
         unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+        onTap: _handleTabTap,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.queue), label: 'Antrean'),
@@ -549,7 +601,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.local_shipping),
-            label: 'Logistik',
+            label: 'Tracking',
           ),
         ],
       ),

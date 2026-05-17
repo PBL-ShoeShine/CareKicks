@@ -3,6 +3,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:vibration/vibration.dart';
 // Sesuaikan jumlah "../" dengan kedalaman foldermu menuju core/network/api_service.dart
 import '../../../../core/network/api_service.dart';
+import '../../../../features/admin/dashboard/screens/dashboard_page.dart';
+import '../../../../features/admin/tracking/screens/tracking_page.dart';
 // Import halaman detail yang baru saja dibuat
 import 'detail_pemindai_view.dart';
 
@@ -10,7 +12,10 @@ const _brand = Color(0xFF1FB6C1);
 const _scanLine = Color(0xFF7CE7F1);
 
 class PemindaiView extends StatefulWidget {
-  const PemindaiView({super.key});
+  final String token;
+  final Map<String, dynamic> user;
+
+  const PemindaiView({super.key, required this.token, required this.user});
 
   @override
   State<PemindaiView> createState() => _PemindaiViewState();
@@ -260,7 +265,7 @@ class _PemindaiViewState extends State<PemindaiView> {
       (Icons.assignment_outlined, 'Antrean'),
       (Icons.qr_code_scanner, 'Pemindai'),
       (Icons.inventory_2_outlined, 'Inventaris'),
-      (Icons.local_shipping_outlined, 'Logistik'),
+      (Icons.local_shipping_outlined, 'Tracking'),
     ];
     final bottomInset = MediaQuery.of(context).padding.bottom;
     return Container(
@@ -281,7 +286,7 @@ class _PemindaiViewState extends State<PemindaiView> {
           final active = i == _tab;
           return Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _tab = i),
+              onTap: () => _handleTabTap(i),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
@@ -313,6 +318,32 @@ class _PemindaiViewState extends State<PemindaiView> {
         }),
       ),
     );
+  }
+
+  void _handleTabTap(int index) {
+    if (index == _tab) return;
+
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DashboardPage(token: widget.token, user: widget.user),
+        ),
+      );
+      return;
+    }
+
+    if (index == 4) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TrackingPage(token: widget.token, user: widget.user),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _tab = index);
   }
 }
 
@@ -349,7 +380,7 @@ class _ScannerFrameState extends State<_ScannerFrame>
           _corner(Alignment.bottomLeft, 3),
           AnimatedBuilder(
             animation: _c,
-            builder: (_, __) => Positioned(
+            builder: (_, _) => Positioned(
               left: 20,
               right: 20,
               top: 20 + (_c.value * (size - 40)),
