@@ -98,25 +98,6 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
-  String _statusLabel(String status) {
-    switch (status) {
-      case 'all':
-        return 'Semua';
-      case 'pending':
-        return 'Pending';
-      case 'diproses':
-        return 'Diproses';
-      case 'washing':
-        return 'Washing';
-      case 'pickup':
-        return 'Pickup';
-      case 'selesai':
-        return 'Selesai';
-      default:
-        return status;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return CustomScaffold(
@@ -158,47 +139,6 @@ class _HistoryPageState extends State<HistoryPage> {
                 ),
 
                 const SizedBox(height: 12),
-
-                SizedBox(
-                  height: 38,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _statusList.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final status = _statusList[index];
-                      final isSelected = _selectedStatus == status;
-
-                      return ChoiceChip(
-                        label: Text(_statusLabel(status)),
-                        selected: isSelected,
-                        selectedColor: Colors.white,
-                        backgroundColor: AppColors.primaryBlue.withOpacity(
-                          0.25,
-                        ),
-                        labelStyle: TextStyle(
-                          color: isSelected
-                              ? AppColors.primaryBlue
-                              : Colors.white,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                        side: BorderSide(
-                          color: isSelected
-                              ? Colors.white
-                              : Colors.white.withOpacity(0.4),
-                        ),
-                        onSelected: (_) {
-                          setState(() {
-                            _selectedStatus = status;
-                          });
-                          _fetchData();
-                        },
-                      );
-                    },
-                  ),
-                ),
               ],
             ),
           ),
