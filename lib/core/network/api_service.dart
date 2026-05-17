@@ -5,7 +5,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.18.15:3000/api/v1';
+  static const String baseUrl = 'http://192.168.18.164:3000/api/v1';
 
   static Future<Map<String, dynamic>?> cekSepatu(String qrCode) async {
     try {
@@ -259,11 +259,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'nama': nama,
-          'email': email,
-          'no_hp': noHp,
-        }),
+        body: jsonEncode({'nama': nama, 'email': email, 'no_hp': noHp}),
       );
 
       if (response.statusCode == 200 ||
@@ -292,9 +288,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'imageUrl': imageUrl,
-        }),
+        body: jsonEncode({'imageUrl': imageUrl}),
       );
 
       if (response.statusCode == 200 ||
@@ -401,7 +395,10 @@ class ApiService {
           return jsonDecode(responseString);
         } catch (e) {
           debugPrint('JSON Decode Error (Create): $e');
-          return {'success': false, 'message': 'Respon server tidak valid (Bukan JSON)'};
+          return {
+            'success': false,
+            'message': 'Respon server tidak valid (Bukan JSON)',
+          };
         }
       }
 
@@ -424,9 +421,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'is_active': isActive,
-        }),
+        body: jsonEncode({'is_active': isActive}),
       );
 
       if (response.statusCode == 200 ||
@@ -496,7 +491,10 @@ class ApiService {
           return jsonDecode(responseString);
         } catch (e) {
           debugPrint('JSON Decode Error (Update): $e');
-          return {'success': false, 'message': 'Respon server tidak valid (Bukan JSON)'};
+          return {
+            'success': false,
+            'message': 'Respon server tidak valid (Bukan JSON)',
+          };
         }
       }
 
