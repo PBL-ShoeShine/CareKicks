@@ -474,7 +474,10 @@ class _DashboardPageState extends State<DashboardPage> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount:
-                                _dashboardController.aktivitasTerkini!.length,
+                                _dashboardController.aktivitasTerkini!.length >
+                                    5
+                                ? 5
+                                : _dashboardController.aktivitasTerkini!.length,
                             itemBuilder: (context, index) {
                               final activity =
                                   _dashboardController.aktivitasTerkini![index];

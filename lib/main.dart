@@ -1,6 +1,7 @@
 import 'package:carekicks/features/auth/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'core/navigation/app_navigator.dart';
 
 void main() {
   // Pakai yang ini karena ada pengecekan binding-nya (lebih aman)
@@ -19,6 +20,7 @@ class CareKicksApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final base = ThemeData(useMaterial3: true);
     return MaterialApp(
+      navigatorKey: appNavigatorKey,
       title: 'Care Kicks',
       debugShowCheckedModeBanner: false,
       theme: base.copyWith(
@@ -29,4 +31,8 @@ class CareKicksApp extends StatelessWidget {
       home: const SplashScreen(),
     );
   }
+}
+
+class MyApp extends CareKicksApp {
+  const MyApp({super.key});
 }

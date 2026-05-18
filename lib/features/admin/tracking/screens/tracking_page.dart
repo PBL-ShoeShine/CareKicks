@@ -45,6 +45,8 @@ class _TrackingPageState extends State<TrackingPage> {
         return Colors.orange;
       case 'diproses':
         return Colors.blue;
+      case 'diantar':
+        return Colors.blue;
       case 'selesai':
         return Colors.green;
       default:
