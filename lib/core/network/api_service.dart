@@ -325,6 +325,49 @@ class ApiService {
     return null;
   }
 
+  static Future<Map<String, dynamic>?> uploadProfilePhoto({
+    required String token,
+    required File photo,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'PUT',
+        Uri.parse('$baseUrl/user/profile/photo'),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      final extension = photo.path.split('.').last.toLowerCase();
+      String mimeType = 'image/jpeg';
+      if (extension == 'png') mimeType = 'image/png';
+      if (extension == 'webp') mimeType = 'image/webp';
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'photo',
+          photo.path,
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
+
+      final response = await request.send();
+      final responseString = await response.stream.bytesToString();
+
+      debugPrint('UPLOAD Profile Photo Status: ${response.statusCode}');
+      debugPrint('UPLOAD Profile Photo Response: $responseString');
+
+      if (responseString.isNotEmpty) {
+        return await _decodeJsonString(responseString);
+      }
+
+      return {'success': false, 'message': 'Response kosong dari server'};
+    } catch (e) {
+      debugPrint('Gagal upload foto profil: $e');
+      return {'success': false, 'message': 'Gagal upload foto profil: $e'};
+    }
+  }
+
   static Future<Map<String, dynamic>?> getShopProfile({
     required String token,
   }) async {

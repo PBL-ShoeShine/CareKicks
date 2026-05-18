@@ -1,20 +1,30 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+
 import '../services/profile_service.dart';
 
 class ProfileController extends ChangeNotifier {
   bool _isLoading = false;
+  bool _isUploadingPhoto = false;
   String? _errorMessage;
+  String? _photoUploadError;
   Map<String, dynamic>? _profileData;
 
   bool get isLoading => _isLoading;
+  bool get isUploadingPhoto => _isUploadingPhoto;
   String? get errorMessage => _errorMessage;
+  String? get photoUploadError => _photoUploadError;
   Map<String, dynamic>? get profileData => _profileData;
 
   String? get userName => _profileData?['user']?['nama'];
   String? get userEmail => _profileData?['user']?['email'];
   String? get userPhone => _profileData?['user']?['no_hp'];
   String? get userRole => _profileData?['user']?['jenis_role'];
-  String? get userPhoto => _profileData?['user']?['foto_profil'];
+  String? get userPhoto =>
+      _profileData?['user']?['foto_profil'] ??
+      _profileData?['user']?['path_gambar'] ??
+      _profileData?['user']?['userPhoto'];
 
   Map<String, dynamic>? get shopData => _profileData?['shop'];
   String? get shopName => _profileData?['shop']?['nm_toko'];
@@ -34,6 +44,11 @@ class ProfileController extends ChangeNotifier {
 
       if (result['success']) {
         _profileData = result['data'];
+        final user = _profileData?['user'];
+        if (user is Map<String, dynamic>) {
+          user['foto_profil'] = user['path_gambar'] ?? user['foto_profil'];
+          user['userPhoto'] = user['foto_profil'];
+        }
         _isLoading = false;
         notifyListeners();
         return true;
@@ -90,32 +105,34 @@ class ProfileController extends ChangeNotifier {
 
   Future<bool> updateProfilePicture({
     required String token,
-    required String imageUrl,
+    required File imageFile,
   }) async {
-    _isLoading = true;
-    _errorMessage = null;
+    _isUploadingPhoto = true;
+    _photoUploadError = null;
     notifyListeners();
 
     try {
-      final result = await ProfileService.updateProfilePicture(
+      final result = await ProfileService.uploadProfilePhoto(
         token: token,
-        imageUrl: imageUrl,
+        photo: imageFile,
       );
 
       if (result['success']) {
         _profileData?['user']?['foto_profil'] = result['data']?['foto_profil'];
-        _isLoading = false;
+        _profileData?['user']?['path_gambar'] = result['data']?['foto_profil'];
+        _profileData?['user']?['userPhoto'] = result['data']?['foto_profil'];
+        _isUploadingPhoto = false;
         notifyListeners();
         return true;
       } else {
-        _errorMessage = result['message'] ?? 'Gagal memperbarui foto profil';
-        _isLoading = false;
+        _photoUploadError = result['message'] ?? 'Gagal memperbarui foto profil';
+        _isUploadingPhoto = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
-      _errorMessage = 'Terjadi kesalahan: $e';
-      _isLoading = false;
+      _photoUploadError = 'Terjadi kesalahan: $e';
+      _isUploadingPhoto = false;
       notifyListeners();
       return false;
     }

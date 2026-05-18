@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+
 import '../../../../core/network/api_service.dart';
 
 class ProfileService {
@@ -85,14 +88,14 @@ class ProfileService {
     }
   }
 
-  static Future<Map<String, dynamic>> updateProfilePicture({
+  static Future<Map<String, dynamic>> uploadProfilePhoto({
     required String token,
-    required String imageUrl,
+    required File photo,
   }) async {
     try {
-      final response = await ApiService.updateProfilePicture(
+      final response = await ApiService.uploadProfilePhoto(
         token: token,
-        imageUrl: imageUrl,
+        photo: photo,
       );
 
       if (response == null) {
@@ -120,7 +123,7 @@ class ProfileService {
         'message': 'Respon tidak valid dari server',
       };
     } catch (e) {
-      debugPrint('Error in ProfileService.updateProfilePicture: $e');
+      debugPrint('Error in ProfileService.uploadProfilePhoto: $e');
       return {
         'success': false,
         'message': 'Terjadi kesalahan: ${e.toString()}',

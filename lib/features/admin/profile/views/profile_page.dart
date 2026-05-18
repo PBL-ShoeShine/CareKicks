@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../../../../core/widgets/custom_scaffold.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_appbar.dart';
@@ -141,15 +144,77 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _pickProfileImage() async {
+  Future<void> _pickProfileImage(ImageSource source) async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? image = await picker.pickImage(source: source);
 
-    if (image != null) {
+    if (image == null) return;
+
+    final success = await _profileController.updateProfilePicture(
+      token: widget.token,
+      imageFile: File(image.path),
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      await _profileController.fetchProfile(widget.token);
+    }
+
+    if (!mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fitur upload foto sedang dikembangkan')),
+        const SnackBar(
+          content: Text('Foto profil berhasil diperbarui'),
+          backgroundColor: AppColors.successGreen,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _profileController.photoUploadError ??
+                'Gagal memperbarui foto profil',
+          ),
+          backgroundColor: AppColors.errorRed,
+        ),
       );
     }
+  }
+
+  void _showProfilePhotoSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded),
+              title: const Text('Ambil dari Kamera'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickProfileImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('Pilih dari Galeri'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickProfileImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.close_rounded),
+              title: const Text('Batal'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   String _formatCurrency(int? value) {
@@ -245,12 +310,33 @@ class _ProfilePageState extends State<ProfilePage> {
                                   : null,
                             ),
                           ),
+                          if (_profileController.isUploadingPhoto)
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.35),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: SizedBox(
+                                    width: 28,
+                                    height: 28,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 3,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
 
                           Positioned(
                             bottom: 0,
                             right: 0,
                             child: GestureDetector(
-                              onTap: _pickProfileImage,
+                              onTap: _profileController.isUploadingPhoto
+                                  ? null
+                                  : _showProfilePhotoSourceSheet,
                               child: Container(
                                 width: 42,
                                 height: 42,
