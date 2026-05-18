@@ -1,9 +1,11 @@
+import 'package:carekicks/features/auth/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:carekicks/features/edit_profile/views/edit_profile_view.dart';
 import 'package:carekicks/features/admin/pemindai/pemindai_view.dart';
 import 'app.dart';
+import 'core/navigation/app_navigator.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +19,7 @@ class CareKicksApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final base = ThemeData(useMaterial3: true);
     return MaterialApp(
+      navigatorKey: appNavigatorKey,
       title: 'Care Kicks',
       debugShowCheckedModeBanner: false,
       theme: base.copyWith(
@@ -24,7 +27,11 @@ class CareKicksApp extends StatelessWidget {
         textTheme: GoogleFonts.interTextTheme(base.textTheme),
         scaffoldBackgroundColor: const Color(0xFFF7F8FA),
       ),
-      home: const EditProfileView(),
+      home: const SplashScreen(),
     );
   }
+}
+
+class MyApp extends CareKicksApp {
+  const MyApp({super.key});
 }

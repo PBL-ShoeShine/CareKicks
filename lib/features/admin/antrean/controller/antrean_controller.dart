@@ -1,0 +1,74 @@
+import 'dart:convert';
+import 'package:carekicks/core/network/api_service.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../models/antrean_model.dart';
+
+class AntreanController extends ChangeNotifier {
+  List<AntreanModel> _antreanList = [];
+  bool _isLoading = false;
+  String? _errorMessage;
+  String? _token;
+
+  List<AntreanModel> get antreanList => _antreanList;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  void setToken(String token) {
+    _token = token;
+  }
+
+  Future<void> fetchAntrean(String status) async {
+    print('=== FETCH ANTREAN ===');
+    print('TOKEN: $_token');
+    print('STATUS: $status');
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/admin/antrean?status=$status'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+      );
+
+      print('RESPONSE CODE: ${response.statusCode}');
+      print('RESPONSE BODY: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final List data = json['data'] ?? [];
+        _antreanList = data.map((e) => AntreanModel.fromJson(e)).toList();
+      } else {
+        _errorMessage = 'Gagal mengambil data antrean';
+      }
+    } catch (e) {
+      print('ERROR: $e');
+      _errorMessage = 'Tidak dapat terhubung ke server';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> updateStatus(int idOrder, String status) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('${ApiService.baseUrl}/admin/antrean/$idOrder/status'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode({'status': status}),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+}

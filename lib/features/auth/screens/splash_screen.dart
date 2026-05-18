@@ -1,6 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/widgets/custom_scaffold.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../admin/admin_main_page.dart';
+import '../controller/auth_controller.dart';
 import 'login_page.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -11,23 +13,44 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  late final AuthController _authController;
+
   @override
   void initState() {
     super.initState();
+    _authController = AuthController();
+    _checkSession();
+  }
 
-    Timer(const Duration(seconds: 2), () {
-      if (!mounted) return;
+  @override
+  void dispose() {
+    _authController.dispose();
+    super.dispose();
+  }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
-    });
+  Future<void> _checkSession() async {
+    await Future<void>.delayed(const Duration(seconds: 2));
+
+    final isLoggedIn = await _authController.checkLoginStatus();
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => isLoggedIn
+            ? AdminMainPage(
+                token: _authController.token ?? '',
+                user: _authController.user ?? {},
+              )
+            : const LoginPage(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CustomScaffold(
+      useSafeArea: false,
       backgroundColor: AppColors.primaryDark,
       body: Center(
         child: Column(
