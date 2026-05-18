@@ -5,7 +5,6 @@ import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:flutter/foundation.dart';
 import '../../../../core/network/api_service.dart';
-import '../models/inventory_model.dart';
 
 class InventoryService {
   static const String _inventoryUrl = '${ApiService.baseUrl}/admin/inventaris';
@@ -21,7 +20,9 @@ class InventoryService {
         if (category != null && category.isNotEmpty) 'category': category,
       };
 
-      final uri = Uri.parse(_inventoryUrl).replace(queryParameters: queryParams);
+      final uri = Uri.parse(
+        _inventoryUrl,
+      ).replace(queryParameters: queryParams);
 
       final response = await http.get(
         uri,
@@ -38,7 +39,9 @@ class InventoryService {
     }
   }
 
-  static Future<Map<String, dynamic>> getSummary({required String token}) async {
+  static Future<Map<String, dynamic>> getSummary({
+    required String token,
+  }) async {
     try {
       final response = await http.get(
         Uri.parse('$_inventoryUrl/summary'),
@@ -72,20 +75,25 @@ class InventoryService {
 
       request.fields['nama_item'] = namaItem;
       if (kategori != null) request.fields['kategori'] = kategori;
-      if (stokSaatIni != null) request.fields['stok_saat_ini'] = stokSaatIni.toString();
-      if (stokMaksimum != null) request.fields['stok_maksimum'] = stokMaksimum.toString();
-      if (stokMinimum != null) request.fields['stok_minimum'] = stokMinimum.toString();
+      if (stokSaatIni != null)
+        request.fields['stok_saat_ini'] = stokSaatIni.toString();
+      if (stokMaksimum != null)
+        request.fields['stok_maksimum'] = stokMaksimum.toString();
+      if (stokMinimum != null)
+        request.fields['stok_minimum'] = stokMinimum.toString();
       if (satuan != null) request.fields['satuan'] = satuan;
 
       if (fotoInven != null) {
         final mimeType = lookupMimeType(fotoInven.path) ?? 'image/jpeg';
         final mimeSplit = mimeType.split('/');
-        
-        request.files.add(await http.MultipartFile.fromPath(
-          'foto_inven', 
-          fotoInven.path,
-          contentType: MediaType(mimeSplit[0], mimeSplit[1]),
-        ));
+
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'foto_inven',
+            fotoInven.path,
+            contentType: MediaType(mimeSplit[0], mimeSplit[1]),
+          ),
+        );
       }
 
       var streamedResponse = await request.send();
@@ -94,12 +102,14 @@ class InventoryService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return jsonDecode(response.body);
       } else {
-        debugPrint('InventoryService.createItem failed: ${response.statusCode}');
+        debugPrint(
+          'InventoryService.createItem failed: ${response.statusCode}',
+        );
         debugPrint('Response body: ${response.body}');
         return {
-          'success': false, 
+          'success': false,
           'message': 'Server error: ${response.statusCode}',
-          'body': response.body
+          'body': response.body,
         };
       }
     } catch (e) {
@@ -120,26 +130,34 @@ class InventoryService {
     File? fotoInven,
   }) async {
     try {
-      var request = http.MultipartRequest('PATCH', Uri.parse('$_inventoryUrl/$id'));
+      var request = http.MultipartRequest(
+        'PATCH',
+        Uri.parse('$_inventoryUrl/$id'),
+      );
       request.headers['Authorization'] = 'Bearer $token';
       request.headers['Accept'] = 'application/json';
 
       if (namaItem != null) request.fields['nama_item'] = namaItem;
       if (kategori != null) request.fields['kategori'] = kategori;
-      if (stokSaatIni != null) request.fields['stok_saat_ini'] = stokSaatIni.toString();
-      if (stokMaksimum != null) request.fields['stok_maksimum'] = stokMaksimum.toString();
-      if (stokMinimum != null) request.fields['stok_minimum'] = stokMinimum.toString();
+      if (stokSaatIni != null)
+        request.fields['stok_saat_ini'] = stokSaatIni.toString();
+      if (stokMaksimum != null)
+        request.fields['stok_maksimum'] = stokMaksimum.toString();
+      if (stokMinimum != null)
+        request.fields['stok_minimum'] = stokMinimum.toString();
       if (satuan != null) request.fields['satuan'] = satuan;
 
       if (fotoInven != null) {
         final mimeType = lookupMimeType(fotoInven.path) ?? 'image/jpeg';
         final mimeSplit = mimeType.split('/');
 
-        request.files.add(await http.MultipartFile.fromPath(
-          'foto_inven', 
-          fotoInven.path,
-          contentType: MediaType(mimeSplit[0], mimeSplit[1]),
-        ));
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'foto_inven',
+            fotoInven.path,
+            contentType: MediaType(mimeSplit[0], mimeSplit[1]),
+          ),
+        );
       }
 
       var streamedResponse = await request.send();
@@ -148,12 +166,14 @@ class InventoryService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return jsonDecode(response.body);
       } else {
-        debugPrint('InventoryService.updateItem failed: ${response.statusCode}');
+        debugPrint(
+          'InventoryService.updateItem failed: ${response.statusCode}',
+        );
         debugPrint('Response body: ${response.body}');
         return {
-          'success': false, 
+          'success': false,
           'message': 'Server error: ${response.statusCode}',
-          'body': response.body
+          'body': response.body,
         };
       }
     } catch (e) {

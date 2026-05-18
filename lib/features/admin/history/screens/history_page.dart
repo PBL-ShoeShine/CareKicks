@@ -16,16 +16,9 @@ class _HistoryPageState extends State<HistoryPage> {
   late HistoryController _historyController;
   final TextEditingController _searchController = TextEditingController();
 
-  String _selectedStatus = 'all';
+  final String _selectedStatus = 'all';
 
-  final List<String> _statusList = [
-    'all',
-    'pending',
-    'diproses',
-    'washing',
-    'pickup',
-    'selesai',
-  ];
+  final List<String> _statusList = ['all', 'pending', 'diproses', 'selesai'];
 
   @override
   void initState() {
@@ -84,10 +77,7 @@ class _HistoryPageState extends State<HistoryPage> {
         return Colors.orange;
       case 'diproses':
         return Colors.blue;
-      case 'washing':
-        return Colors.purple;
-      case 'pickup':
-        return Colors.teal;
+
       case 'selesai':
         return Colors.green;
       case 'cancel':
@@ -104,7 +94,7 @@ class _HistoryPageState extends State<HistoryPage> {
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
         title: const Text(
-          'Riwayat Aktivitas',
+          'Riwayat Aktivitas Selesai',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,

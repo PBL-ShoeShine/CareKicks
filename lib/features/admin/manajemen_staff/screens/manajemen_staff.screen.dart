@@ -21,7 +21,7 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
   String? _errorMessage;
 
   // State untuk filter
-  List<StaffRole> _activeFilterRoles = [];
+  final List<StaffRole> _activeFilterRoles = [];
 
   @override
   void initState() {

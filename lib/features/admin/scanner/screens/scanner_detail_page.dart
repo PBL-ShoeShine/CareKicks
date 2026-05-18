@@ -15,7 +15,7 @@ class ScannerDetailPage extends StatelessWidget {
     final customerName = dataOrder['customers']?['nama'] ?? 'Tidak diketahui';
     final customerAddress = dataOrder['customers']?['alamat'] ?? '-';
     final orderCode = dataOrder['kode_order'] ?? '-';
-    final status = dataOrder['status_order'] ?? 'Menunggu';
+    final status = dataOrder['status_order'] ?? 'pending';
     final orderDate = dataOrder['tgl_order'] ?? '-';
 
     // Karena detail_orders adalah array/list, kita sediakan default list kosong

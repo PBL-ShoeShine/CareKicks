@@ -62,12 +62,14 @@ class _InputOffPageState extends State<InputOffPage> {
 
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     if (_controller.selectedServices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih minimal satu layanan')),
+        const SnackBar(content: Text('Pilih satu layanan terlebih dahulu')),
       );
       return;
     }
+
     if (_selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ambil foto kondisi awal sepatu')),
@@ -142,10 +144,10 @@ class _InputOffPageState extends State<InputOffPage> {
     return CustomScaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
-        title: Column(
+        title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Input Pesanan Baru',
               style: TextStyle(
                 color: Colors.white,
@@ -153,7 +155,7 @@ class _InputOffPageState extends State<InputOffPage> {
                 fontSize: 18,
               ),
             ),
-            const Text(
+            Text(
               'Entri manual untuk pelanggan walk-in',
               style: TextStyle(
                 color: Colors.white70,
@@ -199,22 +201,32 @@ class _InputOffPageState extends State<InputOffPage> {
                     validator: (v) =>
                         v!.isEmpty ? 'Nomor telepon tidak boleh kosong' : null,
                   ),
-
                   const SizedBox(height: 24),
                   _buildSectionTitle('Jenis Sepatu'),
                   const SizedBox(height: 12),
                   _buildShoeTypeButtons(),
-
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Detail Sepatu'),
+                  const SizedBox(height: 12),
+                  _buildTextField(
+                    controller: _merkController,
+                    label: 'MERK',
+                    hint: 'Contoh: Nike, Adidas...',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _warnaController,
+                    label: 'WARNA',
+                    hint: 'Contoh: Putih, Hitam...',
+                  ),
                   const SizedBox(height: 24),
                   _buildSectionTitle('Layanan'),
                   const SizedBox(height: 12),
                   _buildServiceSelection(),
-
                   const SizedBox(height: 24),
                   _buildSectionTitle('Kondisi Awal'),
                   const SizedBox(height: 12),
                   _buildPhotoUpload(),
-
                   const SizedBox(height: 24),
                   _buildSectionTitle('Catatan'),
                   const SizedBox(height: 12),
@@ -224,15 +236,12 @@ class _InputOffPageState extends State<InputOffPage> {
                     hint: 'Contoh: Ada lecet di bagian heel...',
                     maxLines: 3,
                   ),
-
                   const SizedBox(height: 24),
                   _buildTotalSection(),
-
                   const SizedBox(height: 24),
                   _buildSectionTitle('Metode Pembayaran'),
                   const SizedBox(height: 12),
                   _buildPaymentMethodButtons(),
-
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
@@ -247,7 +256,14 @@ class _InputOffPageState extends State<InputOffPage> {
                       onPressed: _controller.isLoading ? null : _submit,
                       icon: const Icon(Icons.qr_code_2, color: Colors.white),
                       label: _controller.isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
                           : const Text(
                               'Proses Pesanan & Buat QR',
                               style: TextStyle(
@@ -328,6 +344,7 @@ class _InputOffPageState extends State<InputOffPage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: _jenisSepatuList.map((type) {
         final isSelected = _selectedJenisSepatu == type;
+
         return Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -367,6 +384,7 @@ class _InputOffPageState extends State<InputOffPage> {
       children: _metodeBayarList.map((method) {
         final isSelected = _selectedMetodeBayar == method;
         final displayName = method == 'tunai' ? 'Tunai' : 'QRIS';
+
         return Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -466,6 +484,10 @@ class _InputOffPageState extends State<InputOffPage> {
       return const Text('Tidak ada layanan tersedia');
     }
 
+    final int? selectedServiceId = _controller.selectedServices.isNotEmpty
+        ? _controller.selectedServices.first['id_services']
+        : null;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -480,15 +502,14 @@ class _InputOffPageState extends State<InputOffPage> {
             const Divider(height: 1, color: Color(0xFFF1F5F9)),
         itemBuilder: (context, index) {
           final service = _controller.services[index];
-          final isSelected = _controller.selectedServices.any(
-            (s) => s['id_services'] == service['id_services'],
-          );
+          final int serviceId = service['id_services'];
+          final bool isSelected = selectedServiceId == serviceId;
 
           return Container(
             color: isSelected
                 ? AppColors.primaryBlue.withOpacity(0.1)
                 : Colors.transparent,
-            child: CheckboxListTile(
+            child: RadioListTile<int>(
               title: Text(
                 service['nama_layanan'] ?? 'Layanan',
                 style: const TextStyle(
@@ -503,9 +524,14 @@ class _InputOffPageState extends State<InputOffPage> {
                   color: AppColors.primaryBlue,
                 ),
               ),
-              value: isSelected,
+              value: serviceId,
+              groupValue: selectedServiceId,
               activeColor: AppColors.primaryBlue,
-              onChanged: (_) => _controller.toggleService(service),
+              onChanged: (_) {
+                _controller.selectedServices.clear();
+                _controller.selectedServices.add(service);
+                _controller.notifyListeners();
+              },
             ),
           );
         },
@@ -544,4 +570,3 @@ class _InputOffPageState extends State<InputOffPage> {
     );
   }
 }
-   

@@ -5,6 +5,10 @@ import '../../../../core/constants/app_colors.dart';
 import '../controller/profile_controller.dart';
 import '../../m_layanan/screens/m_layanan_page.dart';
 import '../../manajemen_staff/screens/manajemen_staff.screen.dart';
+import '../../toko/screens/jam_operasional_page.dart';
+import '../../toko/screens/profil_toko_page.dart';
+import '../../../auth/controller/auth_controller.dart';
+import '../../../auth/screens/login_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final String token;
@@ -18,18 +22,37 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late ProfileController _profileController;
+  late AuthController _authController;
 
   @override
   void initState() {
     super.initState();
     _profileController = ProfileController();
+    _authController = AuthController();
     _profileController.fetchProfile(widget.token);
   }
 
   @override
   void dispose() {
     _profileController.dispose();
+    _authController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogout() async {
+    await _authController.logout();
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Berhasil logout')));
   }
 
   void _showEditProfileDialog() {
@@ -331,9 +354,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => MLayananPage(
-                                token: widget.token,
-                              ),
+                              builder: (context) =>
+                                  MLayananPage(token: widget.token),
                             ),
                           );
                         },
@@ -357,9 +379,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ManajemenStaffScreen(
-                                token: widget.token,
-                              ),
+                              builder: (_) =>
+                                  ManajemenStaffScreen(token: widget.token),
                             ),
                           );
                         },
@@ -389,14 +410,30 @@ class _ProfilePageState extends State<ProfilePage> {
                         icon: Icons.storefront,
                         title: 'Profil Toko',
                         subtitle: 'Lokasi, deskripsi, dan kontak',
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ProfilTokoPage(token: widget.token),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
                       _buildMenuCard(
                         icon: Icons.schedule,
                         title: 'Jam Operasional',
                         subtitle: 'Waktu buka dan tutup layanan',
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  JamOperasionalPage(token: widget.token),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -463,9 +500,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                   child: const Text('Batal'),
                                 ),
                                 ElevatedButton(
-                                  onPressed: () {
+                                  onPressed: () async {
                                     Navigator.pop(context);
-                                    Navigator.pop(context);
+                                    await _handleLogout();
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.errorRed,
