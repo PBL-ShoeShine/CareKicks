@@ -3,10 +3,12 @@ import 'package:http/http.dart' as http;
 import '../models/antrean_model.dart';
 
 class AntreanService {
-  static const String _baseUrl = 'http://192.168.110.217:3000/api/v1';
+  static const String _baseUrl = 'http://172.16.95.249:3000/api/v1';
 
   static Future<List<AntreanModel>> fetchAntrean(
-      String token, String status) async {
+    String token,
+    String status,
+  ) async {
     final response = await http.get(
       Uri.parse('$_baseUrl/admin/antrean?status=$status'),
       headers: {
@@ -25,7 +27,10 @@ class AntreanService {
   }
 
   static Future<bool> updateStatus(
-      String token, int idOrder, String status) async {
+    String token,
+    int idOrder,
+    String status,
+  ) async {
     final response = await http.patch(
       Uri.parse('$_baseUrl/admin/antrean/$idOrder/status'),
       headers: {

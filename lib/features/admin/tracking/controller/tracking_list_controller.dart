@@ -12,7 +12,6 @@ class TrackingListController extends ChangeNotifier {
 
   Future<bool> fetchTrackingList({
     required String token,
-    String? status,
     String? search,
   }) async {
     _isLoading = true;
@@ -22,7 +21,6 @@ class TrackingListController extends ChangeNotifier {
     try {
       final result = await TrackingService.getTrackingList(
         token: token,
-        status: status,
         search: search,
       );
 

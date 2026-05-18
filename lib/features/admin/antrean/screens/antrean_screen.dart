@@ -274,7 +274,7 @@ class _AntreanScreenState extends State<AntreanScreen>
                           width: 56,
                           height: 56,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholder(),
+                          errorBuilder: (_, _, _) => _placeholder(),
                         )
                       : _placeholder(),
                 ),
