@@ -1,17 +1,16 @@
 import 'package:carekicks/features/auth/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'package:carekicks/features/edit_profile/views/edit_profile_view.dart';
+import 'package:carekicks/features/admin/pemindai/pemindai_view.dart';
+import 'app.dart';
 import 'core/navigation/app_navigator.dart';
 
 void main() {
-  // Pakai yang ini karena ada pengecekan binding-nya (lebih aman)
   WidgetsFlutterBinding.ensureInitialized();
-  // Panggil class CareKicksApp karena tema dan konfigurasinya ada di situ
   runApp(const CareKicksApp());
 }
-
-// HAPUS atau comment baris yang di bawah ini:
-// void main() => runApp(const CareKicksApp());
 
 class CareKicksApp extends StatelessWidget {
   const CareKicksApp({super.key});

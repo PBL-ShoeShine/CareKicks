@@ -343,8 +343,6 @@ class ApiService {
           response.statusCode == 404 ||
           response.statusCode == 500) {
         return jsonDecode(response.body);
-      } else {
-        debugPrint('Error Server: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend: $e');
@@ -352,6 +350,19 @@ class ApiService {
     return null;
   }
 
+  static Future<Map<String, dynamic>?> updateStatusPesanan(
+    String kodeOrder,
+    String statusBaru,
+  ) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/admin/pemindai/update-status'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'kode_order': kodeOrder, 'status_baru': statusBaru}),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      debugPrint('Gagal update status: $e');
   static Future<Map<String, dynamic>?> updateShopProfile({
     required String token,
     required Map<String, dynamic> payload,
