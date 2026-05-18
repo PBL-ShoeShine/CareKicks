@@ -515,15 +515,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           );
                         },
                       ),
-                      const SizedBox(height: 12),
-                      _buildMenuCard(
-                        icon: Icons.inventory_2,
-                        title: 'Manajemen Inventaris',
-                        subtitle: 'Stok barang dan pengadaan',
-                        onTap: () {
-                          // Navigate to inventory management
-                        },
-                      ),
+
                       const SizedBox(height: 12),
                       // ── DISAMBUNGKAN KE ManajemenStaffScreen ──
                       _buildMenuCard(
