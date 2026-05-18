@@ -16,7 +16,7 @@ class _HistoryPageState extends State<HistoryPage> {
   late HistoryController _historyController;
   final TextEditingController _searchController = TextEditingController();
 
-  String _selectedStatus = 'all';
+  final String _selectedStatus = 'all';
 
   final List<String> _statusList = ['all', 'pending', 'diproses', 'selesai'];
 

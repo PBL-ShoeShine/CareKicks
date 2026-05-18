@@ -4,13 +4,11 @@ import '../../../../core/network/api_service.dart';
 class TrackingService {
   static Future<Map<String, dynamic>> getTrackingList({
     required String token,
-    String? status,
     String? search,
   }) async {
     try {
       final response = await ApiService.getTrackingList(
         token: token,
-        status: status,
         search: search,
       );
 

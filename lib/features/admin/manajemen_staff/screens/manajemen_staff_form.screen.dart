@@ -266,8 +266,9 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
                           ),
                         ],
                         onChanged: (val) {
-                          if (val != null)
+                          if (val != null) {
                             setState(() => _selectedStatus = val);
+                          }
                         },
                       ),
                     ),
@@ -291,8 +292,9 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
                   hint: 'budi@shoecare.pro',
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Email wajib diisi';
+                    }
                     if (!v.contains('@')) return 'Format email tidak valid';
                     return null;
                   },

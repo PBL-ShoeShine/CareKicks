@@ -5,6 +5,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../controller/profile_controller.dart';
 import '../../m_layanan/screens/m_layanan_page.dart';
 import '../../manajemen_staff/screens/manajemen_staff.screen.dart';
+import '../../toko/screens/jam_operasional_page.dart';
+import '../../toko/screens/profil_toko_page.dart';
 import '../../../auth/controller/auth_controller.dart';
 import '../../../auth/screens/login_page.dart';
 
@@ -408,14 +410,30 @@ class _ProfilePageState extends State<ProfilePage> {
                         icon: Icons.storefront,
                         title: 'Profil Toko',
                         subtitle: 'Lokasi, deskripsi, dan kontak',
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ProfilTokoPage(token: widget.token),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
                       _buildMenuCard(
                         icon: Icons.schedule,
                         title: 'Jam Operasional',
                         subtitle: 'Waktu buka dan tutup layanan',
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  JamOperasionalPage(token: widget.token),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

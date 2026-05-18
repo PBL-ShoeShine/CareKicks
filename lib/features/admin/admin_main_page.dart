@@ -5,7 +5,6 @@ import '../../core/widgets/custom_bottom_nav_bar.dart';
 import 'dashboard/screens/dashboard_page.dart';
 import 'tracking/screens/tracking_page.dart';
 import 'inventaris/screens/inventory_page.dart';
-import 'orders/screens/orders_page.dart';
 import 'scanner/screens/scanner_page.dart';
 
 class AdminMainPage extends StatefulWidget {

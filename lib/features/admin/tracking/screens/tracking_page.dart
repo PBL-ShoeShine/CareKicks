@@ -18,10 +18,6 @@ class _TrackingPageState extends State<TrackingPage> {
   late TrackingListController _controller;
   final TextEditingController _searchController = TextEditingController();
 
-  String _selectedStatus = 'all';
-
-  final List<String> _statusList = ['all', 'pending', 'diproses', 'diantar', 'selesai'];
-
   @override
   void initState() {
     super.initState();
@@ -39,26 +35,8 @@ class _TrackingPageState extends State<TrackingPage> {
   void _fetchData() {
     _controller.fetchTrackingList(
       token: widget.token,
-      status: _selectedStatus,
       search: _searchController.text.trim(),
     );
-  }
-
-  String _statusLabel(String status) {
-    switch (status) {
-      case 'all':
-        return 'Semua';
-      case 'pending':
-        return 'Pending';
-      case 'diproses':
-        return 'Diproses';
-      case 'diantar':
-        return 'Diantar';
-      case 'selesai':
-        return 'Selesai';
-      default:
-        return status;
-    }
   }
 
   Color _statusColor(String? status) {
@@ -147,44 +125,26 @@ class _TrackingPageState extends State<TrackingPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  height: 38,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _statusList.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final status = _statusList[index];
-                      final isSelected = _selectedStatus == status;
-
-                      return ChoiceChip(
-                        label: Text(_statusLabel(status)),
-                        selected: isSelected,
-                        selectedColor: Colors.white,
-                        backgroundColor: AppColors.primaryBlue.withOpacity(
-                          0.25,
-                        ),
-                        labelStyle: TextStyle(
-                          color: isSelected
-                              ? AppColors.primaryBlue
-                              : Colors.white,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                        side: BorderSide(
-                          color: isSelected
-                              ? Colors.white
-                              : Colors.white.withOpacity(0.4),
-                        ),
-                        onSelected: (_) {
-                          setState(() {
-                            _selectedStatus = status;
-                          });
-                          _fetchData();
-                        },
-                      );
-                    },
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.35)),
+                    ),
+                    child: const Text(
+                      'Status: Selesai',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],

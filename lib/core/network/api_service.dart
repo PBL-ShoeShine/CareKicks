@@ -325,6 +325,140 @@ class ApiService {
     return null;
   }
 
+  static Future<Map<String, dynamic>?> getShopProfile({
+    required String token,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/admin/toko/profil'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 404 ||
+          response.statusCode == 500) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> updateShopProfile({
+    required String token,
+    required Map<String, dynamic> payload,
+    File? fotoToko,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'PATCH',
+        Uri.parse('$baseUrl/admin/toko/profil'),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      payload.forEach((key, value) {
+        if (value == null) return;
+        request.fields[key] = value.toString();
+      });
+
+      if (fotoToko != null) {
+        final extension = fotoToko.path.split('.').last.toLowerCase();
+        String mimeType = 'image/jpeg';
+        if (extension == 'png') mimeType = 'image/png';
+        if (extension == 'webp') mimeType = 'image/webp';
+
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'foto_toko',
+            fotoToko.path,
+            contentType: MediaType.parse(mimeType),
+          ),
+        );
+      }
+
+      final response = await request.send();
+      final responseString = await response.stream.bytesToString();
+
+      debugPrint('UPDATE Shop Profile Status: ${response.statusCode}');
+      debugPrint('UPDATE Shop Profile Response: $responseString');
+
+      if (responseString.isNotEmpty) {
+        return jsonDecode(responseString);
+      }
+
+      return {'success': false, 'message': 'Response kosong dari server'};
+    } catch (e) {
+      debugPrint('Gagal memperbarui profil toko: $e');
+      return {'success': false, 'message': 'Gagal memperbarui profil toko: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getOperatingHours({
+    required String token,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/admin/toko/jam-operasional'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 404 ||
+          response.statusCode == 500) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> updateOperatingHours({
+    required String token,
+    required List<Map<String, dynamic>> hours,
+  }) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/admin/toko/jam-operasional'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'hours': hours}),
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 404 ||
+          response.statusCode == 500) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
   static Future<Map<String, dynamic>?> getServicesList({
     required String token,
     String? search,
@@ -554,13 +688,10 @@ class ApiService {
 
   static Future<Map<String, dynamic>?> getTrackingList({
     required String token,
-    String? status,
     String? search,
   }) async {
     try {
       final queryParams = {
-        if (status != null && status.isNotEmpty && status != 'all')
-          'status': status,
         if (search != null && search.isNotEmpty) 'search': search,
       };
 
