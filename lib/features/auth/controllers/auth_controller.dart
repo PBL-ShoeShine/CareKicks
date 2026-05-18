@@ -27,7 +27,10 @@ class AuthController extends ChangeNotifier {
       if (result['success']) {
         _token = result['token'];
         _user = Map<String, dynamic>.from(result['user'] ?? {});
-        await saveSession();
+        final role = _user?['jenis_role'];
+        if (role == 'customer' || role == 'shops_admin' || role == 'staff') {
+          await saveSession();
+        }
         _isLoading = false;
         notifyListeners();
         return true;

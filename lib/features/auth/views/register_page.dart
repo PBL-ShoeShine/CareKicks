@@ -3,7 +3,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/custom_scaffold.dart';
 import '../controllers/auth_controller.dart';
 import 'login_page.dart';
-import '../../admin/views/admin_main_page.dart';
+import '../../customer/view/customer_main_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -78,13 +78,14 @@ class _RegisterPageState extends State<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Register berhasil!')),
       );
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => AdminMainPage(
+          builder: (_) => CustomerMainPage(
             token: _authController.token ?? '',
             user: _authController.user ?? {},
           ),
         ),
+        (route) => false,
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

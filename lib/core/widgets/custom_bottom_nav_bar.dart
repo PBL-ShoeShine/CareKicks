@@ -8,6 +8,7 @@ import '../constants/app_sizes.dart';
 class CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final bool showInventory;
   final Color? activeColor;
   final Color? inactiveColor;
 
@@ -15,6 +16,7 @@ class CustomBottomNavBar extends StatelessWidget {
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.showInventory = true,
     this.activeColor,
     this.inactiveColor,
   });
@@ -23,11 +25,11 @@ class CustomBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final activeCol = activeColor ?? AppColors.secondary;
     final inactiveCol = inactiveColor ?? AppColors.textSecondary;
-    final items = const [
+    final items = [
       (Icons.home_outlined, 'Dashboard'),
       (Icons.assignment_outlined, 'Antrean'),
       (Icons.qr_code_scanner, 'Pemindai'),
-      (Icons.inventory_2_outlined, 'Inventaris'),
+      if (showInventory) (Icons.inventory_2_outlined, 'Inventaris'),
       (Icons.local_shipping_outlined, 'Tracking'),
     ];
 

@@ -4,6 +4,7 @@ import '../../../core/widgets/custom_scaffold.dart';
 import '../controllers/auth_controller.dart';
 import 'register_page.dart';
 import '../../admin/views/admin_main_page.dart';
+import '../../customer/view/customer_main_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -48,17 +49,52 @@ class _LoginPageState extends State<LoginPage> {
     final success = await _authController.login(email, password);
 
     if (success && mounted) {
+      final token = _authController.token ?? '';
+      final user = _authController.user ?? {};
+      final role = user['jenis_role'];
+
+      if (role == 'superadmin') {
+        await _authController.clearSession();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Akun superadmin hanya dapat digunakan di website.'),
+          ),
+        );
+        return;
+      }
+
+      if (role == 'shops_admin' || role == 'staff') {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Login berhasil!')));
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => AdminMainPage(token: token, user: user),
+          ),
+          (route) => false,
+        );
+        return;
+      }
+
+      if (role == 'customer') {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Login berhasil!')));
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => CustomerMainPage(token: token, user: user),
+          ),
+          (route) => false,
+        );
+        return;
+      }
+
+      await _authController.clearSession();
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Login berhasil!')));
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => AdminMainPage(
-            token: _authController.token ?? '',
-            user: _authController.user ?? {},
-          ),
-        ),
-      );
+      ).showSnackBar(const SnackBar(content: Text('Role tidak dikenali.')));
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_authController.errorMessage ?? 'Login gagal')),

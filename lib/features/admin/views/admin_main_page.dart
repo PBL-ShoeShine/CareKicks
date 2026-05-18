@@ -26,6 +26,9 @@ class AdminMainPage extends StatefulWidget {
 class _AdminMainPageState extends State<AdminMainPage> {
   late int _currentIndex;
 
+  bool get _isShopAdmin => widget.user['jenis_role'] == 'shops_admin';
+  bool get _showInventory => _isShopAdmin;
+
   @override
   void initState() {
     super.initState();
@@ -40,21 +43,24 @@ class _AdminMainPageState extends State<AdminMainPage> {
 
   @override
   Widget build(BuildContext context) {
-    // List of pages to be displayed in the IndexedStack
-    // This ensures state is preserved across tab switches
     final List<Widget> pages = [
       DashboardPage(token: widget.token, user: widget.user),
       AntreanScreen(token: widget.token, user: widget.user),
       ScannerPage(token: widget.token, user: widget.user),
-      InventoryPage(token: widget.token, user: widget.user),
+      if (_showInventory) InventoryPage(token: widget.token, user: widget.user),
       TrackingPage(token: widget.token, user: widget.user),
     ];
+
+    if (_currentIndex >= pages.length) {
+      _currentIndex = pages.length - 1;
+    }
 
     return CustomScaffold(
       body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
+        showInventory: _showInventory,
       ),
     );
   }
