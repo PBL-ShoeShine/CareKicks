@@ -360,9 +360,15 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'kode_order': kodeOrder, 'status_baru': statusBaru}),
       );
+
       return jsonDecode(response.body);
     } catch (e) {
       debugPrint('Gagal update status: $e');
+    }
+
+    return null;
+  }
+
   static Future<Map<String, dynamic>?> updateShopProfile({
     required String token,
     required Map<String, dynamic> payload,

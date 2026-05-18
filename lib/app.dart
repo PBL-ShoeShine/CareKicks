@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'features/auth/screens/splash_screen.dart';
-import 'core/constants/app_colors.dart';
 import 'core/navigation/app_navigator.dart';
+import 'core/theme/app_theme.dart';
+import 'features/auth/views/splash_screen.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -12,12 +12,7 @@ class MyApp extends StatelessWidget {
       navigatorKey: appNavigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'CareKicks',
-      theme: ThemeData(
-        scaffoldBackgroundColor: AppColors.primaryDark,
-        primaryColor: AppColors.primaryBlue,
-        fontFamily: 'Poppins',
-      ),
-      // GANTI home-nya sementara untuk testing:
+      theme: AppTheme.lightTheme,
       home: const SplashScreen(),
     );
   }

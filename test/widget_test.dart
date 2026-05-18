@@ -1,5 +1,5 @@
-import 'package:carekicks/features/auth/screens/login_page.dart';
-import 'package:carekicks/features/auth/screens/splash_screen.dart';
+import 'package:carekicks/features/auth/views/login_page.dart';
+import 'package:carekicks/features/auth/views/splash_screen.dart';
 import 'package:carekicks/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';

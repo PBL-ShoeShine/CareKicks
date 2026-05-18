@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../constants/app_colors.dart';
+import '../constants/app_radius.dart';
+import '../constants/app_shadow.dart';
+import '../constants/app_sizes.dart';
+
 class CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -16,9 +21,8 @@ class CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeCol =
-        activeColor ?? const Color(0xFF1FB6C1); // Teal brand color
-    final inactiveCol = inactiveColor ?? Colors.grey.shade500;
+    final activeCol = activeColor ?? AppColors.secondary;
+    final inactiveCol = inactiveColor ?? AppColors.textSecondary;
     final items = const [
       (Icons.home_outlined, 'Dashboard'),
       (Icons.assignment_outlined, 'Antrean'),
@@ -31,17 +35,16 @@ class CustomBottomNavBar extends StatelessWidget {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 16,
-            offset: Offset(0, -4),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+        boxShadow: AppShadow.bottomNav,
       ),
-      padding: EdgeInsets.fromLTRB(8, 10, 8, (bottomInset + 16).clamp(24, 60)),
+      padding: EdgeInsets.fromLTRB(
+        AppSizes.paddingSm,
+        10,
+        AppSizes.paddingSm,
+        (bottomInset + AppSizes.paddingMd).clamp(24, 60),
+      ),
       child: Row(
         children: List.generate(items.length, (i) {
           final active = i == currentIndex;
@@ -49,12 +52,12 @@ class CustomBottomNavBar extends StatelessWidget {
             child: GestureDetector(
               onTap: () => onTap(i),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: AppSizes.paddingSm),
                 decoration: BoxDecoration(
                   color: active
-                      ? activeCol.withOpacity(0.10)
+                      ? activeCol.withValues(alpha: 0.10)
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: AppRadius.large,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -64,7 +67,7 @@ class CustomBottomNavBar extends StatelessWidget {
                       size: 22,
                       color: active ? activeCol : inactiveCol,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSizes.gapXs),
                     Text(
                       items[i].$2,
                       style: TextStyle(

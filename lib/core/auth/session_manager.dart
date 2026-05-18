@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../features/auth/screens/login_page.dart';
+import '../../features/auth/views/login_page.dart';
 import '../navigation/app_navigator.dart';
 
 class StoredAuthSession {
