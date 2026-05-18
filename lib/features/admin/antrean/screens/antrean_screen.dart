@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../controller/antrean_controller.dart';
 import '../models/antrean_model.dart';
+import '../screens/antrean_detail_screen.dart'; // Import halaman detail
 
 class AntreanScreen extends StatefulWidget {
   final String token;
@@ -245,183 +246,202 @@ class _AntreanScreenState extends State<AntreanScreen>
     final btnLabel = _btnLabel(antrean.statusOrder);
     final statusColor = _statusColor(antrean.statusOrder);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // Foto
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: detail?.fotoSebelum != null
-                      ? Image.network(
-                          detail!.fotoSebelum!,
-                          width: 56,
-                          height: 56,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => _placeholder(),
-                        )
-                      : _placeholder(),
-                ),
-                const SizedBox(width: 12),
-                // Info — FIX OVERFLOW DI SINI
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '#${antrean.kodeOrder}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              antrean.statusOrder.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                color: statusColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        detail != null
-                            ? '${detail.merk} - ${detail.warna}'
-                            : '-',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade700,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 12,
-                            color: Colors.orange.shade400,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _formatTgl(antrean.tglOrder),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.orange.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    // Card dibungkus GestureDetector agar bisa memicu halaman detail saat diklik
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AntreanDetailScreen(
+              token: widget.token,
+              antrean: antrean,
             ),
-            const SizedBox(height: 12),
-            // Tombol
-            nextStatus != null
-                ? SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      icon: const Icon(
-                        Icons.play_arrow,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                      label: Text(
-                        btnLabel,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      onPressed: () async {
-                        final ok = await _controller.updateStatus(
-                          antrean.idOrders,
-                          nextStatus,
-                        );
-                        if (ok && mounted) {
-                          _loadData();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Status diubah ke $nextStatus'),
-                              backgroundColor: AppColors.successGreen,
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  )
-                : Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.successGreen.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+          ),
+        );
+
+        // Refresh data jika status pesanan diubah dari dalam detail screen
+        if (result == true) {
+          _loadData();
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  // Foto
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: detail?.fotoSebelum != null
+                        ? Image.network(
+                            detail!.fotoSebelum!,
+                            width: 56,
+                            height: 56,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _placeholder(),
+                          )
+                        : _placeholder(),
+                  ),
+                  const SizedBox(width: 12),
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.check_circle,
-                          color: AppColors.successGreen,
-                          size: 18,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '#${antrean.kodeOrder}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                antrean.statusOrder.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(height: 4),
                         Text(
-                          'Pesanan Selesai',
+                          detail != null
+                              ? '${detail.merk} - ${detail.warna}'
+                              : '-',
                           style: TextStyle(
-                            color: AppColors.successGreen,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 12,
+                              color: Colors.orange.shade400,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _formatTgl(antrean.tglOrder),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.orange.shade600,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-          ],
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Tombol aksi di card
+              nextStatus != null
+                  ? SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryBlue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        icon: const Icon(
+                          Icons.play_arrow,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        label: Text(
+                          btnLabel,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onPressed: () async {
+                          final ok = await _controller.updateStatus(
+                            antrean.idOrders,
+                            nextStatus,
+                          );
+                          if (ok && mounted) {
+                            _loadData();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Status diubah ke $nextStatus'),
+                                backgroundColor: AppColors.successGreen,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    )
+                  : Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.successGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: AppColors.successGreen,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Pesanan Selesai',
+                            style: TextStyle(
+                              color: AppColors.successGreen,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+            ],
+          ),
         ),
       ),
     );
