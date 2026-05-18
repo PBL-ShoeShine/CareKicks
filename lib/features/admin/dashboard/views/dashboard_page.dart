@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/custom_scaffold.dart';
-import '../../../../core/widgets/custom_appbar.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../history/views/history_page.dart';
 import '../../input_off/views/input_off_page.dart';
@@ -42,6 +41,70 @@ class _DashboardPageState extends State<DashboardPage> {
     return 'Rp $formatter';
   }
 
+  String? _firstString(List<dynamic> values) {
+    for (final value in values) {
+      if (value == null) continue;
+      final text = value.toString().trim();
+      if (text.isNotEmpty) return text;
+    }
+    return null;
+  }
+
+  dynamic _userShopValue(String key) {
+    final shop = widget.user['shop'];
+    if (shop is Map) return shop[key];
+    return null;
+  }
+
+  String get _shopName {
+    return _firstString([
+          _dashboardController.shopName,
+          _userShopValue('nama_toko'),
+          _userShopValue('nm_toko'),
+          widget.user['nama_toko'],
+          widget.user['nm_toko'],
+        ]) ??
+        'Toko Sepatu';
+  }
+
+  String get _userName {
+    return _firstString([
+          widget.user['nama'],
+          widget.user['name'],
+          widget.user['nama_user'],
+          widget.user['nama_lengkap'],
+          widget.user['email'],
+        ]) ??
+        'User';
+  }
+
+  String get _roleLabel {
+    final rawRole = _firstString([
+      widget.user['role_label'],
+      widget.user['nama_role'],
+      widget.user['jenis_role'],
+      widget.user['role'],
+    ]);
+
+    switch (rawRole?.toLowerCase()) {
+      case 'shops_admin':
+        return 'Owner Toko';
+      case 'staff':
+        return 'Staff Toko';
+      case 'customer':
+        return 'Customer';
+      case null:
+        return 'User';
+      default:
+        return rawRole!
+            .replaceAll('_', ' ')
+            .split(' ')
+            .where((word) => word.isNotEmpty)
+            .map((word) => word[0].toUpperCase() + word.substring(1))
+            .join(' ');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return CustomScaffold(
@@ -56,6 +119,10 @@ class _DashboardPageState extends State<DashboardPage> {
           }
 
           // ── TAMBAHAN: pindahkan isi body lama ke sini ──
+
+          final shopName = _shopName;
+          final userName = _userName;
+          final roleLabel = _roleLabel;
 
           return RefreshIndicator(
             onRefresh: () => _dashboardController.fetchDashboard(widget.token),
@@ -100,16 +167,15 @@ class _DashboardPageState extends State<DashboardPage> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          _dashboardController.shopName ??
-                                              'Bengkel Sepatu',
+                                          shopName,
                                           style: const TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                        const Text(
-                                          'Kurator Toko',
-                                          style: TextStyle(
+                                        Text(
+                                          roleLabel,
+                                          style: const TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey,
                                           ),
@@ -127,20 +193,20 @@ class _DashboardPageState extends State<DashboardPage> {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Halo, Kurator.',
-                              style: TextStyle(
+                              'Halo, $userName.',
+                              style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF334155),
                               ),
                             ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Kualitas adalah prioritas. Beri kut ringkasan atelier Anda hari ini.',
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Kualitas adalah prioritas. Berikut ringkasan Anda hari ini.',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.grey,

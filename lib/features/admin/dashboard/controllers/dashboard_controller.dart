@@ -10,7 +10,9 @@ class DashboardController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   Map<String, dynamic>? get dashboardData => _dashboardData;
 
-  String? get shopName => _dashboardData?['shop']?['nama_toko'];
+  String? get shopName =>
+      _dashboardData?['shop']?['nama_toko'] ??
+      _dashboardData?['shop']?['nm_toko'];
   int? get pesananAktif => _dashboardData?['summary']?['pesanan_aktif'];
   int? get antreanCuci => _dashboardData?['summary']?['antrean_cuci'];
   int? get deepCleaning => _dashboardData?['summary']?['deep_cleaning'];
