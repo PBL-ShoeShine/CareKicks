@@ -101,7 +101,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget build(BuildContext context) {
     return CustomScaffold(
       backgroundColor: const Color(0xFFF7F8FA),
-      appBar: const CustomAppBar(title: 'Riwayat Aktivitas Selesai'),
+      appBar: const CustomAppBar(title: 'Riwayat Aktivitas'),
       body: Column(
         children: [
           Container(
