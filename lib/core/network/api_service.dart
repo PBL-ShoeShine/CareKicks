@@ -3,9 +3,28 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
+import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://172.16.178.229:3000/api/v1';
+  static const String baseUrl = 'http://192.168.1.228:3000/api/v1';
+
+  static Future<Map<String, dynamic>?> _decodeJsonResponse(
+    http.Response response,
+  ) async {
+    return _decodeJsonString(response.body);
+  }
+
+  static Future<Map<String, dynamic>?> _decodeJsonString(String body) async {
+    final decoded = jsonDecode(body);
+
+    if (decoded is! Map) {
+      return {'success': false, 'message': 'Respon tidak valid dari server'};
+    }
+
+    final data = Map<String, dynamic>.from(decoded);
+    await AuthSessionManager.handleExpiredResponse(data);
+    return data;
+  }
 
   static Future<Map<String, dynamic>?> cekSepatu(String qrCode) async {
     try {
@@ -18,7 +37,7 @@ class ApiService {
       if (response.statusCode == 200 ||
           response.statusCode == 404 ||
           response.statusCode == 400) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -42,7 +61,7 @@ class ApiService {
       if (response.statusCode == 200 ||
           response.statusCode == 400 ||
           response.statusCode == 404) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -73,7 +92,7 @@ class ApiService {
       if (response.statusCode == 200 ||
           response.statusCode == 400 ||
           response.statusCode == 404) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -99,7 +118,7 @@ class ApiService {
           response.statusCode == 400 ||
           response.statusCode == 404 ||
           response.statusCode == 401) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -138,7 +157,7 @@ class ApiService {
           response.statusCode == 400 ||
           response.statusCode == 404 ||
           response.statusCode == 401) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -165,7 +184,7 @@ class ApiService {
           response.statusCode == 401 ||
           response.statusCode == 404 ||
           response.statusCode == 500) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
         debugPrint('Response: ${response.body}');
@@ -209,7 +228,7 @@ class ApiService {
       debugPrint('Response Body: $responseString');
 
       if (responseString.isNotEmpty) {
-        return jsonDecode(responseString);
+        return await _decodeJsonString(responseString);
       }
 
       return {'success': false, 'message': 'Response kosong dari server'};
@@ -236,7 +255,7 @@ class ApiService {
           response.statusCode == 404 ||
           response.statusCode == 401 ||
           response.statusCode == 500) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -267,7 +286,7 @@ class ApiService {
           response.statusCode == 401 ||
           response.statusCode == 404 ||
           response.statusCode == 500) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -296,7 +315,7 @@ class ApiService {
           response.statusCode == 401 ||
           response.statusCode == 404 ||
           response.statusCode == 500) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -334,7 +353,7 @@ class ApiService {
           response.statusCode == 401 ||
           response.statusCode == 404 ||
           response.statusCode == 500) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -392,7 +411,7 @@ class ApiService {
 
       if (responseString.isNotEmpty) {
         try {
-          return jsonDecode(responseString);
+          return await _decodeJsonString(responseString);
         } catch (e) {
           debugPrint('JSON Decode Error (Create): $e');
           return {
@@ -429,7 +448,7 @@ class ApiService {
           response.statusCode == 401 ||
           response.statusCode == 404 ||
           response.statusCode == 500) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -488,7 +507,7 @@ class ApiService {
 
       if (responseString.isNotEmpty) {
         try {
-          return jsonDecode(responseString);
+          return await _decodeJsonString(responseString);
         } catch (e) {
           debugPrint('JSON Decode Error (Update): $e');
           return {
@@ -523,7 +542,7 @@ class ApiService {
           response.statusCode == 401 ||
           response.statusCode == 404 ||
           response.statusCode == 500) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -562,7 +581,7 @@ class ApiService {
           response.statusCode == 401 ||
           response.statusCode == 404 ||
           response.statusCode == 500) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -590,7 +609,7 @@ class ApiService {
           response.statusCode == 401 ||
           response.statusCode == 404 ||
           response.statusCode == 500) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -618,7 +637,7 @@ class ApiService {
           response.statusCode == 401 ||
           response.statusCode == 404 ||
           response.statusCode == 500) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -690,7 +709,7 @@ class ApiService {
 
       if (responseString.isNotEmpty) {
         try {
-          return jsonDecode(responseString);
+          return await _decodeJsonString(responseString);
         } catch (e) {
           debugPrint('JSON Decode Error (Tracking Update): $e');
           return {
@@ -738,7 +757,7 @@ class ApiService {
           response.statusCode == 401 ||
           response.statusCode == 404 ||
           response.statusCode == 500) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       } else {
         debugPrint('Error Server: ${response.statusCode}');
       }
@@ -770,7 +789,7 @@ class ApiService {
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        return await _decodeJsonResponse(response);
       }
 
       debugPrint('Error OSRM: ${response.statusCode}');
