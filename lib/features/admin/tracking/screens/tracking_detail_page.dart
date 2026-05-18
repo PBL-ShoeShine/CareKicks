@@ -26,40 +26,41 @@ class TrackingDetailPage extends StatefulWidget {
 
 class _TrackingDetailPageState extends State<TrackingDetailPage> {
   late TrackingDetailController _controller;
+  late final MapController _mapController;
 
   @override
   void initState() {
     super.initState();
+    _mapController = MapController();
     _controller = TrackingDetailController();
-    _fetchData();
+    _initTracking();
   }
 
-  Future<void> _fetchData() async {
+  Future<void> _initTracking() async {
     final ok = await _controller.fetchTrackingDetail(
       token: widget.token,
       orderId: widget.orderId,
     );
 
-    if (!ok) return;
-
-    final detail = _controller.detailData ?? {};
-    final order = detail['order'] as Map<String, dynamic>? ?? {};
-    final logs = detail['tracking_logs'] as List<dynamic>? ?? [];
-    final lastLog = logs.isNotEmpty ? logs.first : null;
-
-    final origin = _toLatLng(lastLog?['latitude'], lastLog?['longitude']);
-    final destination = _toLatLng(
-      order['customers']?['latitude'],
-      order['customers']?['longitude'],
-    );
-
-    if (origin != null && destination != null) {
-      await _controller.fetchRoute(origin: origin, destination: destination);
+    if (ok) {
+      _controller.startAutoRefresh(widget.token, widget.orderId);
+      
+      final status = _controller.detailData?['order']?['status_order']?.toString().toLowerCase();
+      if (status == 'diantar') {
+        final idStaff = widget.user['id_staff'] ?? widget.user['id_user'];
+        _controller.startRealtimeLocation(
+          widget.token,
+          widget.orderId,
+          idStaff is int ? idStaff : int.tryParse(idStaff.toString()),
+        );
+      }
     }
   }
 
   @override
   void dispose() {
+    _controller.stopAutoRefresh();
+    _controller.stopRealtimeLocation();
     _controller.dispose();
     super.dispose();
   }
@@ -96,6 +97,23 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
 
   double _degToRad(double deg) => deg * (3.141592653589793 / 180.0);
 
+  void _fitMapToPoints(List<LatLng> points) {
+    if (points.length < 2) return;
+    
+    try {
+      final bounds = LatLngBounds.fromPoints(points);
+      _mapController.fitCamera(
+        CameraFit.bounds(
+          bounds: bounds,
+          padding: const EdgeInsets.all(100),
+        ),
+      );
+      debugPrint('MAP FIT TO ${points.length} POINTS');
+    } catch (e) {
+      debugPrint('MAP FIT ERROR: $e');
+    }
+  }
+
   String _formatCurrency(dynamic value) {
     final number = double.tryParse(value.toString()) ?? 0;
     final intValue = number.toInt();
@@ -128,52 +146,6 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     return status.toUpperCase();
   }
 
-  Future<void> _showImagePickerOption({
-    required LatLng? currentLocation,
-  }) async {
-    if (_controller.isUpdating) return;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.camera_alt),
-                  title: const Text('Ambil dari Kamera'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    final image = await _pickImage(ImageSource.camera);
-                    if (image != null && mounted) {
-                      await _submitValidation(image, currentLocation);
-                    }
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text('Pilih dari Galeri'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    final image = await _pickImage(ImageSource.gallery);
-                    if (image != null && mounted) {
-                      await _submitValidation(image, currentLocation);
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Future<File?> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source, imageQuality: 80);
@@ -181,43 +153,28 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     return File(pickedFile.path);
   }
 
-  Future<void> _submitValidation(File image, LatLng? currentLocation) async {
-    final success = await _controller.submitValidationPhoto(
-      token: widget.token,
-      orderId: widget.orderId,
-      foto: image,
-      latitude: currentLocation?.latitude,
-      longitude: currentLocation?.longitude,
-    );
-
-    if (!mounted) return;
-
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Foto validasi berhasil dikirim')),
-      );
-      _fetchData();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _controller.errorMessage ?? 'Gagal mengirim foto validasi',
-          ),
-        ),
-      );
-    }
-  }
-
   Widget _mapCard({
-    required LatLng? currentLocation,
-    required LatLng? destination,
+    required LatLng? courierLocation,
+    required LatLng? customerLocation,
+    required LatLng? shopLocation,
     required List<LatLng> routePoints,
     required double? distanceMeters,
     required double? durationSeconds,
   }) {
-    if (currentLocation == null && destination == null) {
+    // ========== EXPLICIT DEBUG PRINTS ==========
+    debugPrint('========== MAP CARD BUILD ==========');
+    debugPrint('SHOP LOCATION: $shopLocation');
+    debugPrint('CUSTOMER LOCATION: $customerLocation');
+    debugPrint('COURIER LOCATION: $courierLocation');
+    debugPrint('ROUTE POINTS LENGTH: ${routePoints.length}');
+    debugPrint('DISTANCE METERS: $distanceMeters');
+    debugPrint('DURATION SECONDS: $durationSeconds');
+    debugPrint('ROUTE ERROR: ${_controller.routeError}');
+    debugPrint('====================================');
+
+    if (courierLocation == null && customerLocation == null && shopLocation == null) {
       return Container(
-        height: 200,
+        height: 250,
         decoration: BoxDecoration(
           color: const Color(0xFFE2E8F0),
           borderRadius: BorderRadius.circular(16),
@@ -226,62 +183,191 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
       );
     }
 
-    final LatLng center = destination ?? currentLocation!;
+    // Center map on courier location first, fallback to shop, then customer
+    final LatLng center = courierLocation ?? shopLocation ?? customerLocation!;
+    
+    // ========== MARKER CREATION ==========
     final markers = <Marker>[
-      if (currentLocation != null)
+      // 1. SHOP MARKER (GREEN) - Always from shop data
+      if (shopLocation != null) ...[
         Marker(
-          point: currentLocation,
+          point: shopLocation,
           width: 40,
           height: 40,
-          child: const Icon(Icons.my_location, color: Colors.blue, size: 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
+                ),
+                child: const Icon(Icons.store, color: Colors.white, size: 24),
+              ),
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('Toko', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
         ),
-      if (destination != null)
+      ],
+      
+      // 2. CUSTOMER MARKER (RED) - Always from customer data
+      if (customerLocation != null) ...[
         Marker(
-          point: destination,
+          point: customerLocation,
           width: 40,
           height: 40,
-          child: const Icon(Icons.location_on, color: Colors.red, size: 30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
+                ),
+                child: const Icon(Icons.location_on, color: Colors.white, size: 28),
+              ),
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('Tujuan', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
         ),
+      ],
+
+      // 3. COURIER MARKER (BLUE) - GPS stream or latest log
+      if (courierLocation != null) ...[
+        Marker(
+          point: courierLocation,
+          width: 50,
+          height: 50,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 25,
+                    height: 25,
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
+                    ),
+                    child: const Icon(Icons.delivery_dining, color: Colors.white, size: 20),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.blue,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('Kurir', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      ],
     ];
 
+    // ========== POLYLINE LOGIC ==========
+    final origin = courierLocation ?? shopLocation;
+    final destination = customerLocation;
+
+    // Always show polyline: either route from OSRM or fallback straight line
     final polylinePoints = routePoints.isNotEmpty
         ? routePoints
-        : (currentLocation != null && destination != null)
-        ? [currentLocation, destination]
-        : <LatLng>[];
+        : (origin != null && destination != null)
+            ? [origin, destination]
+            : <LatLng>[];
+
+    debugPrint('POLYLINE POINTS: ${polylinePoints.length} (${routePoints.isNotEmpty ? 'OSRM' : 'FALLBACK'})');
 
     final polylines = <Polyline>[
       if (polylinePoints.isNotEmpty)
         Polyline(
           points: polylinePoints,
           color: AppColors.primaryBlue,
-          strokeWidth: 3,
+          strokeWidth: 5.0,
+          isDotted: false,
         ),
     ];
 
-    final distanceLabel = distanceMeters == null
-        ? null
-        : '${distanceMeters.round()} m';
+    // Collect all points for map fitting
+    final allMapPoints = <LatLng>[
+      ...polylinePoints,
+      if (shopLocation != null) shopLocation,
+      if (customerLocation != null) customerLocation,
+      if (courierLocation != null) courierLocation,
+    ];
 
     return Stack(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: SizedBox(
-            height: 200,
+            height: 250,
             child: FlutterMap(
-              options: MapOptions(initialCenter: center, initialZoom: 13),
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: center, 
+                initialZoom: 14,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all,
+                ),
+              ),
               children: [
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'carekicks',
                 ),
+                // POLYLINE LAYER (before markers)
                 if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
+                // MARKER LAYER (on top)
                 MarkerLayer(markers: markers),
               ],
             ),
           ),
         ),
+        // Fit map after build
+        if (allMapPoints.length >= 2)
+          Positioned(
+            width: 0,
+            height: 0,
+            child: Builder(
+              builder: (context) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _fitMapToPoints(allMapPoints);
+                });
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
         Positioned(
           top: 12,
           left: 12,
@@ -292,7 +378,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withOpacity(0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -300,30 +386,46 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
                   'Estimasi Tiba',
-                  style: TextStyle(fontSize: 10, color: Colors.grey),
+                  style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   durationSeconds == null && distanceMeters == null
                       ? '--'
                       : '${_estimateMinutes(distanceMeters, durationSeconds)} menit',
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: AppColors.primaryBlue,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  distanceLabel ?? '-',
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
-                ),
+                if (distanceMeters != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    distanceMeters > 1000 
+                        ? '${(distanceMeters/1000).toStringAsFixed(1)} km' 
+                        : '${distanceMeters.round()} m',
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ],
               ],
             ),
           ),
         ),
+        if (_controller.isRouting)
+          const Positioned(
+            top: 12,
+            right: 12,
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
       ],
     );
   }
@@ -335,19 +437,308 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
 
     if (distanceMeters == null) return 0;
 
-    const averageSpeedKmH = 25.0;
+    const averageSpeedKmH = 20.0;
     final distanceKm = distanceMeters / 1000;
     final minutes = (distanceKm / averageSpeedKmH) * 60;
     return minutes.isFinite ? minutes.ceil() : 0;
   }
 
+  Widget _statusBadge(String status) {
+    Color color;
+    switch (status.toLowerCase()) {
+      case 'selesai':
+        color = Colors.green;
+        break;
+      case 'diantar':
+        color = Colors.blue;
+        break;
+      default:
+        color = Colors.orange;
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _locationStatusBanner(bool isLive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isLive ? Colors.green.withOpacity(0.08) : Colors.grey.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isLive ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isLive ? Icons.gps_fixed : Icons.gps_off,
+            size: 20,
+            color: isLive ? Colors.green : Colors.grey,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isLive ? 'Tracking Aktif' : 'Tracking Nonaktif',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: isLive ? Colors.green.shade700 : Colors.grey.shade700,
+                  ),
+                ),
+                Text(
+                  isLive ? 'Lokasi Anda dikirim ke sistem tiap 10m' : 'Tekan Mulai untuk mengaktifkan GPS',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          if (isLive)
+            const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.green),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _instructionCard(String? instruction, double? nextDist, double? totalDist) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.lightBlue,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.navigation, color: AppColors.primaryBlue),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Instruksi Berikutnya',
+                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  instruction ?? 'Ikuti rute pada peta',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                nextDist != null 
+                  ? (nextDist > 1000 ? '${(nextDist/1000).toStringAsFixed(1)}km' : '${nextDist.round()}m')
+                  : (totalDist != null ? (totalDist > 1000 ? '${(totalDist/1000).toStringAsFixed(1)}km' : '${totalDist.round()}m') : '--'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primaryBlue),
+              ),
+              const Text('jarak', style: TextStyle(fontSize: 10, color: Colors.grey)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback? onPressed,
+    bool isFullWidth = false,
+  }) {
+    return SizedBox(
+      width: isFullWidth ? double.infinity : null,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 2,
+        ),
+      ),
+    );
+  }
+
+  Widget _deliveryDetailCard(Map<String, dynamic> order, Map<String, dynamic>? lastLog) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Detail Pengantaran',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              Text(
+                'ID: ${order['kode_order'] ?? order['id_orders'] ?? '-'}',
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          _detailRow(
+            icon: Icons.person_outline,
+            label: 'Pelanggan',
+            value: order['customers']?['nama']?.toString() ?? '-',
+          ),
+          _detailRow(
+            icon: Icons.phone_outlined,
+            label: 'Nomor HP',
+            value: order['customers']?['nomor_hp']?.toString() ?? '-',
+          ),
+          _detailRow(
+            icon: Icons.location_on_outlined,
+            label: 'Alamat Tujuan',
+            value: order['customers']?['alamat']?.toString() ?? '-',
+          ),
+          _detailRow(
+            icon: Icons.inventory_2_outlined,
+            label: 'Item Pesanan',
+            value: _itemsLabel(order['detail_orders']),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Total Pembayaran', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              Text(
+                _formatCurrency(_totalHarga(order['detail_orders'])),
+                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue, fontSize: 16),
+              ),
+            ],
+          ),
+          if (order['catatan_pengiriman'] != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Catatan: ${order['catatan_pengiriman']}',
+                      style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Text(
+            'Terakhir update: ${_formatDateTime(lastLog?['waktu']?.toString())}',
+            style: const TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitFinish(File image, int? idStaff) async {
+    final success = await _controller.finishDelivery(
+      token: widget.token,
+      orderId: widget.orderId,
+      foto: image,
+      idStaff: idStaff,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pesanan berhasil diselesaikan'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _controller.fetchTrackingDetail(
+        token: widget.token,
+        orderId: widget.orderId,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_controller.errorMessage ?? 'Gagal menyelesaikan pesanan'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final idStaff = widget.user['id_staff'] ?? widget.user['id_user'];
+    final parsedIdStaff = idStaff is int ? idStaff : int.tryParse(idStaff.toString());
+
     return CustomScaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
         title: const Text(
-          'Tracking Kurir',
+          'Tracking Delivery',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -357,6 +748,15 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
         backgroundColor: AppColors.primaryBlue,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _controller.fetchTrackingDetail(
+              token: widget.token,
+              orderId: widget.orderId,
+            ),
+          ),
+        ],
       ),
       body: ListenableBuilder(
         listenable: _controller,
@@ -371,10 +771,15 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(_controller.errorMessage!),
+                  Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+                  const SizedBox(height: 16),
+                  Text(_controller.errorMessage!, textAlign: TextAlign.center),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: _fetchData,
+                    onPressed: () => _controller.fetchTrackingDetail(
+                      token: widget.token,
+                      orderId: widget.orderId,
+                    ),
                     child: const Text('Coba Lagi'),
                   ),
                 ],
@@ -385,282 +790,150 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
           final detail = _controller.detailData ?? {};
           final order = detail['order'] as Map<String, dynamic>? ?? {};
           final logs = detail['tracking_logs'] as List<dynamic>? ?? [];
-          final lastLog = logs.isNotEmpty ? logs.first : null;
+          final lastLog = logs.isNotEmpty ? logs.first as Map<String, dynamic>? : null;
+          final shop = order['shops'] as Map<String, dynamic>? ?? {};
+          final customer = order['customers'] as Map<String, dynamic>? ?? {};
 
-          final currentLocation = _toLatLng(
-            lastLog?['latitude'],
-            lastLog?['longitude'],
+          // 1. SHOP LOCATION (GREEN)
+          final shopLocation = _toLatLng(shop['lat_toko'], shop['long_toko']);
+          
+          // 2. CUSTOMER LOCATION (RED)
+          final customerLocation = _toLatLng(
+            customer['latitude'],
+            customer['longitude'],
           );
-          final destination = _toLatLng(
-            order['customers']?['latitude'],
-            order['customers']?['longitude'],
-          );
+          
+          // 3. COURIER LOCATION (BLUE) - Priority: GPS Stream > Latest Log
+          final courierLocation = _controller.currentCourierLocation ?? 
+              _toLatLng(lastLog?['latitude'], lastLog?['longitude']);
+
+          final isLive = _controller.isTrackingActive;
 
           final routeDistance = _controller.routeDistanceMeters;
           final routeDuration = _controller.routeDurationSeconds;
+          
+          // Final Distance logic for display
+          final originForFallback = courierLocation ?? shopLocation;
           final fallbackDistance =
-              (currentLocation != null && destination != null)
-              ? _distanceKm(currentLocation, destination) * 1000
+              (originForFallback != null && customerLocation != null)
+              ? _distanceKm(originForFallback, customerLocation) * 1000
               : null;
           final distanceMeters = routeDistance ?? fallbackDistance;
+          
           final nextInstruction = _controller.nextInstruction;
           final nextDistanceMeters = _controller.nextDistanceMeters;
 
-          final status = order['status_order']?.toString();
-          final hasValidation = order['foto_validasi'] != null;
-          final canValidate =
-              status?.toLowerCase() != 'selesai' && !hasValidation;
-
+          final status = order['status_order']?.toString().toLowerCase();
+          final isSelesai = status == 'selesai';
+          final isDiantar = status == 'diantar';
+          
           return RefreshIndicator(
-            onRefresh: () async => _fetchData(),
+            onRefresh: () async => _controller.fetchTrackingDetail(
+              token: widget.token,
+              orderId: widget.orderId,
+            ),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const Text(
-                  'Tracking Kurir',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Pantau penjemputan dan pengantaran hari ini',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.lightBlue,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.gps_fixed, size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          currentLocation == null
-                              ? 'GPS belum tersedia'
-                              : 'GPS aktif',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF334155),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isSelesai ? 'Pengantaran Selesai' : 'Sedang Mengantar',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                          Text(
+                            isSelesai 
+                              ? 'Paket telah diterima oleh pelanggan'
+                              : 'Pantau lokasi Anda dan rute tercepat',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    _statusBadge(status ?? 'pending'),
+                  ],
                 ),
                 const SizedBox(height: 16),
+                
+                _locationStatusBanner(isLive),
+                
+                const SizedBox(height: 16),
                 _mapCard(
-                  currentLocation: currentLocation,
-                  destination: destination,
+                  courierLocation: courierLocation,
+                  customerLocation: customerLocation,
+                  shopLocation: shopLocation,
                   routePoints: _controller.routePoints,
                   distanceMeters: distanceMeters,
                   durationSeconds: routeDuration,
                 ),
                 const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightBlue,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.navigation,
-                          color: AppColors.primaryBlue,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Instruksi berikutnya',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              nextInstruction ??
-                                  (distanceMeters == null
-                                      ? 'Menunggu lokasi'
-                                      : 'Menuju tujuan'),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        nextDistanceMeters != null
-                            ? '${nextDistanceMeters.round()}m'
-                            : (distanceMeters == null
-                                  ? '--'
-                                  : '${distanceMeters.round()}m'),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                
+                if (!isSelesai)
+                  _instructionCard(nextInstruction, nextDistanceMeters, distanceMeters),
+                
                 const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                
+                if (!isSelesai) ...[
+                  const Text(
+                    'Kontrol Kurir',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 12),
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.lightBlue,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              _formatStatus(status),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryBlue,
-                              ),
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            'ID: ${order['kode_order'] ?? order['id_orders'] ?? '-'}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Detail Pengantaran',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _detailRow(
-                        icon: Icons.person,
-                        label: 'Pelanggan',
-                        value: order['customers']?['nama']?.toString() ?? '-',
-                      ),
-                      _detailRow(
-                        icon: Icons.location_on,
-                        label: 'Alamat',
-                        value: order['customers']?['alamat']?.toString() ?? '-',
-                      ),
-                      _detailRow(
-                        icon: Icons.inventory_2_outlined,
-                        label: 'Item',
-                        value: _itemsLabel(order['detail_orders']),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Total',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                          Text(
-                            _formatCurrency(
-                              _totalHarga(order['detail_orders']),
-                            ),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryBlue,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: canValidate
-                              ? () => _showImagePickerOption(
-                                  currentLocation: currentLocation,
-                                )
-                              : null,
-                          icon: const Icon(Icons.camera_alt),
-                          label: Text(
-                            _controller.isUpdating
-                                ? 'Mengirim...'
-                                : canValidate
-                                ? 'Foto Validasi'
-                                : 'Sudah divalidasi',
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryDark,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                      if (!isDiantar || !isLive)
+                        Expanded(
+                          child: _actionButton(
+                            label: isDiantar ? 'Lanjut Tracking' : 'Mulai Antar',
+                            icon: Icons.play_arrow,
+                            color: Colors.green,
+                            onPressed: _controller.isUpdating ? null : () {
+                              _controller.startDelivery(
+                                token: widget.token,
+                                orderId: widget.orderId,
+                                idStaff: parsedIdStaff,
+                              );
+                            },
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Catatan: ${order['catatan_pengiriman'] ?? '-'}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                      if (isLive) ...[
+                        if (!isDiantar || isLive) const SizedBox(width: 12),
+                        Expanded(
+                          child: _actionButton(
+                            label: 'Berhenti',
+                            icon: Icons.stop,
+                            color: Colors.orange,
+                            onPressed: () => _controller.stopRealtimeLocation(),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Terakhir update: ${_formatDateTime(lastLog?['waktu']?.toString())}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
-                        ),
-                      ),
+                      ],
                     ],
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  _actionButton(
+                    label: 'Selesai Antar (Foto)',
+                    icon: Icons.check_circle,
+                    color: AppColors.primaryBlue,
+                    isFullWidth: true,
+                    onPressed: _controller.isUpdating ? null : () => _showImagePickerOption(
+                      currentLocation: courierLocation ?? shopLocation,
+                      idStaff: parsedIdStaff,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                _deliveryDetailCard(order, lastLog),
+                const SizedBox(height: 24),
               ],
             ),
           );
@@ -723,5 +996,61 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
       final value = double.tryParse(item['total_harga'].toString()) ?? 0;
       return sum + value.toInt();
     });
+  }
+
+  Future<void> _showImagePickerOption({
+    required LatLng? currentLocation,
+    int? idStaff,
+  }) async {
+    if (_controller.isUpdating) return;
+
+    showModalBottomSheet(
+      context: context,
+      shape:  RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      builder: (_) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Wrap(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(
+                    child: Text(
+                      'Foto Bukti Pengantaran',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt, color: AppColors.primaryBlue),
+                  title: const Text('Ambil dari Kamera'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final image = await _pickImage(ImageSource.camera);
+                    if (image != null && mounted) {
+                      await _submitFinish(image, idStaff);
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library, color: AppColors.primaryBlue),
+                  title: const Text('Pilih dari Galeri'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final image = await _pickImage(ImageSource.gallery);
+                    if (image != null && mounted) {
+                      await _submitFinish(image, idStaff);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
