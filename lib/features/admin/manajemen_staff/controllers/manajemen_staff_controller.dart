@@ -41,7 +41,6 @@ class ManajemenStaffController {
     required String nama,
     required String email,
     required String noHp,
-    required String idShops,
     required List<StaffRole> roles,
     required String password,
   }) async {
@@ -53,7 +52,6 @@ class ManajemenStaffController {
           'nama': nama,
           'email': email,
           'no_hp': noHp,
-          'id_shops': int.tryParse(idShops) ?? idShops,
           'role': roles
               .map((e) => e.name)
               .toList(), // Kirim sebagai array string

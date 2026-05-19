@@ -40,8 +40,8 @@ class ManajemenStaffService {
     required String nama,
     required String email,
     required String noHp,
-    required String idShops,
-    required StaffRole role,
+    required List<StaffRole> roles,
+    required String password,
   }) async {
     try {
       final response = await http.post(
@@ -51,8 +51,8 @@ class ManajemenStaffService {
           'nama': nama,
           'email': email,
           'no_hp': noHp,
-          'id_shops': int.tryParse(idShops) ?? idShops,
-          'role': role.name,
+          'role': roles.map((e) => e.name).toList(),
+          'password': password,
         }),
       );
       final data = jsonDecode(response.body);
