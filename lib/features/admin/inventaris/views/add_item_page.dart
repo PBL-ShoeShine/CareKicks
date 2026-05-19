@@ -419,14 +419,13 @@ class _AddItemPageState extends State<AddItemPage> {
       return;
     }
 
+    final stokAwal = double.tryParse(_stokAwalController.text) ?? 0;
     final success = await _controller.createItem(
       token: widget.token,
       namaItem: _namaController.text,
       kategori: _selectedKategori,
-      stokSaatIni: double.tryParse(_stokAwalController.text) ?? 0,
-      stokMaksimum:
-          (double.tryParse(_stokAwalController.text) ?? 0) *
-          2, // Mocking max stock
+      stokSaatIni: stokAwal,
+      stokMaksimum: stokAwal,
       stokMinimum: double.tryParse(_stokMinimumController.text) ?? 5,
       satuan: _selectedSatuan,
       fotoInven: _selectedImage,

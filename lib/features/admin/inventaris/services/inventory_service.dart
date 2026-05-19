@@ -204,6 +204,28 @@ class InventoryService {
     }
   }
 
+  static Future<Map<String, dynamic>> reduceStock({
+    required String token,
+    required int id,
+    required double amount,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_inventoryUrl/$id/reduce-stock'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'amount': amount}),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      debugPrint('Error in InventoryService.reduceStock: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
   static Future<Map<String, dynamic>> deleteItem({
     required String token,
     required int id,
