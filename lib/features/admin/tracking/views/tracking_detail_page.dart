@@ -1,12 +1,16 @@
 import 'dart:io';
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/custom_scaffold.dart';
-import '../../../../core/widgets/custom_appbar.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_radius.dart';
+import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/widgets/custom_appbar.dart';
+import '../../../../core/widgets/custom_scaffold.dart';
 import '../controllers/tracking_detail_controller.dart';
 
 class TrackingDetailPage extends StatefulWidget {
@@ -45,9 +49,15 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
 
     if (ok) {
       _controller.startAutoRefresh(widget.token, widget.orderId);
-      
-      final status = _controller.detailData?['order']?['status_order']?.toString().toLowerCase();
-      if (status == 'diantar') {
+
+      final status = _controller.detailData?['order']?['status_order']
+          ?.toString()
+          .toLowerCase();
+      final isActiveTracking =
+          status == 'sedang_diantar' ||
+          status == 'sedang_dijemput' ||
+          status == 'diantar';
+      if (isActiveTracking) {
         final idStaff = widget.user['id_staff'] ?? widget.user['id_user'];
         _controller.startRealtimeLocation(
           widget.token,
@@ -100,14 +110,11 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
 
   void _fitMapToPoints(List<LatLng> points) {
     if (points.length < 2) return;
-    
+
     try {
       final bounds = LatLngBounds.fromPoints(points);
       _mapController.fitCamera(
-        CameraFit.bounds(
-          bounds: bounds,
-          padding: const EdgeInsets.all(100),
-        ),
+        CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(100)),
       );
       debugPrint('MAP FIT TO ${points.length} POINTS');
     } catch (e) {
@@ -143,8 +150,54 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
   }
 
   String _formatStatus(String? status) {
-    if (status == null || status.isEmpty) return 'PENDING';
-    return status.toUpperCase();
+    final raw = status?.trim();
+    if (raw == null || raw.isEmpty) return 'Pending';
+    final normalized = raw.replaceAll('_', ' ').toLowerCase();
+    return normalized.isEmpty
+        ? 'Pending'
+        : '${normalized[0].toUpperCase()}${normalized.substring(1)}';
+  }
+
+  String _statusTitle(String? status) {
+    final normalized = status?.toLowerCase() ?? '';
+    switch (normalized) {
+      case 'menunggu_jemput':
+        return 'Menunggu Penjemputan';
+      case 'sedang_dijemput':
+        return 'Sedang Menjemput';
+      case 'diterima_toko':
+        return 'Penjemputan Selesai';
+      case 'siap_diantar':
+        return 'Siap Diantar';
+      case 'sedang_diantar':
+      case 'diantar':
+        return 'Sedang Mengantar';
+      case 'selesai':
+        return 'Pengantaran Selesai';
+      default:
+        return 'Tracking Kurir';
+    }
+  }
+
+  String _statusSubtitle(String? status) {
+    final normalized = status?.toLowerCase() ?? '';
+    switch (normalized) {
+      case 'menunggu_jemput':
+        return 'Kurir menunggu mulai penjemputan';
+      case 'sedang_dijemput':
+        return 'Pantau lokasi Anda menuju pelanggan';
+      case 'diterima_toko':
+        return 'Pesanan telah diterima di toko';
+      case 'siap_diantar':
+        return 'Pesanan siap diantar ke pelanggan';
+      case 'sedang_diantar':
+      case 'diantar':
+        return 'Pantau lokasi Anda dan rute tercepat';
+      case 'selesai':
+        return 'Paket telah diterima oleh pelanggan';
+      default:
+        return 'Pantau lokasi dan status pesanan';
+    }
   }
 
   Future<File?> _pickImage(ImageSource source) async {
@@ -173,7 +226,9 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     debugPrint('ROUTE ERROR: ${_controller.routeError}');
     debugPrint('====================================');
 
-    if (courierLocation == null && customerLocation == null && shopLocation == null) {
+    if (courierLocation == null &&
+        customerLocation == null &&
+        shopLocation == null) {
       return Container(
         height: 250,
         decoration: BoxDecoration(
@@ -186,15 +241,19 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
 
     // Center map on courier location first, fallback to shop, then customer
     final LatLng center = courierLocation ?? shopLocation ?? customerLocation!;
-    
+
     // ========== MARKER CREATION ==========
+    const shopMarkerSize = Size(44, 52);
+    const customerMarkerSize = Size(44, 52);
+    const courierMarkerSize = Size(56, 60);
+
     final markers = <Marker>[
       // 1. SHOP MARKER (GREEN) - Always from shop data
       if (shopLocation != null) ...[
         Marker(
           point: shopLocation,
-          width: 40,
-          height: 40,
+          width: shopMarkerSize.width,
+          height: shopMarkerSize.height,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -202,7 +261,12 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                 decoration: BoxDecoration(
                   color: Colors.green,
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
                 child: const Icon(Icons.store, color: Colors.white, size: 24),
               ),
@@ -213,19 +277,26 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                   color: Colors.green,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text('Toko', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Toko',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
         ),
       ],
-      
+
       // 2. CUSTOMER MARKER (RED) - Always from customer data
       if (customerLocation != null) ...[
         Marker(
           point: customerLocation,
-          width: 40,
-          height: 40,
+          width: customerMarkerSize.width,
+          height: customerMarkerSize.height,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -233,9 +304,18 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                 decoration: BoxDecoration(
                   color: Colors.red,
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.location_on, color: Colors.white, size: 28),
+                child: const Icon(
+                  Icons.location_on,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
               const SizedBox(height: 2),
               Container(
@@ -244,7 +324,14 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                   color: Colors.red,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text('Tujuan', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Tujuan',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -255,8 +342,8 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
       if (courierLocation != null) ...[
         Marker(
           point: courierLocation,
-          width: 50,
-          height: 50,
+          width: courierMarkerSize.width,
+          height: courierMarkerSize.height,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -275,9 +362,18 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                     decoration: BoxDecoration(
                       color: Colors.blue,
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
-                    child: const Icon(Icons.delivery_dining, color: Colors.white, size: 20),
+                    child: const Icon(
+                      Icons.delivery_dining,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ],
               ),
@@ -288,7 +384,14 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                   color: Colors.blue,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text('Kurir', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Kurir',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -304,10 +407,12 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     final polylinePoints = routePoints.isNotEmpty
         ? routePoints
         : (origin != null && destination != null)
-            ? [origin, destination]
-            : <LatLng>[];
+        ? [origin, destination]
+        : <LatLng>[];
 
-    debugPrint('POLYLINE POINTS: ${polylinePoints.length} (${routePoints.isNotEmpty ? 'OSRM' : 'FALLBACK'})');
+    debugPrint(
+      'POLYLINE POINTS: ${polylinePoints.length} (${routePoints.isNotEmpty ? 'OSRM' : 'FALLBACK'})',
+    );
 
     final polylines = <Polyline>[
       if (polylinePoints.isNotEmpty)
@@ -336,7 +441,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
             child: FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                initialCenter: center, 
+                initialCenter: center,
                 initialZoom: 14,
                 interactionOptions: const InteractionOptions(
                   flags: InteractiveFlag.all,
@@ -391,7 +496,11 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
               children: [
                 const Text(
                   'Estimasi Tiba',
-                  style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -407,8 +516,8 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                 if (distanceMeters != null) ...[
                   const SizedBox(height: 2),
                   Text(
-                    distanceMeters > 1000 
-                        ? '${(distanceMeters/1000).toStringAsFixed(1)} km' 
+                    distanceMeters > 1000
+                        ? '${(distanceMeters / 1000).toStringAsFixed(1)} km'
                         : '${distanceMeters.round()} m',
                     style: const TextStyle(fontSize: 11, color: Colors.grey),
                   ),
@@ -445,27 +554,36 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
   }
 
   Widget _statusBadge(String status) {
+    final normalized = status.toLowerCase();
     Color color;
-    switch (status.toLowerCase()) {
+    switch (normalized) {
       case 'selesai':
-        color = Colors.green;
+      case 'diterima_toko':
+        color = AppColors.success;
         break;
-      case 'diantar':
-        color = Colors.blue;
+      case 'sedang_dijemput':
+      case 'sedang_diantar':
+      case 'diproses':
+        color = AppColors.primaryBlue;
+        break;
+      case 'menunggu_jemput':
+      case 'siap_diantar':
+      case 'pending':
+        color = AppColors.warning;
         break;
       default:
-        color = Colors.orange;
+        color = AppColors.textSecondary;
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadius.extraLarge,
         border: Border.all(color: color.withOpacity(0.5)),
       ),
       child: Text(
-        status.toUpperCase(),
+        _formatStatus(status),
         style: TextStyle(
           color: color,
           fontSize: 10,
@@ -479,10 +597,14 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isLive ? Colors.green.withOpacity(0.08) : Colors.grey.withOpacity(0.1),
+        color: isLive
+            ? Colors.green.withOpacity(0.08)
+            : Colors.grey.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isLive ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+          color: isLive
+              ? Colors.green.withOpacity(0.2)
+              : Colors.grey.withOpacity(0.2),
         ),
       ),
       child: Row(
@@ -502,11 +624,15 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: isLive ? Colors.green.shade700 : Colors.grey.shade700,
+                    color: isLive
+                        ? Colors.green.shade700
+                        : Colors.grey.shade700,
                   ),
                 ),
                 Text(
-                  isLive ? 'Lokasi Anda dikirim ke sistem tiap 10m' : 'Tekan Mulai untuk mengaktifkan GPS',
+                  isLive
+                      ? 'Lokasi Anda dikirim ke sistem tiap 10m'
+                      : 'Tekan Mulai untuk mengaktifkan GPS',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 ),
               ],
@@ -516,14 +642,21 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
             const SizedBox(
               width: 12,
               height: 12,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.green),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.green,
+              ),
             ),
         ],
       ),
     );
   }
 
-  Widget _instructionCard(String? instruction, double? nextDist, double? totalDist) {
+  Widget _instructionCard(
+    String? instruction,
+    double? nextDist,
+    double? totalDist,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -554,12 +687,19 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
               children: [
                 const Text(
                   'Instruksi Berikutnya',
-                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   instruction ?? 'Ikuti rute pada peta',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ],
             ),
@@ -568,12 +708,25 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                nextDist != null 
-                  ? (nextDist > 1000 ? '${(nextDist/1000).toStringAsFixed(1)}km' : '${nextDist.round()}m')
-                  : (totalDist != null ? (totalDist > 1000 ? '${(totalDist/1000).toStringAsFixed(1)}km' : '${totalDist.round()}m') : '--'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primaryBlue),
+                nextDist != null
+                    ? (nextDist > 1000
+                          ? '${(nextDist / 1000).toStringAsFixed(1)}km'
+                          : '${nextDist.round()}m')
+                    : (totalDist != null
+                          ? (totalDist > 1000
+                                ? '${(totalDist / 1000).toStringAsFixed(1)}km'
+                                : '${totalDist.round()}m')
+                          : '--'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: AppColors.primaryBlue,
+                ),
               ),
-              const Text('jarak', style: TextStyle(fontSize: 10, color: Colors.grey)),
+              const Text(
+                'jarak',
+                style: TextStyle(fontSize: 10, color: Colors.grey),
+              ),
             ],
           ),
         ],
@@ -597,15 +750,22 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(
+            vertical: AppSizes.paddingMd,
+            horizontal: AppSizes.paddingLg,
+          ),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
           elevation: 2,
         ),
       ),
     );
   }
 
-  Widget _deliveryDetailCard(Map<String, dynamic> order, Map<String, dynamic>? lastLog) {
+  Widget _deliveryDetailCard(
+    String title,
+    Map<String, dynamic> order,
+    Map<String, dynamic>? lastLog,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -625,9 +785,12 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Detail Pengantaran',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               Text(
                 'ID: ${order['kode_order'] ?? order['id_orders'] ?? '-'}',
@@ -660,10 +823,17 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Total Pembayaran', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              const Text(
+                'Total Pembayaran',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
               Text(
                 _formatCurrency(_totalHarga(order['detail_orders'])),
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryBlue,
+                  fontSize: 16,
+                ),
               ),
             ],
           ),
@@ -677,12 +847,19 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                  const Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Colors.orange,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Catatan: ${order['catatan_pengiriman']}',
-                      style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange.shade900,
+                      ),
                     ),
                   ),
                 ],
@@ -692,14 +869,18 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
           const SizedBox(height: 16),
           Text(
             'Terakhir update: ${_formatDateTime(lastLog?['waktu']?.toString())}',
-            style: const TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.grey,
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _submitFinish(File image, int? idStaff) async {
+  Future<void> _submitDelivery(File image, int? idStaff) async {
     final success = await _controller.finishDelivery(
       token: widget.token,
       orderId: widget.orderId,
@@ -712,8 +893,8 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Pesanan berhasil diselesaikan'),
-          backgroundColor: Colors.green,
+          content: Text('Pengantaran berhasil diselesaikan'),
+          backgroundColor: AppColors.success,
         ),
       );
       _controller.fetchTrackingDetail(
@@ -723,8 +904,43 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_controller.errorMessage ?? 'Gagal menyelesaikan pesanan'),
-          backgroundColor: Colors.red,
+          content: Text(
+            _controller.errorMessage ?? 'Gagal menyelesaikan pengantaran',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _submitPickup(File image, int? idStaff) async {
+    final success = await _controller.finishPickup(
+      token: widget.token,
+      orderId: widget.orderId,
+      foto: image,
+      idStaff: idStaff,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Penjemputan berhasil diselesaikan'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      _controller.fetchTrackingDetail(
+        token: widget.token,
+        orderId: widget.orderId,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _controller.errorMessage ?? 'Gagal menyelesaikan penjemputan',
+          ),
+          backgroundColor: AppColors.error,
         ),
       );
     }
@@ -733,12 +949,14 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
   @override
   Widget build(BuildContext context) {
     final idStaff = widget.user['id_staff'] ?? widget.user['id_user'];
-    final parsedIdStaff = idStaff is int ? idStaff : int.tryParse(idStaff.toString());
+    final parsedIdStaff = idStaff is int
+        ? idStaff
+        : int.tryParse(idStaff.toString());
 
     return CustomScaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppColors.background,
       appBar: CustomAppBar(
-        title: 'Tracking Delivery',
+        title: 'Tracking Kurir',
         showBackButton: true,
         actions: [
           IconButton(
@@ -763,7 +981,11 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red.shade300,
+                  ),
                   const SizedBox(height: 16),
                   Text(_controller.errorMessage!, textAlign: TextAlign.center),
                   const SizedBox(height: 16),
@@ -782,28 +1004,31 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
           final detail = _controller.detailData ?? {};
           final order = detail['order'] as Map<String, dynamic>? ?? {};
           final logs = detail['tracking_logs'] as List<dynamic>? ?? [];
-          final lastLog = logs.isNotEmpty ? logs.first as Map<String, dynamic>? : null;
+          final lastLog = logs.isNotEmpty
+              ? logs.first as Map<String, dynamic>?
+              : null;
           final shop = order['shops'] as Map<String, dynamic>? ?? {};
           final customer = order['customers'] as Map<String, dynamic>? ?? {};
 
           // 1. SHOP LOCATION (GREEN)
           final shopLocation = _toLatLng(shop['lat_toko'], shop['long_toko']);
-          
+
           // 2. CUSTOMER LOCATION (RED)
           final customerLocation = _toLatLng(
             customer['latitude'],
             customer['longitude'],
           );
-          
+
           // 3. COURIER LOCATION (BLUE) - Priority: GPS Stream > Latest Log
-          final courierLocation = _controller.currentCourierLocation ?? 
+          final courierLocation =
+              _controller.currentCourierLocation ??
               _toLatLng(lastLog?['latitude'], lastLog?['longitude']);
 
           final isLive = _controller.isTrackingActive;
 
           final routeDistance = _controller.routeDistanceMeters;
           final routeDuration = _controller.routeDurationSeconds;
-          
+
           // Final Distance logic for display
           final originForFallback = courierLocation ?? shopLocation;
           final fallbackDistance =
@@ -811,14 +1036,104 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
               ? _distanceKm(originForFallback, customerLocation) * 1000
               : null;
           final distanceMeters = routeDistance ?? fallbackDistance;
-          
+
           final nextInstruction = _controller.nextInstruction;
           final nextDistanceMeters = _controller.nextDistanceMeters;
 
           final status = order['status_order']?.toString().toLowerCase();
-          final isSelesai = status == 'selesai';
-          final isDiantar = status == 'diantar';
-          
+          final isPickupWaiting = status == 'menunggu_jemput';
+          final isPickupActive = status == 'sedang_dijemput';
+          final isPickupPhase =
+              isPickupWaiting || isPickupActive || status == 'diterima_toko';
+          final isDeliveryReady = status == 'siap_diantar';
+          final isDeliveryActive =
+              status == 'sedang_diantar' || status == 'diantar';
+          final isDeliveryPhase =
+              isDeliveryReady || isDeliveryActive || status == 'selesai';
+          final showControls =
+              isPickupWaiting ||
+              isPickupActive ||
+              isDeliveryReady ||
+              isDeliveryActive;
+          final statusTitle = _statusTitle(status);
+          final statusSubtitle = _statusSubtitle(status);
+          final detailTitle = isPickupPhase
+              ? 'Detail Penjemputan'
+              : isDeliveryPhase
+              ? 'Detail Pengantaran'
+              : 'Detail Pesanan';
+          final actionButtons = <Widget>[];
+
+          if (isPickupWaiting) {
+            actionButtons.add(
+              Expanded(
+                child: _actionButton(
+                  label: 'Mulai Jemput',
+                  icon: Icons.play_arrow,
+                  color: AppColors.success,
+                  onPressed: _controller.isUpdating
+                      ? null
+                      : () {
+                          _controller.startPickup(
+                            token: widget.token,
+                            orderId: widget.orderId,
+                            idStaff: parsedIdStaff,
+                          );
+                        },
+                ),
+              ),
+            );
+          } else if (isDeliveryReady) {
+            actionButtons.add(
+              Expanded(
+                child: _actionButton(
+                  label: 'Mulai Antar',
+                  icon: Icons.play_arrow,
+                  color: AppColors.success,
+                  onPressed: _controller.isUpdating
+                      ? null
+                      : () {
+                          _controller.startDelivery(
+                            token: widget.token,
+                            orderId: widget.orderId,
+                            idStaff: parsedIdStaff,
+                          );
+                        },
+                ),
+              ),
+            );
+          } else if (isPickupActive || isDeliveryActive) {
+            if (!isLive) {
+              actionButtons.add(
+                Expanded(
+                  child: _actionButton(
+                    label: 'Lanjut Tracking',
+                    icon: Icons.play_arrow,
+                    color: AppColors.success,
+                    onPressed: _controller.isUpdating
+                        ? null
+                        : () => _controller.startRealtimeLocation(
+                            widget.token,
+                            widget.orderId,
+                            parsedIdStaff,
+                          ),
+                  ),
+                ),
+              );
+            } else {
+              actionButtons.add(
+                Expanded(
+                  child: _actionButton(
+                    label: 'Berhenti',
+                    icon: Icons.stop,
+                    color: AppColors.warning,
+                    onPressed: _controller.stopRealtimeLocation,
+                  ),
+                ),
+              );
+            }
+          }
+
           return RefreshIndicator(
             onRefresh: () async => _controller.fetchTrackingDetail(
               token: widget.token,
@@ -834,7 +1149,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isSelesai ? 'Pengantaran Selesai' : 'Sedang Mengantar',
+                            statusTitle,
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -843,10 +1158,11 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            isSelesai 
-                              ? 'Paket telah diterima oleh pelanggan'
-                              : 'Pantau lokasi Anda dan rute tercepat',
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            statusSubtitle,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
                           ),
                         ],
                       ),
@@ -855,9 +1171,9 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 _locationStatusBanner(isLive),
-                
+
                 const SizedBox(height: 16),
                 _mapCard(
                   courierLocation: courierLocation,
@@ -868,63 +1184,56 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                   durationSeconds: routeDuration,
                 ),
                 const SizedBox(height: 16),
-                
-                if (!isSelesai)
-                  _instructionCard(nextInstruction, nextDistanceMeters, distanceMeters),
-                
+
+                if (showControls)
+                  _instructionCard(
+                    nextInstruction,
+                    nextDistanceMeters,
+                    distanceMeters,
+                  ),
+
                 const SizedBox(height: 16),
-                
-                if (!isSelesai) ...[
+
+                if (showControls) ...[
                   const Text(
                     'Kontrol Kurir',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      if (!isDiantar || !isLive)
-                        Expanded(
-                          child: _actionButton(
-                            label: isDiantar ? 'Lanjut Tracking' : 'Mulai Antar',
-                            icon: Icons.play_arrow,
-                            color: Colors.green,
-                            onPressed: _controller.isUpdating ? null : () {
-                              _controller.startDelivery(
-                                token: widget.token,
-                                orderId: widget.orderId,
-                                idStaff: parsedIdStaff,
-                              );
-                            },
-                          ),
-                        ),
-                      if (isLive) ...[
-                        if (!isDiantar || isLive) const SizedBox(width: 12),
-                        Expanded(
-                          child: _actionButton(
-                            label: 'Berhenti',
-                            icon: Icons.stop,
-                            color: Colors.orange,
-                            onPressed: () => _controller.stopRealtimeLocation(),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _actionButton(
-                    label: 'Selesai Antar (Foto)',
-                    icon: Icons.check_circle,
-                    color: AppColors.primaryBlue,
-                    isFullWidth: true,
-                    onPressed: _controller.isUpdating ? null : () => _showImagePickerOption(
-                      currentLocation: courierLocation ?? shopLocation,
-                      idStaff: parsedIdStaff,
+                  if (actionButtons.isNotEmpty) Row(children: actionButtons),
+                  if (actionButtons.isNotEmpty) const SizedBox(height: 12),
+                  if (isPickupActive)
+                    _actionButton(
+                      label: 'Diterima Toko',
+                      icon: Icons.check_circle,
+                      color: AppColors.primaryBlue,
+                      isFullWidth: true,
+                      onPressed: _controller.isUpdating
+                          ? null
+                          : () => _showImagePickerOption(
+                              title: 'Foto Bukti Penjemputan',
+                              onImagePicked: (image) =>
+                                  _submitPickup(image, parsedIdStaff),
+                            ),
                     ),
-                  ),
+                  if (isDeliveryActive)
+                    _actionButton(
+                      label: 'Selesai Antar',
+                      icon: Icons.check_circle,
+                      color: AppColors.primaryBlue,
+                      isFullWidth: true,
+                      onPressed: _controller.isUpdating
+                          ? null
+                          : () => _showImagePickerOption(
+                              title: 'Foto Bukti Pengantaran',
+                              onImagePicked: (image) =>
+                                  _submitDelivery(image, parsedIdStaff),
+                            ),
+                    ),
                   const SizedBox(height: 24),
                 ],
 
-                _deliveryDetailCard(order, lastLog),
+                _deliveryDetailCard(detailTitle, order, lastLog),
                 const SizedBox(height: 24),
               ],
             ),
@@ -991,50 +1300,57 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
   }
 
   Future<void> _showImagePickerOption({
-    required LatLng? currentLocation,
-    int? idStaff,
+    required String title,
+    required Future<void> Function(File image) onImagePicked,
   }) async {
     if (_controller.isUpdating) return;
 
     showModalBottomSheet(
       context: context,
-      shape:  RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.extraLarge),
       builder: (_) {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Wrap(
               children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Center(
                     child: Text(
-                      'Foto Bukti Pengantaran',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.camera_alt, color: AppColors.primaryBlue),
+                  leading: const Icon(
+                    Icons.camera_alt,
+                    color: AppColors.primaryBlue,
+                  ),
                   title: const Text('Ambil dari Kamera'),
                   onTap: () async {
                     Navigator.pop(context);
                     final image = await _pickImage(ImageSource.camera);
                     if (image != null && mounted) {
-                      await _submitFinish(image, idStaff);
+                      await onImagePicked(image);
                     }
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.photo_library, color: AppColors.primaryBlue),
+                  leading: const Icon(
+                    Icons.photo_library,
+                    color: AppColors.primaryBlue,
+                  ),
                   title: const Text('Pilih dari Galeri'),
                   onTap: () async {
                     Navigator.pop(context);
                     final image = await _pickImage(ImageSource.gallery);
                     if (image != null && mounted) {
-                      await _submitFinish(image, idStaff);
+                      await onImagePicked(image);
                     }
                   },
                 ),

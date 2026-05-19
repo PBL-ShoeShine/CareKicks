@@ -95,7 +95,6 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
           nama: _namaController.text.trim(),
           email: _emailController.text.trim(),
           noHp: _noHpController.text.trim(),
-          idShops: '1', // ID Toko otomatis di-set ke 1
           roles: _selectedRoles,
           password: _passwordController.text.trim(),
         );

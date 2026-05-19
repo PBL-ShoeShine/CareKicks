@@ -498,7 +498,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              'Aktivitas Selesai',
+                              'Semua Aktivitas',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

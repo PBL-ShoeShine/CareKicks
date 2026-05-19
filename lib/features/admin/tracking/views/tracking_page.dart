@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/custom_scaffold.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_radius.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/custom_appbar.dart';
 import '../../../../core/widgets/custom_filter_chip.dart';
 import '../../../../core/widgets/custom_search_field.dart';
 import '../controllers/tracking_list_controller.dart';
 import 'tracking_detail_page.dart';
+
+enum TrackingMode { pickup, delivery }
 
 class TrackingPage extends StatefulWidget {
   final String token;
@@ -21,6 +24,20 @@ class TrackingPage extends StatefulWidget {
 class _TrackingPageState extends State<TrackingPage> {
   late TrackingListController _controller;
   final TextEditingController _searchController = TextEditingController();
+  TrackingMode _activeMode = TrackingMode.pickup;
+
+  static const Set<String> _pickupStatuses = {
+    'menunggu_jemput',
+    'sedang_dijemput',
+    'diterima_toko',
+  };
+
+  static const Set<String> _deliveryStatuses = {
+    'siap_diantar',
+    'sedang_diantar',
+    'diantar',
+    'selesai',
+  };
 
   @override
   void initState() {
@@ -45,16 +62,20 @@ class _TrackingPageState extends State<TrackingPage> {
 
   Color _statusColor(String? status) {
     switch (status?.toLowerCase()) {
+      case 'menunggu_jemput':
       case 'pending':
-        return Colors.orange;
+      case 'siap_diantar':
+        return AppColors.warning;
+      case 'sedang_dijemput':
       case 'diproses':
-        return Colors.blue;
+      case 'sedang_diantar':
       case 'diantar':
-        return Colors.blue;
+        return AppColors.primaryBlue;
+      case 'diterima_toko':
       case 'selesai':
-        return Colors.green;
+        return AppColors.success;
       default:
-        return Colors.grey;
+        return AppColors.textSecondary;
     }
   }
 
@@ -89,10 +110,30 @@ class _TrackingPageState extends State<TrackingPage> {
     });
   }
 
+  String _displayStatus(dynamic value) {
+    final raw = value?.toString().trim();
+    if (raw == null || raw.isEmpty) return 'Pending';
+    final normalized = raw.replaceAll('_', ' ').toLowerCase();
+    return normalized.isEmpty
+        ? 'Pending'
+        : '${normalized[0].toUpperCase()}${normalized.substring(1)}';
+  }
+
+  List<dynamic> _filterByMode(List<dynamic> orders) {
+    if (orders.isEmpty) return orders;
+    final allowed = _activeMode == TrackingMode.pickup
+        ? _pickupStatuses
+        : _deliveryStatuses;
+    return orders.where((item) {
+      final status = item['status_order']?.toString().toLowerCase();
+      return allowed.contains(status);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return CustomScaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: AppColors.background,
       appBar: const CustomAppBar(title: 'Tracking Kurir'),
       body: Column(
         children: [
@@ -117,12 +158,40 @@ class _TrackingPageState extends State<TrackingPage> {
                 ),
                 const SizedBox(height: AppSizes.gapMd),
                 Align(
-                  alignment: Alignment.centerLeft,
-                  child: CustomFilterChip(
-                    label: 'Status: Selesai',
-                    selected: true,
-                    icon: Icons.check_circle_outline_rounded,
-                    onSelected: () {},
+                  alignment: Alignment.center,
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSizes.paddingSm),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: AppRadius.large,
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CustomFilterChip(
+                          label: 'Pickup',
+                          selected: _activeMode == TrackingMode.pickup,
+                          icon: Icons.call_received_rounded,
+                          onSelected: () {
+                            setState(() {
+                              _activeMode = TrackingMode.pickup;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: AppSizes.gapSm),
+                        CustomFilterChip(
+                          label: 'Delivery',
+                          selected: _activeMode == TrackingMode.delivery,
+                          icon: Icons.call_made_rounded,
+                          onSelected: () {
+                            setState(() {
+                              _activeMode = TrackingMode.delivery;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -153,12 +222,13 @@ class _TrackingPageState extends State<TrackingPage> {
                   );
                 }
 
-                final orders = _controller.orders;
+                final orders = _filterByMode(_controller.orders);
 
                 if (orders.isEmpty) {
-                  return const Center(
-                    child: Text('Tidak ada tracking ditemukan'),
-                  );
+                  final emptyMessage = _activeMode == TrackingMode.pickup
+                      ? 'Tidak ada tracking pickup'
+                      : 'Tidak ada tracking delivery';
+                  return Center(child: Text(emptyMessage));
                 }
 
                 return RefreshIndicator(
@@ -258,10 +328,7 @@ class _TrackingPageState extends State<TrackingPage> {
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      item['status_order']
-                                              ?.toString()
-                                              .toUpperCase() ??
-                                          'PENDING',
+                                      _displayStatus(item['status_order']),
                                       style: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,

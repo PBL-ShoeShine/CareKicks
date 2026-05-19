@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/widgets/custom_appbar.dart';
 import '../../../../core/widgets/custom_scaffold.dart';
 import '../controllers/inventory_controller.dart';
 import 'inventory_list_page.dart';
