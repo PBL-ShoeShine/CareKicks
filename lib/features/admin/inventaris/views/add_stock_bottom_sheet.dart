@@ -22,6 +22,7 @@ class _AddStockBottomSheetState extends State<AddStockBottomSheet> {
     text: '0',
   );
   late InventoryController _controller;
+  bool _isAdding = true;
 
   @override
   void initState() {
@@ -64,7 +65,7 @@ class _AddStockBottomSheetState extends State<AddStockBottomSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Tambah Stok Bahan',
+                  'Ubah Stok Bahan',
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -149,18 +150,66 @@ class _AddStockBottomSheetState extends State<AddStockBottomSheet> {
                   ),
                 ),
                 const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isAdding = true),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _isAdding ? Colors.blue : Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Tambah Stok',
+                              style: GoogleFonts.inter(
+                                color: _isAdding ? Colors.white : Colors.blue,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isAdding = false),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !_isAdding ? Colors.red : Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Kurangi Stok',
+                              style: GoogleFonts.inter(
+                                color: !_isAdding ? Colors.white : Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
                 Text(
-                  'Jumlah Tambahan',
+                  _isAdding ? 'Jumlah Tambahan' : 'Jumlah Pengurangan',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.blue,
+                    color: _isAdding ? Colors.blue : Colors.red,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.blue,
+                    color: _isAdding ? Colors.blue.withOpacity(0.1) : Colors.red.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TextField(
@@ -195,42 +244,6 @@ class _AddStockBottomSheetState extends State<AddStockBottomSheet> {
                     ),
                   ),
                 ),
-                // const SizedBox(height: 20),
-                // Text(
-                //   'Pemasok',
-                //   style: GoogleFonts.inter(
-                //     fontSize: 14,
-                //     fontWeight: FontWeight.w600,
-                //     color: Colors.blue,
-                //   ),
-                // ),
-                // const SizedBox(height: 8),
-                // Container(
-                //   padding: const EdgeInsets.symmetric(
-                //     horizontal: 16,
-                //     vertical: 14,
-                //   ),
-                //   decoration: BoxDecoration(
-                //     color: Colors.blue,
-                //     borderRadius: BorderRadius.circular(12),
-                //   ),
-                //   child: Row(
-                //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                //     children: [
-                //       Text(
-                //         'Pilih Pemasok',
-                //         style: GoogleFonts.inter(
-                //           fontSize: 16,
-                //           color: const Color(0xFF000C2E),
-                //         ),
-                //       ),
-                //       const Icon(
-                //         Icons.keyboard_arrow_down,
-                //         color: Color(0xFF000C2E),
-                //       ),
-                //     ],
-                //   ),
-                // ),
                 const SizedBox(height: 32),
                 ListenableBuilder(
                   listenable: _controller,
@@ -281,21 +294,29 @@ class _AddStockBottomSheetState extends State<AddStockBottomSheet> {
       return;
     }
 
-    final success = await _controller.addStock(
-      token: widget.token,
-      id: widget.item.idInventory,
-      amount: amount,
-    );
+    final success = _isAdding
+        ? await _controller.addStock(
+            token: widget.token,
+            id: widget.item.idInventory,
+            amount: amount,
+          )
+        : await _controller.reduceStock(
+            token: widget.token,
+            id: widget.item.idInventory,
+            amount: amount,
+          );
 
     if (success && mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Stok berhasil ditambahkan')),
+        SnackBar(
+          content: Text(_isAdding ? 'Stok berhasil ditambahkan' : 'Stok berhasil dikurangi'),
+        ),
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_controller.errorMessage ?? 'Gagal menambah stok'),
+          content: Text(_controller.errorMessage ?? 'Gagal mengubah stok'),
         ),
       );
     }

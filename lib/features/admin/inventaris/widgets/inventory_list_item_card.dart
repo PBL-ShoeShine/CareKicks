@@ -18,9 +18,11 @@ class InventoryListItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isLowStock = item.stokSaatIni <= item.stokMinimum;
     final bool isVeryLowStock = item.stokSaatIni <= (item.stokMinimum / 2);
-    final double progress = item.stokMaksimum > 0 
-        ? (item.stokSaatIni / item.stokMaksimum).clamp(0.0, 1.0) 
-        : 0.0;
+    // You requested to show 500/250 (current/minimum). 
+    // The progress bar can be tricky if current > minimum. Let's make it 1.0 if it's over minimum.
+    final double progress = item.stokMinimum > 0 
+        ? (item.stokSaatIni / item.stokMinimum).clamp(0.0, 1.0) 
+        : 1.0;
 
     return GestureDetector(
       onTap: onTap,
@@ -90,7 +92,7 @@ class InventoryListItemCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${item.stokSaatIni.toInt()}${item.satuan ?? ""} / ${item.stokMaksimum.toInt()}${item.satuan ?? ""}',
+                      '${item.stokSaatIni.toInt()}${item.satuan ?? ""} / ${item.stokMinimum.toInt()}${item.satuan ?? ""}',
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,

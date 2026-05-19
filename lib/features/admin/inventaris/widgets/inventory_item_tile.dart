@@ -17,9 +17,9 @@ class InventoryItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isLowStock = item.stokSaatIni <= item.stokMinimum;
-    final double progress = item.stokMaksimum > 0 
-        ? (item.stokSaatIni / item.stokMaksimum).clamp(0.0, 1.0) 
-        : 0.0;
+    final double progress = item.stokMinimum > 0 
+        ? (item.stokSaatIni / item.stokMinimum).clamp(0.0, 1.0) 
+        : 1.0;
 
     return Column(
       children: [
@@ -117,23 +117,14 @@ class InventoryItemTile extends StatelessWidget {
                       color: const Color(0xFF34495E),
                     ),
                   ),
-                if (isLowStock)
-                  Text(
-                    'Minimum: ${item.stokMinimum.toInt()} ${item.satuan ?? ""}',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: const Color(0xFF43474C),
-                    ),
-                  )
-                else
-                  Text(
-                    'dari\n${item.stokMaksimum.toInt()}${item.satuan ?? ""}',
-                    textAlign: TextAlign.right,
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: const Color(0xFF43474C),
-                    ),
+                Text(
+                  'Minimum: ${item.stokMinimum.toInt()} ${item.satuan ?? ""}',
+                  textAlign: TextAlign.right,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: const Color(0xFF43474C),
                   ),
+                ),
               ],
             ),
           ],

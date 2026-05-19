@@ -132,6 +132,39 @@ class InventoryController extends ChangeNotifier {
     }
   }
 
+  Future<bool> reduceStock({
+    required String token,
+    required int id,
+    required double amount,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await InventoryService.reduceStock(
+        token: token,
+        id: id,
+        amount: amount,
+      );
+
+      if (response['success'] == true) {
+        await fetchInventory(token);
+        await fetchSummary(token);
+        return true;
+      } else {
+        _errorMessage = response['message'] ?? 'Gagal mengurangi stok';
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Terjadi kesalahan: $e';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> deleteItem(String token, int id) async {
     _isLoading = true;
     _errorMessage = null;
