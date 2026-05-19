@@ -17,7 +17,7 @@ class TrackingDetailController extends ChangeNotifier {
   double? _routeDurationSeconds;
   String? _nextInstruction;
   double? _nextDistanceMeters;
-  
+
   Timer? _refreshTimer;
   StreamSubscription<Position>? _positionStream;
   bool _isTrackingActive = false;
@@ -58,61 +58,77 @@ class TrackingDetailController extends ChangeNotifier {
     _refreshTimer = null;
   }
 
-  Future<void> startRealtimeLocation(String token, int orderId, int? idStaff) async {
+  Future<void> startRealtimeLocation(
+    String token,
+    int orderId,
+    int? idStaff,
+  ) async {
     final hasPermission = await _handleLocationPermission();
     if (!hasPermission) return;
 
     await _positionStream?.cancel();
-    
+
     _isTrackingActive = true;
     notifyListeners();
 
     // Use getPositionStream for realtime tracking
-    _positionStream = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10, // Update every 10 meters
-      ),
-    ).listen(
-      (Position position) async {
-        _currentCourierLocation = LatLng(position.latitude, position.longitude);
-        debugPrint('GPS UPDATE: courier=${_currentCourierLocation}');
-        
-        final status = _detailData?['order']?['status_order']?.toString();
-        
-        // Update route from courier to customer
-        final customer = _detailData?['order']?['customers'];
-        if (customer != null) {
-          final dest = _toLatLng(customer['latitude'], customer['longitude']);
-          if (dest != null) {
-            debugPrint('CALLING fetchRoute from GPS stream to dest=$dest');
-            await fetchRoute(origin: _currentCourierLocation!, destination: dest);
-          }
-        }
+    _positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 10, // Update every 10 meters
+          ),
+        ).listen(
+          (Position position) async {
+            _currentCourierLocation = LatLng(
+              position.latitude,
+              position.longitude,
+            );
+            debugPrint('GPS UPDATE: courier=${_currentCourierLocation}');
 
-        // Send to backend
-        try {
-          await TrackingService.updateCourierLocation(
-            token: token,
-            orderId: orderId,
-            latitude: position.latitude,
-            longitude: position.longitude,
-            idStaff: idStaff,
-            status: status ?? 'diantar',
-          );
-        } catch (e) {
-          debugPrint('Failed to update location to backend: $e');
-        }
-        
-        notifyListeners();
-      },
-      onError: (e) {
-        debugPrint('GPS Stream Error: $e');
-        _errorMessage = 'Gagal mengambil stream GPS: $e';
-        _isTrackingActive = false;
-        notifyListeners();
-      },
-    );
+            final status = _detailData?['order']?['status_order']
+                ?.toString()
+                .toLowerCase();
+
+            // Update route from courier to customer
+            final customer = _detailData?['order']?['customers'];
+            if (customer != null) {
+              final dest = _toLatLng(
+                customer['latitude'],
+                customer['longitude'],
+              );
+              if (dest != null) {
+                debugPrint('CALLING fetchRoute from GPS stream to dest=$dest');
+                await fetchRoute(
+                  origin: _currentCourierLocation!,
+                  destination: dest,
+                );
+              }
+            }
+
+            // Send to backend
+            try {
+              await TrackingService.updateCourierLocation(
+                token: token,
+                orderId: orderId,
+                latitude: position.latitude,
+                longitude: position.longitude,
+                idStaff: idStaff,
+                status: status ?? 'sedang_diantar',
+              );
+            } catch (e) {
+              debugPrint('Failed to update location to backend: $e');
+            }
+
+            notifyListeners();
+          },
+          onError: (e) {
+            debugPrint('GPS Stream Error: $e');
+            _errorMessage = 'Gagal mengambil stream GPS: $e';
+            _isTrackingActive = false;
+            notifyListeners();
+          },
+        );
   }
 
   void stopRealtimeLocation() {
@@ -120,6 +136,53 @@ class TrackingDetailController extends ChangeNotifier {
     _positionStream = null;
     _isTrackingActive = false;
     notifyListeners();
+  }
+
+  Future<bool> startPickup({
+    required String token,
+    required int orderId,
+    int? idStaff,
+  }) async {
+    _isUpdating = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final hasPermission = await _handleLocationPermission();
+      if (!hasPermission) {
+        _isUpdating = false;
+        notifyListeners();
+        return false;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+
+      final result = await TrackingService.updateTrackingStatus(
+        token: token,
+        orderId: orderId,
+        status: 'sedang_dijemput',
+        keterangan: 'Kurir mulai menjemput pesanan',
+        latitude: position.latitude,
+        longitude: position.longitude,
+        idStaff: idStaff,
+      );
+
+      if (result['success'] == true) {
+        _isUpdating = false;
+        await startRealtimeLocation(token, orderId, idStaff);
+        return true;
+      }
+
+      _errorMessage = result['message'] ?? 'Gagal memulai penjemputan';
+      _isUpdating = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = 'Terjadi kesalahan: $e';
+      _isUpdating = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<bool> startDelivery({
@@ -141,12 +204,12 @@ class TrackingDetailController extends ChangeNotifier {
       }
 
       final position = await Geolocator.getCurrentPosition();
-      
-      // 2. Update status to 'diantar'
+
+      // 2. Update status to 'sedang_diantar'
       final result = await TrackingService.updateTrackingStatus(
         token: token,
         orderId: orderId,
-        status: 'diantar',
+        status: 'sedang_diantar',
         keterangan: 'Kurir mulai mengantar pesanan',
         latitude: position.latitude,
         longitude: position.longitude,
@@ -172,6 +235,63 @@ class TrackingDetailController extends ChangeNotifier {
     }
   }
 
+  Future<bool> finishPickup({
+    required String token,
+    required int orderId,
+    required File foto,
+    int? idStaff,
+  }) async {
+    _isUpdating = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final position = await Geolocator.getCurrentPosition().catchError(
+        (_) => Position(
+          longitude: 0,
+          latitude: 0,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+        ),
+      );
+
+      final result = await TrackingService.updateTrackingStatus(
+        token: token,
+        orderId: orderId,
+        status: 'diterima_toko',
+        keterangan: 'Pesanan telah diterima di toko',
+        isValidation: true,
+        latitude: position.latitude != 0 ? position.latitude : null,
+        longitude: position.longitude != 0 ? position.longitude : null,
+        foto: foto,
+        idStaff: idStaff,
+      );
+
+      if (result['success'] == true) {
+        stopRealtimeLocation();
+        _isUpdating = false;
+        notifyListeners();
+        return true;
+      }
+
+      _errorMessage = result['message'] ?? 'Gagal menyelesaikan penjemputan';
+      _isUpdating = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = 'Terjadi kesalahan: $e';
+      _isUpdating = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> finishDelivery({
     required String token,
     required int orderId,
@@ -183,10 +303,20 @@ class TrackingDetailController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final position = await Geolocator.getCurrentPosition().catchError((_) => Position(
-        longitude: 0, latitude: 0, timestamp: DateTime.now(), accuracy: 0, 
-        altitude: 0, heading: 0, speed: 0, speedAccuracy: 0, altitudeAccuracy: 0, headingAccuracy: 0
-      ));
+      final position = await Geolocator.getCurrentPosition().catchError(
+        (_) => Position(
+          longitude: 0,
+          latitude: 0,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+        ),
+      );
 
       final result = await TrackingService.updateTrackingStatus(
         token: token,
@@ -225,7 +355,8 @@ class TrackingDetailController extends ChangeNotifier {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      _errorMessage = 'Layanan lokasi dinonaktifkan. Silakan aktifkan layanan lokasi.';
+      _errorMessage =
+          'Layanan lokasi dinonaktifkan. Silakan aktifkan layanan lokasi.';
       notifyListeners();
       return false;
     }
@@ -241,7 +372,8 @@ class TrackingDetailController extends ChangeNotifier {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      _errorMessage = 'Izin lokasi ditolak permanen, kami tidak dapat meminta izin.';
+      _errorMessage =
+          'Izin lokasi ditolak permanen, kami tidak dapat meminta izin.';
       notifyListeners();
       return false;
     }
@@ -268,7 +400,7 @@ class TrackingDetailController extends ChangeNotifier {
 
       if (result['success'] == true) {
         _detailData = result['data'] as Map<String, dynamic>?;
-        
+
         // Auto fetch route if data is available
         final detail = _detailData ?? {};
         final order = detail['order'] as Map<String, dynamic>? ?? {};
@@ -282,15 +414,19 @@ class TrackingDetailController extends ChangeNotifier {
         debugPrint('CUSTOMER: ${customer}');
         debugPrint('LAST LOG: ${lastLog}');
 
-        // Priority for origin: 
+        // Priority for origin:
         // 1. Current GPS Stream Location (if active)
         // 2. Latest Log Location (if exists)
         // 3. Shop Location (fallback)
-        final origin = _currentCourierLocation ?? 
+        final origin =
+            _currentCourierLocation ??
             _toLatLng(lastLog?['latitude'], lastLog?['longitude']) ??
             _toLatLng(shop['lat_toko'], shop['long_toko']);
 
-        final destination = _toLatLng(customer['latitude'], customer['longitude']);
+        final destination = _toLatLng(
+          customer['latitude'],
+          customer['longitude'],
+        );
 
         debugPrint('ROUTE ORIGIN: $origin');
         debugPrint('ROUTE DESTINATION: $destination');
@@ -339,7 +475,9 @@ class TrackingDetailController extends ChangeNotifier {
     required LatLng destination,
   }) async {
     if (!_shouldFetchRoute()) {
-      debugPrint('Route fetch throttled - waiting ${_routeFetchThrottleSeconds}s between calls');
+      debugPrint(
+        'Route fetch throttled - waiting ${_routeFetchThrottleSeconds}s between calls',
+      );
       return true; // Don't fail, just skip
     }
 
@@ -348,8 +486,10 @@ class TrackingDetailController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      debugPrint('ROUTE FETCH STARTED: origin=$origin, destination=$destination');
-      
+      debugPrint(
+        'ROUTE FETCH STARTED: origin=$origin, destination=$destination',
+      );
+
       final result = await TrackingService.getRoute(
         originLat: origin.latitude,
         originLng: origin.longitude,
@@ -366,7 +506,9 @@ class TrackingDetailController extends ChangeNotifier {
         _routeDistanceMeters = (data['distance'] as num?)?.toDouble();
         _routeDurationSeconds = (data['duration'] as num?)?.toDouble();
 
-        debugPrint('ROUTE FETCH SUCCESS: ${_routePoints.length} points, distance=${_routeDistanceMeters}m, duration=${_routeDurationSeconds}s');
+        debugPrint(
+          'ROUTE FETCH SUCCESS: ${_routePoints.length} points, distance=${_routeDistanceMeters}m, duration=${_routeDurationSeconds}s',
+        );
 
         final steps = data['steps'] as List<dynamic>? ?? [];
         final nextStep = _pickNextStep(steps);
@@ -382,7 +524,7 @@ class TrackingDetailController extends ChangeNotifier {
 
       _routeError = result['message'] ?? 'Gagal mengambil rute';
       debugPrint('ROUTE FETCH FAILED: $_routeError');
-      
+
       _isRouting = false;
       notifyListeners();
       return false;
