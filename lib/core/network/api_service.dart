@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://172.16.95.231:3000/api/v1';
+  static const String baseUrl = 'http://10.85.113.20:3000/api/v1';
 
   static Future<Map<String, dynamic>?> _decodeJsonResponse(
     http.Response response,
