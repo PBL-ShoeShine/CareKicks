@@ -4,7 +4,7 @@ import 'package:vibration/vibration.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:carekicks/core/network/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../profile/views/profile_page.dart';
+import 'package:carekicks/features/admin/profile/views/profile_page.dart';
 
 const _scanLine = Color(0xFF7CE7F1);
 const _textColor = Color(0xFF334155);

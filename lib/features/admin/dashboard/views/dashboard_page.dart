@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../history/views/history_page.dart';
 import '../../input_off/views/input_off_page.dart';
-import '../../profile/views/profile_page.dart';
+import 'package:carekicks/features/admin/profile/views/profile_page.dart';
 import '../controllers/dashboard_controller.dart';
 
 class DashboardPage extends StatefulWidget {
