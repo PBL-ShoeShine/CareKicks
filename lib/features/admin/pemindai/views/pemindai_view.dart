@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:vibration/vibration.dart';
 import 'package:carekicks/core/network/api_service.dart';
-import 'package:carekicks/core/widgets/custom_appbar.dart';
-import 'package:carekicks/core/widgets/custom_scaffold.dart';
 
 const _brand = Color(0xFF1FB6C1);
 const _brandDark = Color(0xFF0E8A93);
@@ -37,21 +35,24 @@ class _PemindaiViewState extends State<PemindaiView> {
 
   Future<void> _playFeedback() async {
     try {
-      final hasVibrator = await Vibration.hasVibrator();
+      final hasVibrator = await Vibration.hasVibrator() ?? false;
       if (hasVibrator) Vibration.vibrate(duration: 120, amplitude: 128);
     } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    return CustomScaffold(
+    return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const CustomAppBar(
-        title: 'Pemindai',
-        subtitle: 'Scan kode pesanan',
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _topBar(),
+            Expanded(child: _viewfinder()),
+          ],
+        ),
       ),
-      safeAreaBottom: false,
-      body: Column(children: [Expanded(child: _viewfinder())]),
       bottomNavigationBar: _bottomNav(),
     );
   }

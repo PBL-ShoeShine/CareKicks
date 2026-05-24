@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
-class ProfileService {
+class EditProfileService {
+  // Nama kelas disesuaikan
   static const String baseUrl = 'http://10.85.113.20:3000/api/v1/admin/profile';
 
-  // 1. Fungsi Update Profil
   static Future<Map<String, dynamic>> updateProfile({
     required int idUser,
     required String nama,
@@ -13,7 +13,7 @@ class ProfileService {
     required String email,
   }) async {
     try {
-      final response = await http.put(
+      final response = await http.patch(
         Uri.parse('$baseUrl/update'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -34,12 +34,11 @@ class ProfileService {
         };
       }
     } catch (e) {
-      debugPrint('Error updateProfile: $e');
+      debugPrint('Error EditProfileService: $e');
       return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
     }
   }
 
-  // 2. Fungsi Ubah Kata Sandi
   static Future<Map<String, dynamic>> changePassword({
     required int idUser,
     required String oldPassword,
@@ -62,7 +61,7 @@ class ProfileService {
       } else {
         return {
           'success': false,
-          'message': data['message'] ?? 'Kata sandi lama salah',
+          'message': data['message'] ?? 'Gagal ganti password',
         };
       }
     } catch (e) {

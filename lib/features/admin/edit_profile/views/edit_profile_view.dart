@@ -1,303 +1,402 @@
-// import 'dart:io';
-// import 'package:carekicks/core/network/api_service.dart';
-// import 'package:flutter/material.dart';
-// import 'package:image_picker/image_picker.dart';
-// import '../services/profile_service.dart';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
-// const _brand = Color(0xFF0B2A66);
-// const _brandAccent = Color(0xFF1FB6C1);
+import 'package:carekicks/features/admin/edit_profile/views/ubah_email_view.dart';
+import 'package:carekicks/features/admin/edit_profile/views/ubah_telepon_view.dart'
+    hide UbahEmailView;
+import 'package:carekicks/core/constants/app_colors.dart';
+import 'package:carekicks/features/admin/profile/controllers/profile_controller.dart';
 
-// class EditProfilView extends StatefulWidget {
-//   const EditProfilView({super.key});
-//   @override
-//   State<EditProfilView> createState() => _EditProfilViewState();
-// }
+class EditProfilView extends StatefulWidget {
+  final Map<String, dynamic> user;
+  final String token;
 
-// class _EditProfilViewState extends State<EditProfilView> {
-//   final _formKey = GlobalKey<FormState>();
-//   final _nameCtrl = TextEditingController();
-//   final _emailCtrl = TextEditingController();
-//   final _phoneCtrl = TextEditingController();
+  const EditProfilView({super.key, required this.user, required this.token});
 
-//   String? _memberId;
-//   String? _avatarUrl;
-//   String? _originalEmail;
-//   File? _newAvatar;
-//   bool _loading = true;
-//   bool _saving = false;
+  @override
+  State<EditProfilView> createState() => _EditProfilViewState();
+}
 
-//   @override
-//   void initState() {
-//     super.initState();
-//     _load();
-//   }
+// Tambahkan WidgetsBindingObserver untuk mendeteksi kapan aplikasi dibuka kembali
+class _EditProfilViewState extends State<EditProfilView>
+    with WidgetsBindingObserver {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _namaController;
+  late ProfileController _profileController;
 
-//   Future<void> _load() async {
-//     try {
-//       final p = await ApiService.getProfile();
-//       _nameCtrl.text = p['full_name'] ?? '';
-//       _emailCtrl.text = p['email'] ?? '';
-//       _phoneCtrl.text = p['phone'] ?? '';
-//       _memberId = p['member_id'];
-//       _avatarUrl = p['avatar_url'];
-//       _originalEmail = p['email'];
-//     } catch (e) {
-//       _snack(e.toString(), isError: true);
-//     } finally {
-//       if (mounted) setState(() => _loading = false);
-//     }
-//   }
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this); // Nyalakan radar pemantau layar
 
-//   Future<void> _pickAvatar() async {
-//     final picked = await ImagePicker().pickImage(
-//       source: ImageSource.gallery,
-//       imageQuality: 80,
-//     );
-//     if (picked != null) setState(() => _newAvatar = File(picked.path));
-//   }
+    _namaController = TextEditingController(text: widget.user['nama']);
+    _profileController = ProfileController();
 
-//   Future<void> _save() async {
-//     if (!_formKey.currentState!.validate()) return;
-//     setState(() => _saving = true);
-//     try {
-//       if (_newAvatar != null) {
-//         final url = await ApiService.uploadAvatar(_newAvatar!);
-//         _avatarUrl = url;
-//       }
-//       final res = await ApiService.updateProfile(
-//         fullName: _nameCtrl.text.trim(),
-//         email: _emailCtrl.text.trim(),
-//         phone: _phoneCtrl.text.trim(),
-//       );
-//       if (!mounted) return;
-//       if (res['emailChangePending'] == true) {
-//         showDialog(
-//           context: context,
-//           builder: (_) => AlertDialog(
-//             title: const Text('Verifikasi Email'),
-//             content: Text(
-//               'Tautan verifikasi telah dikirim ke ${_emailCtrl.text}. Silakan cek inbox Anda.',
-//             ),
-//             actions: [
-//               TextButton(
-//                 onPressed: () => Navigator.pop(context),
-//                 child: const Text('OK'),
-//               ),
-//             ],
-//           ),
-//         );
-//         _emailCtrl.text = _originalEmail ?? _emailCtrl.text;
-//       } else {
-//         _snack('Profil berhasil diperbarui');
-//       }
-//     } catch (e) {
-//       _snack(e.toString().replaceFirst('Exception: ', ''), isError: true);
-//     } finally {
-//       if (mounted) setState(() => _saving = false);
-//     }
-//   }
+    // Langsung tarik data terbaru dari server saat halaman dibuka
+    _profileController.fetchProfile(widget.token);
+  }
 
-//   void _snack(String msg, {bool isError = false}) {
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(
-//         content: Text(msg),
-//         backgroundColor: isError ? Colors.red : Colors.green,
-//       ),
-//     );
-//   }
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Matikan radar
+    _namaController.dispose();
+    _profileController.dispose();
+    super.dispose();
+  }
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: const Color(0xFFF5F6FA),
-//       appBar: AppBar(
-//         backgroundColor: Colors.white,
-//         elevation: 0.5,
-//         leading: const BackButton(color: _brand),
-//         title: const Text(
-//           'Edit Profil',
-//           style: TextStyle(color: _brand, fontWeight: FontWeight.bold),
-//         ),
-//       ),
-//       body: _loading
-//           ? const Center(child: CircularProgressIndicator())
-//           : Form(
-//               key: _formKey,
-//               child: ListView(
-//                 padding: const EdgeInsets.all(20),
-//                 children: [
-//                   Center(
-//                     child: Stack(
-//                       children: [
-//                         CircleAvatar(
-//                           radius: 50,
-//                           backgroundColor: Colors.grey.shade200,
-//                           backgroundImage: _newAvatar != null
-//                               ? FileImage(_newAvatar!)
-//                               : (_avatarUrl != null
-//                                         ? NetworkImage(_avatarUrl!)
-//                                         : null)
-//                                     as ImageProvider?,
-//                           child: (_avatarUrl == null && _newAvatar == null)
-//                               ? const Icon(
-//                                   Icons.person,
-//                                   size: 50,
-//                                   color: Colors.grey,
-//                                 )
-//                               : null,
-//                         ),
-//                         Positioned(
-//                           right: 0,
-//                           bottom: 0,
-//                           child: GestureDetector(
-//                             onTap: _pickAvatar,
-//                             child: Container(
-//                               padding: const EdgeInsets.all(6),
-//                               decoration: const BoxDecoration(
-//                                 color: _brand,
-//                                 shape: BoxShape.circle,
-//                               ),
-//                               child: const Icon(
-//                                 Icons.camera_alt,
-//                                 color: Colors.white,
-//                                 size: 18,
-//                               ),
-//                             ),
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                   ),
-//                   const SizedBox(height: 8),
-//                   Center(
-//                     child: Text(
-//                       'ID: ${_memberId ?? "-"}',
-//                       style: TextStyle(color: Colors.grey.shade600),
-//                     ),
-//                   ),
-//                   const SizedBox(height: 24),
-//                   _label('Nama Lengkap'),
-//                   _field(
-//                     _nameCtrl,
-//                     Icons.person_outline,
-//                     validator: (v) =>
-//                         (v == null || v.trim().isEmpty) ? 'Wajib diisi' : null,
-//                   ),
-//                   const SizedBox(height: 16),
-//                   _label('Email'),
-//                   _field(
-//                     _emailCtrl,
-//                     Icons.mail_outline,
-//                     keyboardType: TextInputType.emailAddress,
-//                     validator: (v) {
-//                       if (v == null || v.trim().isEmpty) return 'Wajib diisi';
-//                       if (!RegExp(
-//                         r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-//                       ).hasMatch(v.trim()))
-//                         return 'Email tidak valid';
-//                       return null;
-//                     },
-//                   ),
-//                   const SizedBox(height: 16),
-//                   _label('Nomor Telepon'),
-//                   _field(
-//                     _phoneCtrl,
-//                     Icons.phone_outlined,
-//                     keyboardType: TextInputType.phone,
-//                   ),
-//                   const SizedBox(height: 16),
-//                   Container(
-//                     padding: const EdgeInsets.all(12),
-//                     decoration: BoxDecoration(
-//                       color: const Color(0xFFE8F0FE),
-//                       borderRadius: BorderRadius.circular(8),
-//                     ),
-//                     child: const Row(
-//                       crossAxisAlignment: CrossAxisAlignment.start,
-//                       children: [
-//                         Icon(Icons.info_outline, color: _brand, size: 18),
-//                         SizedBox(width: 8),
-//                         Expanded(
-//                           child: Text(
-//                             'Perubahan pada Email memerlukan verifikasi ulang melalui tautan yang dikirimkan ke alamat email baru.',
-//                             style: TextStyle(fontSize: 12, color: _brand),
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//       bottomNavigationBar: SafeArea(
-//         child: Padding(
-//           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-//           child: SizedBox(
-//             height: 52,
-//             child: ElevatedButton.icon(
-//               onPressed: _saving ? null : _save,
-//               icon: _saving
-//                   ? const SizedBox(
-//                       width: 18,
-//                       height: 18,
-//                       child: CircularProgressIndicator(
-//                         color: Colors.white,
-//                         strokeWidth: 2,
-//                       ),
-//                     )
-//                   : const Icon(Icons.save_outlined),
-//               label: const Text(
-//                 'Update Profil',
-//                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-//               ),
-//               style: ElevatedButton.styleFrom(
-//                 backgroundColor: _brand,
-//                 foregroundColor: Colors.white,
-//                 shape: RoundedRectangleBorder(
-//                   borderRadius: BorderRadius.circular(8),
-//                 ),
-//               ),
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
+  // Fungsi sakti: Berjalan otomatis saat kita kembali dari aplikasi Gmail/Browser ke aplikasi ini
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _profileController.fetchProfile(widget.token);
+    }
+  }
 
-//   Widget _label(String t) => Padding(
-//     padding: const EdgeInsets.only(bottom: 6),
-//     child: Text(
-//       t,
-//       style: const TextStyle(
-//         fontWeight: FontWeight.w600,
-//         color: Color(0xFF222B45),
-//       ),
-//     ),
-//   );
+  Future<void> _pickImage(ImageSource source) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: source);
 
-//   Widget _field(
-//     TextEditingController c,
-//     IconData icon, {
-//     TextInputType? keyboardType,
-//     String? Function(String?)? validator,
-//   }) {
-//     return TextFormField(
-//       controller: c,
-//       keyboardType: keyboardType,
-//       validator: validator,
-//       decoration: InputDecoration(
-//         filled: true,
-//         fillColor: Colors.white,
-//         suffixIcon: Icon(icon, color: Colors.grey),
-//         border: OutlineInputBorder(
-//           borderRadius: BorderRadius.circular(8),
-//           borderSide: BorderSide(color: Colors.grey.shade300),
-//         ),
-//         enabledBorder: OutlineInputBorder(
-//           borderRadius: BorderRadius.circular(8),
-//           borderSide: BorderSide(color: Colors.grey.shade300),
-//         ),
-//       ),
-//     );
-//   }
-// }
+    if (image == null) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primaryBlue),
+      ),
+    );
+
+    final success = await _profileController.updateProfilePicture(
+      token: widget.token,
+      imageFile: File(image.path),
+    );
+
+    if (!mounted) return;
+    Navigator.pop(context);
+
+    if (success) {
+      await _profileController.fetchProfile(widget.token);
+      _showSuccessDialog(
+        'Berhasil Update Foto Profil',
+        'Foto profil baru Anda telah berhasil diperbarui di server.',
+        false,
+      );
+    } else {
+      _showErrorSnackBar(
+        _profileController.photoUploadError ?? 'Gagal memperbarui foto',
+      );
+    }
+  }
+
+  // PERBAIKAN: Hanya mengirim "nama" ke backend, tidak membawa email & noHp
+  Future<void> _saveGeneralProfile() async {
+    if (_formKey.currentState!.validate()) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: AppColors.primaryBlue),
+        ),
+      );
+
+      final success = await _profileController.updateProfile(
+        token: widget.token,
+        nama: _namaController.text, // <-- Hanya kirim nama!
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      if (success) {
+        _showSuccessDialog(
+          'Profil Berhasil Diperbarui',
+          'Perubahan data nama profil Anda telah berhasil disimpan.',
+          true,
+        );
+      } else {
+        _showErrorSnackBar(
+          _profileController.errorMessage ?? 'Gagal menyimpan perubahan profil',
+        );
+      }
+    }
+  }
+
+  void _showSuccessDialog(String title, String subtitle, bool shouldRedirect) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.successGreen.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.successGreen,
+                  size: 70,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: 140,
+                height: 42,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    if (shouldRedirect) Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                  ),
+                  child: const Text(
+                    'Selesai',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.errorRed),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Edit Profil")),
+      // ListenableBuilder akan membuat UI otomatis nge-refresh kalau data di server berubah
+      body: ListenableBuilder(
+        listenable: _profileController,
+        builder: (context, child) {
+          // Ambil data terbaru dari controller, kalau kosong pakai data widget lama
+          final currentPhotoUrl =
+              _profileController.userPhoto ?? widget.user['foto'];
+          final currentEmail =
+              _profileController.userEmail ?? widget.user['email'];
+          final currentPhone =
+              _profileController.userPhone ?? widget.user['no_hp'];
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  // Avatar edit photo section
+                  GestureDetector(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (context) => SafeArea(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.camera_alt),
+                                title: const Text('Kamera'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  _pickImage(ImageSource.camera);
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.photo_library),
+                                title: const Text('Galeri'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  _pickImage(ImageSource.gallery);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.blue.shade50,
+                          backgroundImage:
+                              currentPhotoUrl != null &&
+                                  currentPhotoUrl.isNotEmpty
+                              ? NetworkImage(currentPhotoUrl)
+                              : null,
+                          child:
+                              currentPhotoUrl == null || currentPhotoUrl.isEmpty
+                              ? const Icon(Icons.person, size: 50)
+                              : null,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.edit,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  TextFormField(
+                    controller: _namaController,
+                    decoration: const InputDecoration(
+                      labelText: "Nama Lengkap",
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Nama lengkap wajib diisi'
+                        : null,
+                  ),
+                  const SizedBox(height: 20),
+
+                  TextFormField(
+                    key: ValueKey(
+                      currentEmail,
+                    ), // Memaksa field nge-refresh saat email berubah
+                    initialValue: currentEmail,
+                    readOnly: true,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => UbahEmailView(token: widget.token),
+                        ),
+                      ).then(
+                        (_) => _profileController.fetchProfile(widget.token),
+                      );
+                    },
+                    decoration: InputDecoration(
+                      labelText: "Email",
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      suffixIcon: const Icon(Icons.chevron_right),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  TextFormField(
+                    key: ValueKey(
+                      currentPhone,
+                    ), // Memaksa field nge-refresh saat no HP berubah
+                    initialValue: currentPhone,
+                    readOnly: true,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => UbahTeleponView(token: widget.token),
+                        ),
+                      ).then(
+                        (_) => _profileController.fetchProfile(widget.token),
+                      );
+                    },
+                    decoration: InputDecoration(
+                      labelText: "Nomor Telepon",
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.phone_android),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      suffixIcon: const Icon(Icons.chevron_right),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // ── 2 TOMBOL AKSI DI BAGIAN PALING BAWAH ──
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: Colors.grey),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            "Batal",
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _saveGeneralProfile,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: AppColors.primaryBlue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            "Simpan Perubahan",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}

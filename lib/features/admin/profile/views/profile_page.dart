@@ -1,18 +1,19 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../../core/widgets/custom_scaffold.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/widgets/custom_appbar.dart';
-import '../controllers/profile_controller.dart';
-import '../../manajemen_layanan/views/m_layanan_page.dart';
-import '../../manajemen_staff/views/manajemen_staff_screen.dart';
-import '../../toko/views/jam_operasional_page.dart';
-import '../../toko/views/profil_toko_page.dart';
-import '../../../auth/controllers/auth_controller.dart';
-import '../../../auth/views/login_page.dart';
+import 'package:carekicks/features/admin/edit_profile/views/edit_profile_view.dart';
+import 'package:carekicks/features/admin/edit_profile/views/ubah_email_view.dart';
+import 'package:carekicks/core/widgets/custom_scaffold.dart';
+import 'package:carekicks/core/constants/app_colors.dart';
+import 'package:carekicks/core/widgets/custom_appbar.dart';
+import 'package:carekicks/features/admin/profile/controllers/profile_controller.dart';
+import 'package:carekicks/features/admin/manajemen_layanan/views/m_layanan_page.dart';
+import 'package:carekicks/features/admin/manajemen_staff/views/manajemen_staff_screen.dart';
+import 'package:carekicks/features/admin/toko/views/jam_operasional_page.dart';
+import 'package:carekicks/features/admin/toko/views/profil_toko_page.dart';
+import 'package:carekicks/features/auth/controllers/auth_controller.dart';
+import 'package:carekicks/features/auth/views/login_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final String token;
@@ -59,91 +60,6 @@ class _ProfilePageState extends State<ProfilePage> {
     ).showSnackBar(const SnackBar(content: Text('Berhasil logout')));
   }
 
-  void _showEditProfileDialog() {
-    final namaController = TextEditingController(
-      text: _profileController.userName,
-    );
-    final emailController = TextEditingController(
-      text: _profileController.userEmail,
-    );
-    final phoneController = TextEditingController(
-      text: _profileController.userPhone,
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Profil'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: namaController,
-                decoration: const InputDecoration(
-                  labelText: 'Nama',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Nomor Telepon',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await _profileController.updateProfile(
-                token: widget.token,
-                nama: namaController.text,
-                email: emailController.text,
-                noHp: phoneController.text,
-              );
-
-              if (mounted) {
-                Navigator.pop(context);
-                if (_profileController.errorMessage != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(_profileController.errorMessage!),
-                      backgroundColor: AppColors.errorRed,
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Profil berhasil diperbarui'),
-                      backgroundColor: AppColors.successGreen,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _pickProfileImage(ImageSource source) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: source);
@@ -159,11 +75,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (success) {
       await _profileController.fetchProfile(widget.token);
-    }
-
-    if (!mounted) return;
-
-    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Foto profil berhasil diperbarui'),
@@ -217,13 +128,21 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  String _formatCurrency(int? value) {
-    if (value == null) return 'Rp 0';
-    final formatter = value.toString().replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+$)'),
-      (match) => '${match[1]}.',
-    );
-    return 'Rp $formatter';
+  void _navigateToEditProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfilView(
+          token: widget.token,
+          user: {
+            'nama': _profileController.userName ?? '',
+            'email': _profileController.userEmail ?? '',
+            'no_hp': _profileController.userPhone ?? '',
+            'foto': _profileController.userPhoto ?? '',
+          },
+        ),
+      ),
+    ).then((_) => _profileController.fetchProfile(widget.token));
   }
 
   @override
@@ -329,7 +248,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                             ),
-
                           Positioned(
                             bottom: 0,
                             right: 0,
@@ -361,9 +279,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 18),
-
                       Text(
                         _profileController.userName ?? 'User',
                         textAlign: TextAlign.center,
@@ -374,9 +290,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           letterSpacing: 0.3,
                         ),
                       ),
-
                       const SizedBox(height: 8),
-
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -387,9 +301,13 @@ class _ProfilePageState extends State<ProfilePage> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                         child: Text(
-                          _profileController.userRole == 'admin'
+                          (_profileController.userRole == 'admin' ||
+                                  _profileController.userRole == 'shops_admin')
                               ? 'Owner Toko'
-                              : _profileController.userRole ?? 'User',
+                              : (_profileController.userRole == 'user'
+                                    ? 'Pelanggan'
+                                    : _profileController.userRole ??
+                                          'Owner Toko'),
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.primaryDark,
@@ -397,9 +315,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 22),
-
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -426,9 +342,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     size: 18,
                                   ),
                                 ),
-
                                 const SizedBox(width: 12),
-
                                 Expanded(
                                   child: Text(
                                     _profileController.userEmail ?? '-',
@@ -442,9 +356,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 14),
-
                             Row(
                               children: [
                                 Container(
@@ -462,9 +374,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     size: 18,
                                   ),
                                 ),
-
                                 const SizedBox(width: 12),
-
                                 Expanded(
                                   child: Text(
                                     _profileController.userPhone ?? '-',
@@ -483,9 +393,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
 
-                // OPERATIONAL MANAGEMENT SECTION
+                // MANAJEMEN OPERASIONAL
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
@@ -515,9 +425,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           );
                         },
                       ),
-
                       const SizedBox(height: 12),
-                      // ── DISAMBUNGKAN KE ManajemenStaffScreen ──
                       _buildMenuCard(
                         icon: Icons.people,
                         title: 'Manajemen Karyawan',
@@ -537,7 +445,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 24),
 
-                // STORE INFO SECTION
+                // INFORMASI TOKO
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
@@ -587,7 +495,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 24),
 
-                // SECURITY & ACCOUNT SECTION
+                // KEAMANAN & AKUN
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
@@ -607,14 +515,16 @@ class _ProfilePageState extends State<ProfilePage> {
                         icon: Icons.person_outline,
                         title: 'Edit Profil',
                         subtitle: 'Nama, email, dan nomor telepon',
-                        onTap: _showEditProfileDialog,
+                        onTap: _navigateToEditProfile,
                       ),
                       const SizedBox(height: 12),
                       _buildMenuCard(
                         icon: Icons.lock_outline,
                         title: 'Ubah Kata Sandi',
                         subtitle: 'Perbarui keamanan akun Anda',
-                        onTap: () {},
+                        onTap: () {
+                          // TODO: Sesuaikan dengan halaman ubah password kamu
+                        },
                       ),
                     ],
                   ),
@@ -654,7 +564,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.errorRed,
                                   ),
-                                  child: const Text('Keluar'),
+                                  child: const Text(
+                                    'Keluar',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 ),
                               ],
                             ),
