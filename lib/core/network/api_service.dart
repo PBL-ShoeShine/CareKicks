@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://172.16.95.231:3000/api/v1';
+  static const String baseUrl = 'http://192.168.110.217:3000/api/v1';
 
   static Future<Map<String, dynamic>?> _decodeJsonResponse(
     http.Response response,
@@ -986,6 +986,134 @@ class ApiService {
       debugPrint('Error OSRM: ${response.statusCode}');
     } catch (e) {
       debugPrint('Gagal menghubungi OSRM: $e');
+    }
+    return null;
+  }
+
+  // ===================== CUSTOMER =====================
+
+  static Future<Map<String, dynamic>?> getCustomerRiwayat({
+    required String token,
+    String? status,
+    String? search,
+  }) async {
+    try {
+      final queryParams = {
+        if (status != null && status.isNotEmpty) 'status': status,
+        if (search != null && search.isNotEmpty) 'search': search,
+      };
+
+      final uri = Uri.parse(
+        '$baseUrl/customer/orders',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 404 ||
+          response.statusCode == 500) {
+        return await _decodeJsonResponse(response);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> getCustomerDetailOrder({
+    required String token,
+    required String orderId,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/customer/orders/$orderId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 404 ||
+          response.statusCode == 500) {
+        return await _decodeJsonResponse(response);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> getCustomerBankAccounts({
+    required String token,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/customer/payments/bank-accounts'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 404 ||
+          response.statusCode == 500) {
+        return await _decodeJsonResponse(response);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> confirmCustomerPayment({
+    required String token,
+    required String orderId,
+    required String paymentProofUrl,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/customer/payments/confirm'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'order_id': orderId,
+          'payment_proof_url': paymentProofUrl,
+        }),
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 404 ||
+          response.statusCode == 500) {
+        return await _decodeJsonResponse(response);
+      } else {
+        debugPrint('Error Server: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
     }
     return null;
   }

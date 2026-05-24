@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/custom_appbar.dart';
 import '../../../core/widgets/custom_scaffold.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../auth/views/login_page.dart';
+import '../../customer/riwayat/views/riwayat_page.dart';
 
 class CustomerMainPage extends StatefulWidget {
   final String token;
@@ -22,6 +22,7 @@ class CustomerMainPage extends StatefulWidget {
 
 class _CustomerMainPageState extends State<CustomerMainPage> {
   late final AuthController _authController;
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -46,9 +47,9 @@ class _CustomerMainPageState extends State<CustomerMainPage> {
       (route) => false,
     );
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Berhasil logout')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Berhasil logout')),
+    );
   }
 
   void _showLogoutDialog() {
@@ -80,19 +81,60 @@ class _CustomerMainPageState extends State<CustomerMainPage> {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScaffold(
-      appBar: CustomAppBar(
-        title: 'Customer',
+    final List<Widget> pages = [
+      // Beranda — coming soon, nanti diisi teman
+      const Center(child: Text('Beranda / Coming Soon')),
+
+      // Riwayat — sudah dibuat
+      RiwayatPage(token: widget.token),
+
+      // Profile — coming soon, nanti diisi teman
+      const Center(child: Text('Profile / Coming Soon')),
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'CareKicks',
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: 'Keluar Akun',
             onPressed: _showLogoutDialog,
-            icon: const Icon(Icons.logout_rounded),
+            icon: const Icon(Icons.logout_rounded, color: Colors.black87),
           ),
         ],
       ),
-      body: const Center(
-        child: Text('Customer Page / Coming Soon'),
+      body: pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        selectedItemColor: AppColors.primaryBlue,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_rounded),
+            label: 'Beranda',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history_rounded),
+            label: 'Riwayat',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
   }
