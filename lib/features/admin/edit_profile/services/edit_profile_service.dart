@@ -1,26 +1,35 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
 class EditProfileService {
-  // Nama kelas disesuaikan
-  static const String baseUrl = 'http://10.85.113.20:3000/api/v1/admin/profile';
+  static const String baseUrl =
+      'http://10.254.102.20:3000/api/v1/admin/profile';
 
+  // =========================================================================
+  // 1. UPDATE DATA PROFIL & REQUEST EMAIL
+  // =========================================================================
   static Future<Map<String, dynamic>> updateProfile({
-    required int idUser,
-    required String nama,
-    required String noHp,
-    required String email,
+    required String token,
+    String? nama,
+    String? noHp,
+    String? email,
+    bool? isRequestEmailOnly,
   }) async {
     try {
-      final response = await http.patch(
-        Uri.parse('$baseUrl/update'),
-        headers: {'Content-Type': 'application/json'},
+      final response = await http.put(
+        Uri.parse(baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({
-          'id_user': idUser,
-          'nama': nama,
-          'no_hp': noHp,
-          'email': email,
+          if (nama != null) 'nama': nama,
+          if (noHp != null) 'noHp': noHp,
+          if (email != null) 'email': email,
+          if (isRequestEmailOnly != null)
+            'isRequestEmailOnly': isRequestEmailOnly,
         }),
       );
 
@@ -34,24 +43,76 @@ class EditProfileService {
         };
       }
     } catch (e) {
-      debugPrint('Error EditProfileService: $e');
+      debugPrint('Error EditProfileService.updateProfile: $e');
       return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
     }
   }
 
+  // =========================================================================
+  // 2. UPLOAD FOTO PROFIL (MULTIPART)
+  // =========================================================================
+  static Future<Map<String, dynamic>> uploadProfilePicture({
+    required String token,
+    required File imageFile,
+  }) async {
+    try {
+      // ✅ FIX: POST bukan PUT
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/picture'),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+
+      request.files.add(
+        await http.MultipartFile.fromPath('image', imageFile.path),
+      );
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      // ✅ Debug log — hapus setelah fitur berjalan normal
+      debugPrint('Upload status: ${response.statusCode}');
+      debugPrint('Upload response: ${response.body}');
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': data['message'],
+          'url': data['url'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Gagal mengunggah foto profil',
+        };
+      }
+    } catch (e) {
+      debugPrint('Error EditProfileService.uploadProfilePicture: $e');
+      return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
+    }
+  }
+
+  // =========================================================================
+  // 3. GANTI KATA SANDI
+  // =========================================================================
   static Future<Map<String, dynamic>> changePassword({
-    required int idUser,
+    required String token,
     required String oldPassword,
     required String newPassword,
   }) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/change-password'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/change-password-direct'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({
-          'id_user': idUser,
-          'old_password': oldPassword,
-          'new_password': newPassword,
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
         }),
       );
 
@@ -65,7 +126,7 @@ class EditProfileService {
         };
       }
     } catch (e) {
-      debugPrint('Error changePassword: $e');
+      debugPrint('Error EditProfileService.changePassword: $e');
       return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
     }
   }
