@@ -1,5 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import '../services/edit_profile_service.dart'; // Import diperbarui
+import '../services/edit_profile_service.dart';
 
 class EditProfileController extends ChangeNotifier {
   bool _isLoading = false;
@@ -8,20 +9,24 @@ class EditProfileController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String get message => _message;
 
-  // METHOD UPDATE DATA PROFIL UTAMA (NAMA, NO HP, EMAIL)
+  // =========================================================================
+  // 1. UPDATE DATA PROFIL & REQUEST EMAIL
+  // =========================================================================
   Future<bool> updateProfil({
-    required int idUser,
-    required String nama,
-    required String noHp,
-    required String email,
+    required String token,
+    String? nama,
+    String? noHp,
+    String? email,
+    bool? isRequestEmailOnly,
   }) async {
     _setLoading(true);
 
     final result = await EditProfileService.updateProfile(
-      idUser: idUser,
+      token: token,
       nama: nama,
       noHp: noHp,
       email: email,
+      isRequestEmailOnly: isRequestEmailOnly,
     );
 
     _message = result['message'] ?? '';
@@ -29,35 +34,51 @@ class EditProfileController extends ChangeNotifier {
     return result['success'] ?? false;
   }
 
-  // METHOD BARU: VALIDASI KATA SANDI NYATA KE SERVER API
-  Future<bool> verifyPassword({
+  // =========================================================================
+  // 2. UPLOAD FOTO PROFIL
+  // =========================================================================
+  Future<String?> uploadProfilePicture({
     required String token,
-    required String password,
+    required File imageFile,
   }) async {
     _setLoading(true);
     _message = '';
 
-    try {
-      // Di sini nanti kamu panggil fungsi di EditProfileService kamu, contoh:
-      // final result = await EditProfileService.verifyPassword(token: token, password: password);
+    final result = await EditProfileService.uploadProfilePicture(
+      token: token,
+      imageFile: imageFile,
+    );
 
-      // Menggunakan simulasi sukses sementara sebelum service-nya kamu buat di backend:
-      await Future.delayed(const Duration(milliseconds: 1000));
+    _message = result['message'] ?? '';
+    _setLoading(false);
 
-      if (password == "password123") {
-        // Ganti dengan logic result['success'] dari API asli
-        _setLoading(false);
-        return true;
-      } else {
-        _message = 'Kata sandi salah';
-        _setLoading(false);
-        return false;
-      }
-    } catch (e) {
-      _message = 'Terjadi kesalahan jaringan';
-      _setLoading(false);
-      return false;
+    if (result['success'] == true) {
+      return result['url'];
+    } else {
+      return null;
     }
+  }
+
+  // =========================================================================
+  // 3. GANTI KATA SANDI
+  // =========================================================================
+  Future<bool> changePassword({
+    required String token,
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    _setLoading(true);
+    _message = '';
+
+    final result = await EditProfileService.changePassword(
+      token: token,
+      oldPassword: oldPassword,
+      newPassword: newPassword,
+    );
+
+    _message = result['message'] ?? '';
+    _setLoading(false);
+    return result['success'] ?? false;
   }
 
   void _setLoading(bool val) {

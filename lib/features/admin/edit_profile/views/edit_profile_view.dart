@@ -6,7 +6,10 @@ import 'package:carekicks/features/admin/edit_profile/views/ubah_email_view.dart
 import 'package:carekicks/features/admin/edit_profile/views/ubah_telepon_view.dart'
     hide UbahEmailView;
 import 'package:carekicks/core/constants/app_colors.dart';
+
 import 'package:carekicks/features/admin/profile/controllers/profile_controller.dart';
+// Sesuaikan path import ini jika foldermu berbeda:
+import 'package:carekicks/features/admin/edit_profile/controllers/edit_profile_controller.dart';
 
 class EditProfilView extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -18,34 +21,36 @@ class EditProfilView extends StatefulWidget {
   State<EditProfilView> createState() => _EditProfilViewState();
 }
 
-// Tambahkan WidgetsBindingObserver untuk mendeteksi kapan aplikasi dibuka kembali
 class _EditProfilViewState extends State<EditProfilView>
     with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _namaController;
-  late ProfileController _profileController;
+
+  late ProfileController _profileController; // Untuk narik data (GET)
+  late EditProfileController _editController; // Untuk nyimpan data (PUT)
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); // Nyalakan radar pemantau layar
+    WidgetsBinding.instance.addObserver(this);
 
     _namaController = TextEditingController(text: widget.user['nama']);
-    _profileController = ProfileController();
 
-    // Langsung tarik data terbaru dari server saat halaman dibuka
+    _profileController = ProfileController();
+    _editController = EditProfileController();
+
     _profileController.fetchProfile(widget.token);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this); // Matikan radar
+    WidgetsBinding.instance.removeObserver(this);
     _namaController.dispose();
     _profileController.dispose();
+    _editController.dispose();
     super.dispose();
   }
 
-  // Fungsi sakti: Berjalan otomatis saat kita kembali dari aplikasi Gmail/Browser ke aplikasi ini
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -67,7 +72,7 @@ class _EditProfilViewState extends State<EditProfilView>
       ),
     );
 
-    final success = await _profileController.updateProfilePicture(
+    final newImageUrl = await _editController.uploadProfilePicture(
       token: widget.token,
       imageFile: File(image.path),
     );
@@ -75,7 +80,7 @@ class _EditProfilViewState extends State<EditProfilView>
     if (!mounted) return;
     Navigator.pop(context);
 
-    if (success) {
+    if (newImageUrl != null) {
       await _profileController.fetchProfile(widget.token);
       _showSuccessDialog(
         'Berhasil Update Foto Profil',
@@ -84,12 +89,13 @@ class _EditProfilViewState extends State<EditProfilView>
       );
     } else {
       _showErrorSnackBar(
-        _profileController.photoUploadError ?? 'Gagal memperbarui foto',
+        _editController.message.isNotEmpty
+            ? _editController.message
+            : 'Gagal memperbarui foto',
       );
     }
   }
 
-  // PERBAIKAN: Hanya mengirim "nama" ke backend, tidak membawa email & noHp
   Future<void> _saveGeneralProfile() async {
     if (_formKey.currentState!.validate()) {
       showDialog(
@@ -100,9 +106,9 @@ class _EditProfilViewState extends State<EditProfilView>
         ),
       );
 
-      final success = await _profileController.updateProfile(
+      final success = await _editController.updateProfil(
         token: widget.token,
-        nama: _namaController.text, // <-- Hanya kirim nama!
+        nama: _namaController.text,
       );
 
       if (!mounted) return;
@@ -116,7 +122,9 @@ class _EditProfilViewState extends State<EditProfilView>
         );
       } else {
         _showErrorSnackBar(
-          _profileController.errorMessage ?? 'Gagal menyimpan perubahan profil',
+          _editController.message.isNotEmpty
+              ? _editController.message
+              : 'Gagal menyimpan perubahan profil',
         );
       }
     }
@@ -198,11 +206,9 @@ class _EditProfilViewState extends State<EditProfilView>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Edit Profil")),
-      // ListenableBuilder akan membuat UI otomatis nge-refresh kalau data di server berubah
       body: ListenableBuilder(
         listenable: _profileController,
         builder: (context, child) {
-          // Ambil data terbaru dari controller, kalau kosong pakai data widget lama
           final currentPhotoUrl =
               _profileController.userPhoto ?? widget.user['foto'];
           final currentEmail =
@@ -210,13 +216,18 @@ class _EditProfilViewState extends State<EditProfilView>
           final currentPhone =
               _profileController.userPhone ?? widget.user['no_hp'];
 
+          // Mengecek apakah gambar dari database adalah URL asli (diawali http)
+          final isValidImageUrl =
+              currentPhotoUrl != null &&
+              currentPhotoUrl.toString().trim().isNotEmpty &&
+              currentPhotoUrl.toString().startsWith('http');
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Form(
               key: _formKey,
               child: Column(
                 children: [
-                  // Avatar edit photo section
                   GestureDetector(
                     onTap: () {
                       showModalBottomSheet(
@@ -252,13 +263,12 @@ class _EditProfilViewState extends State<EditProfilView>
                         CircleAvatar(
                           radius: 50,
                           backgroundColor: Colors.blue.shade50,
-                          backgroundImage:
-                              currentPhotoUrl != null &&
-                                  currentPhotoUrl.isNotEmpty
+                          // Tampilkan NetworkImage HANYA JIKA link-nya valid (diawali http)
+                          backgroundImage: isValidImageUrl
                               ? NetworkImage(currentPhotoUrl)
                               : null,
-                          child:
-                              currentPhotoUrl == null || currentPhotoUrl.isEmpty
+                          // Tampilkan Icon jika link-nya tidak valid atau kosong
+                          child: !isValidImageUrl
                               ? const Icon(Icons.person, size: 50)
                               : null,
                         ),
@@ -293,9 +303,7 @@ class _EditProfilViewState extends State<EditProfilView>
                   const SizedBox(height: 20),
 
                   TextFormField(
-                    key: ValueKey(
-                      currentEmail,
-                    ), // Memaksa field nge-refresh saat email berubah
+                    key: ValueKey(currentEmail),
                     initialValue: currentEmail,
                     readOnly: true,
                     onTap: () {
@@ -320,9 +328,7 @@ class _EditProfilViewState extends State<EditProfilView>
                   const SizedBox(height: 20),
 
                   TextFormField(
-                    key: ValueKey(
-                      currentPhone,
-                    ), // Memaksa field nge-refresh saat no HP berubah
+                    key: ValueKey(currentPhone),
                     initialValue: currentPhone,
                     readOnly: true,
                     onTap: () {
@@ -346,7 +352,6 @@ class _EditProfilViewState extends State<EditProfilView>
                   ),
                   const SizedBox(height: 40),
 
-                  // ── 2 TOMBOL AKSI DI BAGIAN PALING BAWAH ──
                   Row(
                     children: [
                       Expanded(

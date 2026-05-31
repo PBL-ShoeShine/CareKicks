@@ -4,6 +4,14 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:carekicks/features/admin/edit_profile/views/edit_profile_view.dart';
 import 'package:carekicks/features/admin/edit_profile/views/ubah_email_view.dart';
+// --- INI TAMBAHAN IMPORT UNTUK UBAH PASSWORD ---
+import 'package:carekicks/features/admin/ubah_password/views/ubah_password_view.dart';
+// -----------------------------------------------
+
+// --- TAMBAHAN IMPORT CONTROLLER BARU UNTUK UPLOAD FOTO ---
+import 'package:carekicks/features/admin/edit_profile/controllers/edit_profile_controller.dart';
+// ---------------------------------------------------------
+
 import 'package:carekicks/core/widgets/custom_scaffold.dart';
 import 'package:carekicks/core/constants/app_colors.dart';
 import 'package:carekicks/core/widgets/custom_appbar.dart';
@@ -28,12 +36,15 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   late ProfileController _profileController;
   late AuthController _authController;
+  late EditProfileController
+  _editController; // Controller baru untuk upload multipart
 
   @override
   void initState() {
     super.initState();
     _profileController = ProfileController();
     _authController = AuthController();
+    _editController = EditProfileController(); // Inisialisasi
     _profileController.fetchProfile(widget.token);
   }
 
@@ -41,6 +52,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void dispose() {
     _profileController.dispose();
     _authController.dispose();
+    _editController.dispose();
     super.dispose();
   }
 
@@ -60,21 +72,128 @@ class _ProfilePageState extends State<ProfilePage> {
     ).showSnackBar(const SnackBar(content: Text('Berhasil logout')));
   }
 
+  // FITUR LAMA TETAP ADA (Meski tidak dipakai di menu, tetap dipertahankan)
+  void _showEditProfileDialog() {
+    final namaController = TextEditingController(
+      text: _profileController.userName,
+    );
+    final emailController = TextEditingController(
+      text: _profileController.userEmail,
+    );
+    final phoneController = TextEditingController(
+      text: _profileController.userPhone,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Profil'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: namaController,
+                decoration: const InputDecoration(
+                  labelText: 'Nama',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Nomor Telepon',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await _editController.updateProfil(
+                token: widget.token,
+                nama: namaController.text,
+                email: emailController.text,
+                noHp: phoneController.text,
+              );
+
+              if (mounted) {
+                Navigator.pop(context);
+                if (!success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _editController.message.isNotEmpty
+                            ? _editController.message
+                            : 'Gagal memperbarui profil',
+                      ),
+                      backgroundColor: AppColors.errorRed,
+                    ),
+                  );
+                } else {
+                  await _profileController.fetchProfile(widget.token);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Profil berhasil diperbarui'),
+                      backgroundColor: AppColors.successGreen,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // PERBAIKAN: Fungsi Upload Foto disuntikkan EditProfileController
+  // =========================================================================
   Future<void> _pickProfileImage(ImageSource source) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: source);
 
     if (image == null) return;
 
-    final success = await _profileController.updateProfilePicture(
+    // Tampilkan loading dialog agar UI tidak terkesan freeze saat upload
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primaryBlue),
+      ),
+    );
+
+    // Menggunakan EditController untuk upload file fisik (bebas Error 400)
+    final newImageUrl = await _editController.uploadProfilePicture(
       token: widget.token,
       imageFile: File(image.path),
     );
 
     if (!mounted) return;
+    Navigator.pop(context); // Tutup loading dialog
 
-    if (success) {
+    if (newImageUrl != null) {
       await _profileController.fetchProfile(widget.token);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Foto profil berhasil diperbarui'),
@@ -85,8 +204,9 @@ class _ProfilePageState extends State<ProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _profileController.photoUploadError ??
-                'Gagal memperbarui foto profil',
+            _editController.message.isNotEmpty
+                ? _editController.message
+                : 'Gagal memperbarui foto profil',
           ),
           backgroundColor: AppColors.errorRed,
         ),
@@ -175,6 +295,15 @@ class _ProfilePageState extends State<ProfilePage> {
             );
           }
 
+          // =========================================================================
+          // PERBAIKAN: Tameng agar aplikasi tidak crash merah saat load gambar
+          // =========================================================================
+          final currentPhotoUrl = _profileController.userPhoto;
+          final isValidImageUrl =
+              currentPhotoUrl != null &&
+              currentPhotoUrl.trim().isNotEmpty &&
+              currentPhotoUrl.startsWith('http');
+
           return SingleChildScrollView(
             child: Column(
               children: [
@@ -213,14 +342,11 @@ class _ProfilePageState extends State<ProfilePage> {
                             child: CircleAvatar(
                               radius: 56,
                               backgroundColor: AppColors.lightBlue,
-                              backgroundImage:
-                                  _profileController.userPhoto != null &&
-                                      _profileController.userPhoto!.isNotEmpty
-                                  ? NetworkImage(_profileController.userPhoto!)
+                              // Cek Validitas URL Gambar
+                              backgroundImage: isValidImageUrl
+                                  ? NetworkImage(currentPhotoUrl)
                                   : null,
-                              child:
-                                  _profileController.userPhoto == null ||
-                                      _profileController.userPhoto!.isEmpty
+                              child: !isValidImageUrl
                                   ? const Icon(
                                       Icons.person_rounded,
                                       size: 58,
@@ -229,7 +355,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                   : null,
                             ),
                           ),
-                          if (_profileController.isUploadingPhoto)
+                          if (_profileController.isUploadingPhoto ||
+                              _editController.isLoading)
                             Positioned.fill(
                               child: Container(
                                 decoration: BoxDecoration(
@@ -248,11 +375,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                             ),
+
                           Positioned(
                             bottom: 0,
                             right: 0,
                             child: GestureDetector(
-                              onTap: _profileController.isUploadingPhoto
+                              onTap:
+                                  (_profileController.isUploadingPhoto ||
+                                      _editController.isLoading)
                                   ? null
                                   : _showProfilePhotoSourceSheet,
                               child: Container(
@@ -279,7 +409,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 18),
+
                       Text(
                         _profileController.userName ?? 'User',
                         textAlign: TextAlign.center,
@@ -290,7 +422,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           letterSpacing: 0.3,
                         ),
                       ),
+
                       const SizedBox(height: 8),
+
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -315,7 +449,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 22),
+
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -342,7 +478,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                     size: 18,
                                   ),
                                 ),
+
                                 const SizedBox(width: 12),
+
                                 Expanded(
                                   child: Text(
                                     _profileController.userEmail ?? '-',
@@ -356,7 +494,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ],
                             ),
+
                             const SizedBox(height: 14),
+
                             Row(
                               children: [
                                 Container(
@@ -374,7 +514,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                     size: 18,
                                   ),
                                 ),
+
                                 const SizedBox(width: 12),
+
                                 Expanded(
                                   child: Text(
                                     _profileController.userPhone ?? '-',
@@ -523,7 +665,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         title: 'Ubah Kata Sandi',
                         subtitle: 'Perbarui keamanan akun Anda',
                         onTap: () {
-                          // TODO: Sesuaikan dengan halaman ubah password kamu
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  UbahPasswordView(token: widget.token),
+                            ),
+                          );
                         },
                       ),
                     ],
@@ -534,66 +682,140 @@ class _ProfilePageState extends State<ProfilePage> {
                 // LOGOUT BUTTON
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
+                  child: SizedBox(
                     width: double.infinity,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.errorRed),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Keluar Akun'),
-                              content: const Text(
-                                'Apakah Anda yakin ingin keluar?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Batal'),
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            titlePadding: const EdgeInsets.fromLTRB(
+                              20,
+                              20,
+                              20,
+                              0,
+                            ),
+                            contentPadding: const EdgeInsets.fromLTRB(
+                              20,
+                              12,
+                              20,
+                              20,
+                            ),
+                            actionsPadding: const EdgeInsets.fromLTRB(
+                              16,
+                              0,
+                              16,
+                              16,
+                            ),
+                            title: Row(
+                              children: const [
+                                Icon(
+                                  Icons.logout_rounded,
+                                  color: AppColors.errorRed,
+                                  size: 22,
                                 ),
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    Navigator.pop(context);
-                                    await _handleLogout();
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.errorRed,
-                                  ),
-                                  child: const Text(
-                                    'Keluar',
-                                    style: TextStyle(color: Colors.white),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Keluar Akun',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ],
                             ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.exit_to_app,
-                                color: AppColors.errorRed,
+                            content: const Text(
+                              'Apakah Anda yakin ingin keluar dari akun ini?',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                                height: 1.4,
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Keluar Akun',
-                                style: TextStyle(
-                                  color: AppColors.errorRed,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            ),
+                            actions: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 13,
+                                        ),
+                                        side: BorderSide(
+                                          color: Colors.grey.shade400,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Batal',
+                                        style: TextStyle(
+                                          color: Colors.black54,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        Navigator.pop(context);
+                                        await _handleLogout();
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.errorRed,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 13,
+                                        ),
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Keluar',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
+                        );
+                      },
+                      icon: const Icon(Icons.logout_rounded, size: 20),
+                      label: const Text(
+                        'Keluar Akun',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.errorRed,
+                        side: const BorderSide(
+                          color: AppColors.errorRed,
+                          width: 1.5,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),

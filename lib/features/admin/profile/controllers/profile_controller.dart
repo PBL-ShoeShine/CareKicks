@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class ProfileController extends ChangeNotifier {
-  final String baseUrl = "http://10.85.113.20:3000";
+  final String baseUrl = "http://10.254.102.20:3000";
 
   Map<String, dynamic>? userData;
   String? errorMessage;
@@ -14,17 +14,12 @@ class ProfileController extends ChangeNotifier {
   bool isUploadingPhoto = false;
   String? photoUploadError;
 
-  // --- GETTER DISESUAIKAN DENGAN NAMA KOLOM SUPABASE ---
   String? get userName => userData?['nama']?.toString();
   String? get userEmail => userData?['email']?.toString();
   String? get userPhone =>
       (userData?['no_hp'] ?? userData?['noHp'])?.toString();
-
-  // Membaca kolom path_gambar
   String? get userPhoto =>
       (userData?['path_gambar'] ?? userData?['foto'])?.toString();
-
-  // Membaca kolom jenis_role
   String? get userRole =>
       (userData?['jenis_role'] ?? userData?['role'])?.toString();
 
@@ -55,9 +50,9 @@ class ProfileController extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        print("===== CEK DATA SERVER =====");
-        print(response.body);
-        print("===========================");
+        debugPrint("===== CEK DATA SERVER =====");
+        debugPrint(response.body);
+        debugPrint("===========================");
 
         userData = data['data'] ?? data;
         errorMessage = null;
@@ -66,6 +61,7 @@ class ProfileController extends ChangeNotifier {
       }
     } catch (e) {
       errorMessage = "Terjadi kesalahan koneksi.";
+      debugPrint('Error fetchProfile: $e');
     } finally {
       isLoading = false;
       notifyListeners();
@@ -97,11 +93,12 @@ class ProfileController extends ChangeNotifier {
 
       return response.statusCode == 200;
     } catch (e) {
+      debugPrint('Error updateProfile: $e');
       return false;
     }
   }
 
-  // --- FUNGSI UPLOAD FOTO PROFIL ---
+  // ✅ FIX: Ganti PUT → POST
   Future<bool> updateProfilePicture({
     required String token,
     required File imageFile,
@@ -112,33 +109,40 @@ class ProfileController extends ChangeNotifier {
 
     try {
       var request = http.MultipartRequest(
-        'PUT',
+        'POST', // ✅ Fix: was PUT
         Uri.parse('$baseUrl/api/v1/admin/profile/picture'),
       );
 
       request.headers['Authorization'] = 'Bearer $token';
 
-      // Mengubah field name form-data menjadi 'path_gambar' agar sesuai dengan database
+      // ✅ Fix: field name 'image' sesuai backend (bukan 'path_gambar')
       request.files.add(
-        await http.MultipartFile.fromPath('path_gambar', imageFile.path),
+        await http.MultipartFile.fromPath('image', imageFile.path),
       );
 
-      var response = await request.send();
+      var streamedResponse = await request.send();
+      final responseBody = await streamedResponse.stream.bytesToString();
 
-      if (response.statusCode == 200) {
+      // ✅ Debug log — hapus setelah fitur berjalan normal
+      debugPrint('Upload status: ${streamedResponse.statusCode}');
+      debugPrint('Upload response: $responseBody');
+
+      if (streamedResponse.statusCode == 200) {
         isUploadingPhoto = false;
         notifyListeners();
         return true;
       } else {
-        photoUploadError = 'Gagal mengunggah foto (${response.statusCode})';
+        photoUploadError =
+            'Gagal mengunggah foto (${streamedResponse.statusCode}): $responseBody';
         isUploadingPhoto = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
-      photoUploadError = 'Terjadi kesalahan jaringan.';
+      photoUploadError = 'Terjadi kesalahan jaringan: $e';
       isUploadingPhoto = false;
       notifyListeners();
+      debugPrint('Error updateProfilePicture: $e');
       return false;
     }
   }
