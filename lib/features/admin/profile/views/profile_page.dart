@@ -36,15 +36,14 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   late ProfileController _profileController;
   late AuthController _authController;
-  late EditProfileController
-  _editController; // Controller baru untuk upload multipart
+  late EditProfileController _editController;
 
   @override
   void initState() {
     super.initState();
     _profileController = ProfileController();
     _authController = AuthController();
-    _editController = EditProfileController(); // Inisialisasi
+    _editController = EditProfileController();
     _profileController.fetchProfile(widget.token);
   }
 
@@ -72,7 +71,6 @@ class _ProfilePageState extends State<ProfilePage> {
     ).showSnackBar(const SnackBar(content: Text('Berhasil logout')));
   }
 
-  // FITUR LAMA TETAP ADA (Meski tidak dipakai di menu, tetap dipertahankan)
   void _showEditProfileDialog() {
     final namaController = TextEditingController(
       text: _profileController.userName,
@@ -164,16 +162,12 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // =========================================================================
-  // PERBAIKAN: Fungsi Upload Foto disuntikkan EditProfileController
-  // =========================================================================
   Future<void> _pickProfileImage(ImageSource source) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: source);
 
     if (image == null) return;
 
-    // Tampilkan loading dialog agar UI tidak terkesan freeze saat upload
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -182,14 +176,13 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
 
-    // Menggunakan EditController untuk upload file fisik (bebas Error 400)
     final newImageUrl = await _editController.uploadProfilePicture(
       token: widget.token,
       imageFile: File(image.path),
     );
 
     if (!mounted) return;
-    Navigator.pop(context); // Tutup loading dialog
+    Navigator.pop(context);
 
     if (newImageUrl != null) {
       await _profileController.fetchProfile(widget.token);
@@ -295,9 +288,6 @@ class _ProfilePageState extends State<ProfilePage> {
             );
           }
 
-          // =========================================================================
-          // PERBAIKAN: Tameng agar aplikasi tidak crash merah saat load gambar
-          // =========================================================================
           final currentPhotoUrl = _profileController.userPhoto;
           final isValidImageUrl =
               currentPhotoUrl != null &&
@@ -342,7 +332,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             child: CircleAvatar(
                               radius: 56,
                               backgroundColor: AppColors.lightBlue,
-                              // Cek Validitas URL Gambar
                               backgroundImage: isValidImageUrl
                                   ? NetworkImage(currentPhotoUrl)
                                   : null,
@@ -375,7 +364,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                             ),
-
                           Positioned(
                             bottom: 0,
                             right: 0,
@@ -409,9 +397,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 18),
-
                       Text(
                         _profileController.userName ?? 'User',
                         textAlign: TextAlign.center,
@@ -422,9 +408,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           letterSpacing: 0.3,
                         ),
                       ),
-
                       const SizedBox(height: 8),
-
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -441,7 +425,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               : (_profileController.userRole == 'user'
                                     ? 'Pelanggan'
                                     : _profileController.userRole ??
-                                          'Owner Toko'),
+                                          'Staf Toko'),
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.primaryDark,
@@ -449,9 +433,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 22),
-
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -478,9 +460,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     size: 18,
                                   ),
                                 ),
-
                                 const SizedBox(width: 12),
-
                                 Expanded(
                                   child: Text(
                                     _profileController.userEmail ?? '-',
@@ -494,9 +474,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 14),
-
                             Row(
                               children: [
                                 Container(
@@ -514,9 +492,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     size: 18,
                                   ),
                                 ),
-
                                 const SizedBox(width: 12),
-
                                 Expanded(
                                   child: Text(
                                     _profileController.userPhone ?? '-',
@@ -537,107 +513,112 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 12),
 
-                // MANAJEMEN OPERASIONAL
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'MANAJEMEN OPERASIONAL',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                          letterSpacing: 0.5,
+                // 👇 INI BAGIAN YANG DITAMBAHKAN PENGECEKAN ROLE
+                if (_profileController.userRole == 'admin' ||
+                    _profileController.userRole == 'shops_admin') ...[
+                  // MANAJEMEN OPERASIONAL
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'MANAJEMEN OPERASIONAL',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildMenuCard(
-                        icon: Icons.receipt,
-                        title: 'Manajemen Layanan',
-                        subtitle: 'Atur katalog produk dan jasa',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  MLayananPage(token: widget.token),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      _buildMenuCard(
-                        icon: Icons.people,
-                        title: 'Manajemen Karyawan',
-                        subtitle: 'Akses staf dan jadwal kerja',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  ManajemenStaffScreen(token: widget.token),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // INFORMASI TOKO
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'INFORMASI TOKO',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                          letterSpacing: 0.5,
+                        const SizedBox(height: 12),
+                        _buildMenuCard(
+                          icon: Icons.receipt,
+                          title: 'Manajemen Layanan',
+                          subtitle: 'Atur katalog produk dan jasa',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    MLayananPage(token: widget.token),
+                              ),
+                            );
+                          },
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildMenuCard(
-                        icon: Icons.storefront,
-                        title: 'Profil Toko',
-                        subtitle: 'Lokasi, deskripsi, dan kontak',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ProfilTokoPage(token: widget.token),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      _buildMenuCard(
-                        icon: Icons.schedule,
-                        title: 'Jam Operasional',
-                        subtitle: 'Waktu buka dan tutup layanan',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  JamOperasionalPage(token: widget.token),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        _buildMenuCard(
+                          icon: Icons.people,
+                          title: 'Manajemen Karyawan',
+                          subtitle: 'Akses staf dan jadwal kerja',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ManajemenStaffScreen(token: widget.token),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                // KEAMANAN & AKUN
+                  // INFORMASI TOKO
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'INFORMASI TOKO',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildMenuCard(
+                          icon: Icons.storefront,
+                          title: 'Profil Toko',
+                          subtitle: 'Lokasi, deskripsi, dan kontak',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ProfilTokoPage(token: widget.token),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildMenuCard(
+                          icon: Icons.schedule,
+                          title: 'Jam Operasional',
+                          subtitle: 'Waktu buka dan tutup layanan',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    JamOperasionalPage(token: widget.token),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+                // 👆 BATAS PENGECEKAN ROLE SELESAI DI SINI
+
+                // KEAMANAN & AKUN (Semua role bisa melihat)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(

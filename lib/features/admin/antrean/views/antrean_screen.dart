@@ -5,7 +5,7 @@ import '../../../../core/widgets/custom_scaffold.dart';
 import '../../../../core/widgets/custom_tab_bar.dart';
 import '../controllers/antrean_controller.dart';
 import '../models/antrean_model.dart';
-import '../views/antrean_detail_screen.dart'; // Import halaman detail
+import '../views/antrean_detail_screen.dart';
 
 class AntreanScreen extends StatefulWidget {
   final String token;
@@ -33,6 +33,7 @@ class _AntreanScreenState extends State<AntreanScreen>
     super.initState();
     _controller = AntreanController();
     _controller.setToken(widget.token);
+    _controller.setRole(widget.user['jenis_role']); // ← role-based endpoint
     _tabController = TabController(length: _tabs.length, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -59,125 +60,16 @@ class _AntreanScreenState extends State<AntreanScreen>
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: CustomAppBar(
         title: 'Manajemen Antrean',
+        showBackButton: true, // ← tombol back di kiri atas
         backgroundColor: Colors.white,
-        // subtitle: 'Kelola status pesanan masuk',
-        // actions: [
-        //   IconButton(
-        //     tooltip: 'Notifikasi',
-        //     icon: const Icon(Icons.notifications_outlined),
-        //     onPressed: () {},
-        //   ),
-        // ],
+        foregroundColor: Colors.black, 
         bottom: CustomTabBar(
           controller: _tabController,
           labels: _tabs.map((t) => t['label']!).toList(),
         ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildTitleCard(),
-          Expanded(child: _buildList()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-      color: Colors.white,
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withOpacity(0.15),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: const Text(
-              'CK',
-              style: TextStyle(
-                color: AppColors.primaryBlue,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Bengkel Sepatu',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-              ),
-              Text(
-                'Admin Toko',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () {},
-              ),
-              const Positioned(
-                top: 10,
-                right: 10,
-                child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTitleCard() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Manajemen Antrean',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryDark,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Kelola setiap pasang sepatu dengan presisi artisan.',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabBar() {
-    return CustomTabBar(
-      controller: _tabController,
-      labels: _tabs.map((t) => t['label']!).toList(),
+      // ← _buildTitleCard() dihapus dari sini
+      body: _buildList(),
     );
   }
 
@@ -221,11 +113,7 @@ class _AntreanScreenState extends State<AntreanScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.inbox_outlined,
-                  size: 48,
-                  color: Colors.grey.shade400,
-                ),
+                Icon(Icons.inbox_outlined, size: 48, color: Colors.grey.shade400),
                 const SizedBox(height: 12),
                 Text(
                   'Tidak ada antrean',
@@ -241,7 +129,8 @@ class _AntreanScreenState extends State<AntreanScreen>
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: _controller.antreanList.length,
-            itemBuilder: (context, i) => _buildCard(_controller.antreanList[i]),
+            itemBuilder: (context, i) =>
+                _buildCard(_controller.antreanList[i]),
           ),
         );
       },
@@ -254,7 +143,6 @@ class _AntreanScreenState extends State<AntreanScreen>
     final btnLabel = _btnLabel(antrean.statusOrder);
     final statusColor = _statusColor(antrean.statusOrder);
 
-    // Card dibungkus GestureDetector agar bisa memicu halaman detail saat diklik
     return GestureDetector(
       onTap: () async {
         final result = await Navigator.push(
@@ -264,11 +152,7 @@ class _AntreanScreenState extends State<AntreanScreen>
                 AntreanDetailScreen(token: widget.token, antrean: antrean),
           ),
         );
-
-        // Refresh data jika status pesanan diubah dari dalam detail screen
-        if (result == true) {
-          _loadData();
-        }
+        if (result == true) _loadData();
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -379,7 +263,7 @@ class _AntreanScreenState extends State<AntreanScreen>
                 ],
               ),
               const SizedBox(height: 12),
-              // Tombol aksi di card
+              // Tombol aksi
               nextStatus != null
                   ? SizedBox(
                       width: double.infinity,
@@ -487,7 +371,9 @@ class _AntreanScreenState extends State<AntreanScreen>
   String _formatTgl(String tgl) {
     try {
       final dt = DateTime.parse(tgl).toLocal();
-      return '${dt.day}/${dt.month}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      return '${dt.day}/${dt.month}/${dt.year} '
+          '${dt.hour.toString().padLeft(2, '0')}:'
+          '${dt.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return tgl;
     }

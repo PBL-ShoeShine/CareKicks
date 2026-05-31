@@ -2,10 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../../../../core/network/api_service.dart';
 
 class ProfileController extends ChangeNotifier {
-  final String baseUrl = "http://10.254.102.20:3000";
-
   Map<String, dynamic>? userData;
   String? errorMessage;
   bool isLoading = false;
@@ -34,33 +33,41 @@ class ProfileController extends ChangeNotifier {
     if (!_isDisposed) super.notifyListeners();
   }
 
-  Future<void> fetchProfile(String token) async {
+  // ─── Fetch Profile ────────────────────────────────────────────────────────
+
+  /// [role] — jenis_role dari data user login ('courier', 'washer', atau lainnya)
+  Future<void> fetchProfile(String token, {String? role}) async {
     isLoading = true;
+    errorMessage = null;
     notifyListeners();
+
+    // Staff (courier/washer) pakai endpoint /staff/profile,
+    // owner/admin pakai /admin/profile
+    final prefix = ApiService.resolveRole(role);
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/v1/admin/profile'),
+        Uri.parse('${ApiService.baseUrl}/$prefix/profile'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       );
 
+      debugPrint('===== FETCH PROFILE [$prefix] =====');
+      debugPrint('STATUS: ${response.statusCode}');
+      debugPrint('BODY  : ${response.body}');
+      debugPrint('===================================');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        debugPrint("===== CEK DATA SERVER =====");
-        debugPrint(response.body);
-        debugPrint("===========================");
-
         userData = data['data'] ?? data;
         errorMessage = null;
       } else {
-        errorMessage = "Gagal mengambil data profil.";
+        errorMessage = 'Gagal mengambil data profil.';
       }
     } catch (e) {
-      errorMessage = "Terjadi kesalahan koneksi.";
+      errorMessage = 'Terjadi kesalahan koneksi.';
       debugPrint('Error fetchProfile: $e');
     } finally {
       isLoading = false;
@@ -68,13 +75,17 @@ class ProfileController extends ChangeNotifier {
     }
   }
 
+  // ─── Update Profile ───────────────────────────────────────────────────────
+
   Future<bool> updateProfile({
     required String token,
     String nama = '',
     String email = '',
     String noHp = '',
     String? password,
+    String? role,
   }) async {
+    final prefix = ApiService.resolveRole(role);
     try {
       final Map<String, dynamic> body = {};
       if (nama.isNotEmpty) body['nama'] = nama;
@@ -83,7 +94,7 @@ class ProfileController extends ChangeNotifier {
       if (password != null) body['password'] = password;
 
       final response = await http.put(
-        Uri.parse('$baseUrl/api/v1/admin/profile'),
+        Uri.parse('${ApiService.baseUrl}/$prefix/profile'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -98,32 +109,32 @@ class ProfileController extends ChangeNotifier {
     }
   }
 
-  // ✅ FIX: Ganti PUT → POST
+  // ─── Update Profile Picture ───────────────────────────────────────────────
+
   Future<bool> updateProfilePicture({
     required String token,
     required File imageFile,
+    String? role,
   }) async {
+    final prefix = ApiService.resolveRole(role);
     isUploadingPhoto = true;
     photoUploadError = null;
     notifyListeners();
 
     try {
-      var request = http.MultipartRequest(
-        'POST', // ✅ Fix: was PUT
-        Uri.parse('$baseUrl/api/v1/admin/profile/picture'),
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiService.baseUrl}/$prefix/profile/picture'),
       );
 
       request.headers['Authorization'] = 'Bearer $token';
-
-      // ✅ Fix: field name 'image' sesuai backend (bukan 'path_gambar')
       request.files.add(
         await http.MultipartFile.fromPath('image', imageFile.path),
       );
 
-      var streamedResponse = await request.send();
+      final streamedResponse = await request.send();
       final responseBody = await streamedResponse.stream.bytesToString();
 
-      // ✅ Debug log — hapus setelah fitur berjalan normal
       debugPrint('Upload status: ${streamedResponse.statusCode}');
       debugPrint('Upload response: $responseBody');
 

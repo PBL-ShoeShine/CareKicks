@@ -57,14 +57,24 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       toolbarHeight: subtitle == null ? kToolbarHeight : 72,
       centerTitle: centerTitle,
       title: subtitle == null
-          ? Text(title, maxLines: 1, overflow: TextOverflow.ellipsis)
+          ? Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: fg),
+            )
           : Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: centerTitle
                   ? CrossAxisAlignment.center
                   : CrossAxisAlignment.start,
               children: [
-                Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: fg),
+                ),
                 const SizedBox(height: AppSizes.gapXs),
                 Text(
                   subtitle!,
