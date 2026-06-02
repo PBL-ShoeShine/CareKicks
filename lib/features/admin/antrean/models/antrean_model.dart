@@ -38,6 +38,8 @@ class AntreanModel {
   final String kodeOrder;
   final String statusOrder;
   final String tglOrder;
+  final String? qrImage;
+  final String? linkQr;
   final List<DetailOrder> detailOrders;
 
   AntreanModel({
@@ -45,6 +47,8 @@ class AntreanModel {
     required this.kodeOrder,
     required this.statusOrder,
     required this.tglOrder,
+    this.qrImage,
+    this.linkQr,
     required this.detailOrders,
   });
 
@@ -57,6 +61,8 @@ class AntreanModel {
       kodeOrder: json['kode_order'] ?? '',
       statusOrder: json['status_order'] ?? '',
       tglOrder: json['tgl_order'] ?? '',
+      qrImage: json['qr_image']?.toString(),
+      linkQr: json['link_qr']?.toString(),
       detailOrders: details,
     );
   }

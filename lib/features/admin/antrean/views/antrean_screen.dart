@@ -60,9 +60,8 @@ class _AntreanScreenState extends State<AntreanScreen>
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: CustomAppBar(
         title: 'Manajemen Antrean',
-        showBackButton: true, // ← tombol back di kiri atas
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black, 
+        foregroundColor: Colors.black,
         bottom: CustomTabBar(
           controller: _tabController,
           labels: _tabs.map((t) => t['label']!).toList(),
@@ -113,7 +112,11 @@ class _AntreanScreenState extends State<AntreanScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.inbox_outlined, size: 48, color: Colors.grey.shade400),
+                Icon(
+                  Icons.inbox_outlined,
+                  size: 48,
+                  color: Colors.grey.shade400,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   'Tidak ada antrean',
@@ -129,8 +132,7 @@ class _AntreanScreenState extends State<AntreanScreen>
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: _controller.antreanList.length,
-            itemBuilder: (context, i) =>
-                _buildCard(_controller.antreanList[i]),
+            itemBuilder: (context, i) => _buildCard(_controller.antreanList[i]),
           ),
         );
       },
