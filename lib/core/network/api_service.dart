@@ -1077,10 +1077,15 @@ class ApiService {
 
   static Future<Map<String, dynamic>?> getCustomerBankAccounts({
     required String token,
+    required String orderId,
   }) async {
     try {
+      final uri = Uri.parse(
+        '$baseUrl/customer/payments/bank-accounts',
+      ).replace(queryParameters: {'order_id': orderId});
+
       final response = await http.get(
-        Uri.parse('$baseUrl/customer/payments/bank-accounts'),
+        uri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -1105,34 +1110,47 @@ class ApiService {
   static Future<Map<String, dynamic>?> confirmCustomerPayment({
     required String token,
     required String orderId,
-    required String paymentProofUrl,
+    required File imageFile,
   }) async {
     try {
-      final response = await http.post(
+      final request = http.MultipartRequest(
+        'POST',
         Uri.parse('$baseUrl/customer/payments/confirm'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'order_id': orderId,
-          'payment_proof_url': paymentProofUrl,
-        }),
       );
 
-      if (response.statusCode == 200 ||
-          response.statusCode == 400 ||
-          response.statusCode == 401 ||
-          response.statusCode == 404 ||
-          response.statusCode == 500) {
-        return await _decodeJsonResponse(response);
-      } else {
-        debugPrint('Error Server: ${response.statusCode}');
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      request.fields['order_id'] = orderId;
+
+      final extension = imageFile.path.split('.').last.toLowerCase();
+      String mimeType = 'image/jpeg';
+      if (extension == 'png') mimeType = 'image/png';
+      if (extension == 'webp') mimeType = 'image/webp';
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'payment_proof',
+          imageFile.path,
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
+
+      final response = await request.send();
+      final responseString = await response.stream.bytesToString();
+
+      debugPrint('CONFIRM Payment Status: ${response.statusCode}');
+      debugPrint('CONFIRM Payment Response: $responseString');
+
+      if (responseString.isNotEmpty) {
+        return await _decodeJsonString(responseString);
       }
+
+      return {'success': false, 'message': 'Response kosong dari server'};
     } catch (e) {
-      debugPrint('Gagal menghubungi backend: $e');
+      debugPrint('Gagal konfirmasi pembayaran: $e');
+      return {'success': false, 'message': 'Gagal konfirmasi pembayaran: $e'};
     }
-    return null;
   }
 
   // ─── OSRM Route ───────────────────────────────────────────────────────────

@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../controllers/payment_controller.dart';
 import 'payment_success_page.dart';
@@ -24,22 +26,34 @@ class PaymentPage extends StatefulWidget {
 
 class _PaymentPageState extends State<PaymentPage> {
   late PaymentController _controller;
-
-  // Simulasi URL bukti transfer
-  // Nanti bisa diganti dengan upload file sungguhan
-  final TextEditingController _proofUrlController = TextEditingController();
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     _controller = PaymentController();
-    _controller.fetchBankAccounts(widget.token);
+    _controller.fetchBankAccounts(token: widget.token, orderId: widget.orderId);
+    _checkLostData();
+  }
+
+  Future<void> _checkLostData() async {
+    try {
+      final LostDataResponse response = await _picker.retrieveLostData();
+      if (response.isEmpty) return;
+      if (response.file != null) {
+        setState(() {
+          _selectedImage = File(response.file!.path);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error retrieving lost data: $e');
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _proofUrlController.dispose();
     super.dispose();
   }
 
@@ -51,23 +65,91 @@ class _PaymentPageState extends State<PaymentPage> {
     return 'Rp $formatted';
   }
 
-  String _formatDeadline(String deadline) {
-    if (deadline.isEmpty) return '-';
+  Future<void> _pickImage(ImageSource source) async {
     try {
-      final dt = DateTime.parse(deadline);
-      return '${dt.hour.toString().padLeft(2, '0')}:'
-          '${dt.minute.toString().padLeft(2, '0')}:'
-          '${dt.second.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return deadline;
+      final picked = await _picker.pickImage(
+        source: source,
+        imageQuality: 50,
+        maxWidth: 800,
+        maxHeight: 800,
+      );
+      if (picked != null) {
+        setState(() {
+          _selectedImage = File(picked.path);
+        });
+      }
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengambil gambar: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Terjadi kesalahan saat memilih gambar'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Pilih Sumber Gambar',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(
+                  Icons.camera_alt,
+                  color: AppColors.primaryBlue,
+                ),
+                title: const Text('Kamera'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_library,
+                  color: AppColors.primaryBlue,
+                ),
+                title: const Text('Galeri'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleKonfirmasi() async {
-    if (_proofUrlController.text.isEmpty) {
+    if (_selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Masukkan URL bukti transfer terlebih dahulu'),
+          content: Text('Pilih bukti transfer terlebih dahulu'),
           backgroundColor: Colors.red,
         ),
       );
@@ -77,18 +159,18 @@ class _PaymentPageState extends State<PaymentPage> {
     final success = await _controller.confirmPayment(
       token: widget.token,
       orderId: widget.orderId,
-      paymentProofUrl: _proofUrlController.text,
+      imageFile: _selectedImage!,
     );
 
     if (!mounted) return;
 
     if (success) {
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => PaymentSuccessPage(
-            orderNumber: _controller.paymentResult?['order_number'] ?? '-',
-            totalAmount: _controller.paymentResult?['total_amount'] ?? 0,
+            orderNumber: _controller.paymentResult?['kode_order'] ?? '-',
+            totalAmount: widget.totalAmount,
           ),
         ),
       );
@@ -114,7 +196,7 @@ class _PaymentPageState extends State<PaymentPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Payment Details',
+          'Detail Pembayaran',
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
@@ -129,36 +211,23 @@ class _PaymentPageState extends State<PaymentPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // STATUS MENUNGGU PEMBAYARAN
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            'MENUNGGU PEMBAYARAN',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black54,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // TOTAL TAGIHAN
+                      // GRADIENT CARD TOTAL TAGIHAN (Teks Menunggu Pembayaran dihapus)
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primaryBlue, Color(0xFF4A90E2)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primaryBlue.withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -169,52 +238,42 @@ class _PaymentPageState extends State<PaymentPage> {
                                 const Text(
                                   'TOTAL TAGIHAN',
                                   style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey,
-                                    letterSpacing: 0.5,
+                                    fontSize: 12,
+                                    color: Colors.white70,
+                                    letterSpacing: 1,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 8),
                                 Text(
                                   _formatCurrency(widget.totalAmount),
                                   style: const TextStyle(
-                                    fontSize: 24,
+                                    fontSize: 28,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
+                                    color: Colors.white,
                                   ),
                                 ),
                               ],
                             ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                const Text(
-                                  'BATAS WAKTU',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _formatDeadline(widget.paymentDeadline),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              ],
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.receipt_long,
+                                color: Colors.white,
+                                size: 30,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
 
-                      // DAFTAR REKENING
                       const Text(
-                        'DAFTAR REKENING',
+                        'PILIHAN REKENING TRANSFER',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -222,102 +281,156 @@ class _PaymentPageState extends State<PaymentPage> {
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
 
                       if (_controller.isLoading)
-                        const Center(child: CircularProgressIndicator())
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
                       else if (_controller.bankAccounts.isEmpty)
-                        const Center(child: Text('Tidak ada rekening tersedia'))
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Text('Tidak ada rekening tersedia'),
+                          ),
+                        )
                       else
                         ..._controller.bankAccounts.map((bank) {
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.blue.shade100),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.grey.shade200),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.02),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  bank['bank_name'] ?? '-',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Atas Nama: ${bank['account_holder'] ?? '-'}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      bank['account_number'] ?? '-',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 1,
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.shade50,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.account_balance,
+                                        color: AppColors.primaryBlue,
+                                        size: 22,
                                       ),
                                     ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        Clipboard.setData(
-                                          ClipboardData(
-                                            text: bank['account_number'] ?? '',
+                                    const SizedBox(width: 14),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          bank['nama_bank'] ?? '-',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
                                           ),
-                                        );
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Nomor rekening disalin',
-                                            ),
-                                            duration: Duration(seconds: 1),
+                                        ),
+                                        Text(
+                                          'a.n. ${bank['atas_nama'] ?? '-'}',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey.shade600,
                                           ),
-                                        );
-                                      },
-                                      child: Row(
-                                        children: const [
-                                          Icon(
-                                            Icons.copy,
-                                            size: 16,
-                                            color: Colors.grey,
-                                          ),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            'SALIN',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
                                   ],
+                                ),
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        bank['no_rek'] ?? '-',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.5,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          Clipboard.setData(
+                                            ClipboardData(
+                                              text: bank['no_rek'] ?? '',
+                                            ),
+                                          );
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Nomor rekening disalin',
+                                              ),
+                                              duration: Duration(seconds: 1),
+                                            ),
+                                          );
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primaryBlue,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Salin',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
                           );
                         }),
 
-                      const SizedBox(height: 16),
-
-                      // UNGGAH BUKTI
+                      const SizedBox(height: 24),
                       const Text(
-                        'UNGGAH BUKTI',
+                        'UNGGAH BUKTI TRANSFER',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -325,70 +438,124 @@ class _PaymentPageState extends State<PaymentPage> {
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            style: BorderStyle.solid,
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: _showImageSourceDialog,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _selectedImage != null
+                                  ? AppColors.primaryBlue
+                                  : Colors.grey.shade300,
+                              width: _selectedImage != null ? 2 : 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        ),
-                        child: Column(
-                          children: [
-                            const Icon(
-                              Icons.camera_alt_outlined,
-                              size: 40,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Unggah Bukti Transfer di Sini',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Format JPG, PNG atau PDF (Maks. 5MB)',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            // Input URL sementara
-                            TextField(
-                              controller: _proofUrlController,
-                              decoration: InputDecoration(
-                                hintText: 'Masukkan URL bukti transfer',
-                                hintStyle: const TextStyle(fontSize: 13),
-                                filled: true,
-                                fillColor: Colors.grey.shade100,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide.none,
+                          child: _selectedImage != null
+                              ? Column(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.file(
+                                        _selectedImage!,
+                                        height: 200,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.check_circle,
+                                          color: Colors.green,
+                                          size: 16,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Gambar dipilih, tap untuk ganti',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryBlue
+                                            .withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.cloud_upload_outlined,
+                                        size: 36,
+                                        color: AppColors.primaryBlue,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      'Unggah Bukti Transfer',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Tap untuk pilih dari kamera atau galeri',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Format JPG, PNG (Maks. 5MB)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                              ),
-                            ),
-                          ],
                         ),
                       ),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
               ),
-
-              // TOMBOL KONFIRMASI
-              Padding(
+              Container(
                 padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -396,7 +563,9 @@ class _PaymentPageState extends State<PaymentPage> {
                         ? null
                         : _handleKonfirmasi,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
+                      backgroundColor: _selectedImage != null
+                          ? AppColors.primaryBlue
+                          : Colors.grey.shade300,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -404,10 +573,12 @@ class _PaymentPageState extends State<PaymentPage> {
                     ),
                     child: _controller.isConfirming
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Konfirmasi',
+                        : Text(
+                            'Kirim Bukti Pembayaran',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: _selectedImage != null
+                                  ? Colors.white
+                                  : Colors.grey,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
