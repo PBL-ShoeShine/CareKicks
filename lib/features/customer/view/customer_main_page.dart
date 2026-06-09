@@ -10,14 +10,10 @@ class CustomerMainPage extends StatefulWidget {
   final String token;
   final Map<String, dynamic> user;
 
-  const CustomerMainPage({
-    super.key,
-    required this.token,
-    required this.user,
-  });
+  const CustomerMainPage({super.key, required this.token, required this.user});
 
   @override
-  State<CustomerMainPage> createState() => _CustomerMainPageState();
+  State createState() => _CustomerMainPageState();
 }
 
 class _CustomerMainPageState extends State<CustomerMainPage> {
@@ -47,9 +43,9 @@ class _CustomerMainPageState extends State<CustomerMainPage> {
       (route) => false,
     );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Berhasil logout')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Berhasil logout')));
   }
 
   void _showLogoutDialog() {
@@ -82,35 +78,36 @@ class _CustomerMainPageState extends State<CustomerMainPage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
-      // Beranda — coming soon, nanti diisi teman
       const Center(child: Text('Beranda / Coming Soon')),
-
-      // Riwayat — sudah dibuat
       RiwayatPage(token: widget.token),
-
-      // Profile — coming soon, nanti diisi teman
       const Center(child: Text('Profile / Coming Soon')),
     ];
 
+    // AppBar hanya muncul di tab Beranda dan Profile (bukan Riwayat)
+    // karena Riwayat sudah punya AppBar sendiri
+    final bool showAppBar = _currentIndex != 1;
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'CareKicks',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Keluar Akun',
-            onPressed: _showLogoutDialog,
-            icon: const Icon(Icons.logout_rounded, color: Colors.black87),
-          ),
-        ],
-      ),
+      appBar: showAppBar
+          ? AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              title: const Text(
+                'CareKicks',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              actions: [
+                IconButton(
+                  tooltip: 'Keluar Akun',
+                  onPressed: _showLogoutDialog,
+                  icon: const Icon(Icons.logout_rounded, color: Colors.black87),
+                ),
+              ],
+            )
+          : null,
       body: pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,

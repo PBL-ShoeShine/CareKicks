@@ -23,50 +23,69 @@ class PaymentSuccessPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false, // Menghilangkan tombol back default
+      ),
+      body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // ICON CENTANG
+              // Ikon Upload Berhasil
               Container(
-                width: 80,
-                height: 80,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check, color: Colors.white, size: 48),
+                child: const Icon(
+                  Icons.file_upload_outlined,
+                  size: 50,
+                  color: AppColors.primaryBlue,
+                ),
               ),
               const SizedBox(height: 24),
 
-              // JUDUL
+              // Teks Judul
               const Text(
-                'Pesanan Berhasil',
+                'Bukti Pembayaran Terkirim',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
               ),
               const SizedBox(height: 12),
 
-              // DESKRIPSI
-              const Text(
-                'Pesananmu telah diterima dan sedang diproses\noleh tim ShoeCare Semarang.',
+              // Deskripsi
+              Text(
+                'Bukti pembayaranmu sedang diverifikasi\noleh admin toko. Kamu akan mendapat\nnotifikasi setelah pembayaran dikonfirmasi.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  height: 1.5,
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
-              // INFO PESANAN
+              // Rincian Pesanan Box
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -74,15 +93,18 @@ class PaymentSuccessPage extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Nomor Pesanan',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '#$orderNumber',
+                          orderNumber,
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primaryBlue,
                           ),
@@ -92,15 +114,18 @@ class PaymentSuccessPage extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text(
+                        Text(
                           'Total Bayar',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           _formatCurrency(totalAmount),
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
@@ -110,14 +135,50 @@ class PaymentSuccessPage extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
 
-              // TOMBOL LACAK PESANAN
+              // Peringatan Verifikasi
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.access_time_filled,
+                      color: Colors.orange.shade400,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Verifikasi biasanya membutuhkan waktu\n1x24 jam',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.orange.shade900,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Spacer(),
+
+              // Tombol-tombol Navigasi
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: navigasi ke halaman tracking
+                    // Navigate back to history or detail
+                    Navigator.popUntil(context, (route) => route.isFirst);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBlue,
@@ -127,18 +188,16 @@ class PaymentSuccessPage extends StatelessWidget {
                     ),
                   ),
                   child: const Text(
-                    'Lacak Pesanan',
+                    'Lihat Riwayat Pesanan',
                     style: TextStyle(
-                      color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-
-              // TOMBOL KEMBALI KE BERANDA
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
@@ -155,9 +214,9 @@ class PaymentSuccessPage extends StatelessWidget {
                   child: const Text(
                     'Kembali ke Beranda',
                     style: TextStyle(
-                      color: AppColors.primaryBlue,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
                 ),

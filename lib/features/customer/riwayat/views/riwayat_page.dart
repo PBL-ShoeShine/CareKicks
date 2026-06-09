@@ -18,8 +18,10 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
   final List<Map<String, String>> _statusFilters = [
     {'label': 'Semua', 'value': ''},
-    {'label': 'Menunggu', 'value': 'menunggu'},
-    {'label': 'Di Proses', 'value': 'di_proses'},
+    {'label': 'Menunggu', 'value': 'menunggu_jemput'},
+    {'label': 'Dijemput', 'value': 'sedang_dijemput'},
+    {'label': 'Di Toko', 'value': 'diterima_toko'},
+    {'label': 'Dikirim', 'value': 'siap_diantar'},
     {'label': 'Selesai', 'value': 'selesai'},
   ];
 
@@ -37,29 +39,44 @@ class _RiwayatPageState extends State<RiwayatPage> {
     super.dispose();
   }
 
-  Color _getStatusColor(String status) {
+  String _getStatusLabel(String? status) {
     switch (status) {
+      case 'menunggu_jemput':
+        return 'Menunggu';
+      case 'sedang_dijemput':
+        return 'Dijemput';
+      case 'diterima_toko':
+      case 'dicuci':
+      case 'diproses':
+        return 'Di Toko';
+      case 'siap_diantar':
+      case 'sedang_diantar':
+      case 'diantar':
+        return 'Dikirim';
       case 'selesai':
-        return AppColors.successGreen;
-      case 'di_proses':
-        return Colors.orange;
-      case 'menunggu':
-        return Colors.red;
+        return 'Selesai';
       default:
-        return Colors.grey;
+        return status?.replaceAll('_', ' ') ?? '-';
     }
   }
 
-  String _getStatusLabel(String status) {
+  Color _getStatusColor(String? status) {
     switch (status) {
       case 'selesai':
-        return 'Selesai';
-      case 'di_proses':
-        return 'Di proses';
-      case 'menunggu':
-        return 'Menunggu';
+        return AppColors.successGreen;
+      case 'siap_diantar':
+      case 'sedang_diantar':
+      case 'diantar':
+        return AppColors.primaryBlue;
+      case 'diterima_toko':
+      case 'dicuci':
+      case 'diproses':
+        return Colors.orange;
+      case 'menunggu_jemput':
+      case 'sedang_dijemput':
+        return Colors.red;
       default:
-        return status;
+        return Colors.grey;
     }
   }
 
@@ -73,6 +90,61 @@ class _RiwayatPageState extends State<RiwayatPage> {
     return 'Rp $formatted';
   }
 
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '-';
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day.toString().padLeft(2, '0')}/'
+          '${date.month.toString().padLeft(2, '0')}/'
+          '${date.year}';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
+  List<dynamic> _filterOrders(List<dynamic> orders) {
+    var result = orders;
+
+    final selectedStatus = _controller.selectedStatus;
+    if (selectedStatus.isNotEmpty) {
+      final Map<String, List<String>> faseMap = {
+        'menunggu_jemput': ['menunggu_jemput'],
+        'sedang_dijemput': ['sedang_dijemput'],
+        'diterima_toko': ['diterima_toko', 'dicuci', 'diproses'],
+        'siap_diantar': ['siap_diantar', 'sedang_diantar', 'diantar'],
+        'selesai': ['selesai'],
+      };
+      final allowed = faseMap[selectedStatus] ?? [selectedStatus];
+      result = result.where((o) {
+        final s = o['status_order']?.toString() ?? '';
+        return allowed.contains(s);
+      }).toList();
+    }
+
+    final search = _searchController.text.trim().toLowerCase();
+    if (search.isNotEmpty) {
+      result = result.where((o) {
+        final kode = o['kode_order']?.toString().toLowerCase() ?? '';
+        final toko = o['shops']?['nm_toko']?.toString().toLowerCase() ?? '';
+        return kode.contains(search) || toko.contains(search);
+      }).toList();
+    }
+
+    return result;
+  }
+
+  void _navigateToDetail(Map<String, dynamic> order) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DetailOrderPage(
+          token: widget.token,
+          orderId: order['id_orders'].toString(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,24 +152,27 @@ class _RiwayatPageState extends State<RiwayatPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: false,
         title: const Text(
           'Riwayat',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
       ),
       body: Column(
         children: [
-          // SEARCH & FILTER BAR
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Column(
               children: [
-                // Search
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search Product',
+                    hintText: 'Search',
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
                     filled: true,
                     fillColor: const Color(0xFFF5F5F5),
@@ -108,12 +183,10 @@ class _RiwayatPageState extends State<RiwayatPage> {
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   onChanged: (value) {
-                    _controller.setSearch(value);
-                    _controller.fetchRiwayat(widget.token);
+                    setState(() {});
                   },
                 ),
                 const SizedBox(height: 12),
-                // Filter chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: ListenableBuilder(
@@ -128,7 +201,6 @@ class _RiwayatPageState extends State<RiwayatPage> {
                             child: GestureDetector(
                               onTap: () {
                                 _controller.setStatus(filter['value']!);
-                                _controller.fetchRiwayat(widget.token);
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
@@ -169,8 +241,6 @@ class _RiwayatPageState extends State<RiwayatPage> {
               ],
             ),
           ),
-
-          // ORDER LIST
           Expanded(
             child: ListenableBuilder(
               listenable: _controller,
@@ -196,17 +266,22 @@ class _RiwayatPageState extends State<RiwayatPage> {
                   );
                 }
 
-                if (_controller.orders.isEmpty) {
+                final filtered = _filterOrders(_controller.orders);
+
+                if (filtered.isEmpty) {
                   return const Center(child: Text('Belum ada riwayat pesanan'));
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _controller.orders.length,
-                  itemBuilder: (context, index) {
-                    final order = _controller.orders[index];
-                    return _buildOrderCard(order);
-                  },
+                return RefreshIndicator(
+                  onRefresh: () async => _controller.fetchRiwayat(widget.token),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final order = filtered[index] as Map<String, dynamic>;
+                      return _buildOrderCard(order);
+                    },
+                  ),
                 );
               },
             ),
@@ -217,97 +292,103 @@ class _RiwayatPageState extends State<RiwayatPage> {
   }
 
   Widget _buildOrderCard(Map<String, dynamic> order) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  order['service_type'] ?? '-',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                Text(
-                  order['date'] ?? '-',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Id Pemesanan:  ${order['order_number'] ?? '-'}',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Jumlah:  ${order['order_items']?.length ?? 0}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-                Text(
-                  'Total Biaya:  ${_formatCurrency(order['total_price'])}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailOrderPage(
-                          token: widget.token,
-                          orderId: order['id'],
-                        ),
-                      ),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey.shade400),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Detail',
-                    style: TextStyle(color: Colors.black87),
-                  ),
-                ),
-                Text(
-                  _getStatusLabel(order['status'] ?? ''),
-                  style: TextStyle(
-                    color: _getStatusColor(order['status'] ?? ''),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
+    final detailOrders = order['detail_orders'] as List<dynamic>? ?? [];
+    
+    // Kalkulasi Biaya Layanan
+    final totalHargaLayanan = detailOrders.fold<int>(0, (sum, item) {
+      final value =
+          double.tryParse(item['total_harga']?.toString() ?? '0') ?? 0;
+      return sum + value.toInt();
+    });
+
+    // Kalkulasi Ongkir
+    final ongkir = int.tryParse(order['total_ongkir']?.toString() ?? '0') ?? 0;
+    
+    // Total Keseluruhan
+    final totalKeseluruhan = totalHargaLayanan + ongkir;
+
+    final nmToko = order['shops']?['nm_toko']?.toString() ?? '-';
+    final statusOrder = order['status_order']?.toString() ?? '';
+
+    return GestureDetector(
+      onTap: () => _navigateToDetail(order),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      nmToko,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(statusOrder).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _getStatusColor(statusOrder).withOpacity(0.4),
+                      ),
+                    ),
+                    child: Text(
+                      _getStatusLabel(statusOrder),
+                      style: TextStyle(
+                        color: _getStatusColor(statusOrder),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _formatDate(order['tgl_order']),
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Id Pemesanan: ${order['kode_order'] ?? '-'}',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Jumlah: ${detailOrders.length}',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Total Biaya: ${_formatCurrency(totalKeseluruhan)}',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+          ),
         ),
       ),
     );
