@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/antrean_model.dart';
 
 class AntreanService {
-  static const String _baseUrl = 'http://172.16.95.249:3000/api/v1';
+  static const String _baseUrl = 'http://10.254.102.20:3000/api/v1';
 
   static Future<List<AntreanModel>> fetchAntrean(
     String token,

@@ -565,7 +565,7 @@ class _DetailDialogState extends State<_DetailDialog> {
                       ),
                     ),
                     child: const Text(
-                      'Ya, Lanjutkan',
+                      'Ya',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

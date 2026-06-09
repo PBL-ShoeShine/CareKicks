@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:carekicks/core/constants/app_colors.dart';
-import 'package:carekicks/features/admin/ubah_password/controllers/ubah_password_controller.dart';
+import '../controllers/ubah_password_controller.dart';
 import 'package:pinput/pinput.dart';
 
-// ==========================================
-// HALAMAN 1: VALIDASI SANDI LAMA
-// ==========================================
+// ============================================================================
+// HALAMAN 1: Validasi Keamanan (input sandi lama / pilih lupa sandi)
+// ============================================================================
 class UbahPasswordView extends StatefulWidget {
   final String token;
   const UbahPasswordView({super.key, required this.token});
@@ -34,7 +34,7 @@ class _UbahPasswordViewState extends State<UbahPasswordView> {
     super.dispose();
   }
 
-  void _showSnackBar(String msg, Color color) {
+  void _showSnack(String msg, Color color) {
     if (mounted) {
       ScaffoldMessenger.of(
         context,
@@ -42,21 +42,19 @@ class _UbahPasswordViewState extends State<UbahPasswordView> {
     }
   }
 
+  // Verifikasi sandi lama → lanjut ke SetSandiBaruView (mode direct)
   Future<void> _lanjutkan() async {
-    if (_oldPassController.text.isEmpty) {
-      _showSnackBar('Masukkan kata sandi lama Anda', AppColors.errorRed);
+    final oldPass = _oldPassController.text;
+    if (oldPass.isEmpty) {
+      _showSnack('Masukkan kata sandi lama Anda', AppColors.errorRed);
       return;
     }
 
     setState(() => _isLoading = true);
-    final errorMsg = await _controller.verifyOldPassword(
-      widget.token,
-      _oldPassController.text,
-    );
+    final errorMsg = await _controller.verifyOldPassword(widget.token, oldPass);
     setState(() => _isLoading = false);
 
     if (errorMsg == null) {
-      // Sukses! Pindah ke Halaman Sandi Baru
       if (mounted) {
         Navigator.push(
           context,
@@ -64,24 +62,25 @@ class _UbahPasswordViewState extends State<UbahPasswordView> {
             builder: (_) => SetSandiBaruView(
               token: widget.token,
               mode: 'direct',
-              oldPass: _oldPassController.text,
+              oldPass: oldPass,
             ),
           ),
         );
       }
     } else {
-      _showSnackBar(errorMsg, AppColors.errorRed);
+      _showSnack(errorMsg, AppColors.errorRed);
     }
   }
 
+  // Lupa sandi → kirim OTP → lanjut ke InputOtpView
   Future<void> _lupaSandi() async {
     setState(() => _isLoading = true);
     final errorMsg = await _controller.requestOtp(widget.token);
     setState(() => _isLoading = false);
 
     if (errorMsg == null) {
-      _showSnackBar(
-        'OTP berhasil terkirim ke email Anda!',
+      _showSnack(
+        'Kode OTP berhasil dikirim ke email Anda!',
         AppColors.successGreen,
       );
       if (mounted) {
@@ -91,7 +90,7 @@ class _UbahPasswordViewState extends State<UbahPasswordView> {
         );
       }
     } else {
-      _showSnackBar(errorMsg, AppColors.errorRed);
+      _showSnack(errorMsg, AppColors.errorRed);
     }
   }
 
@@ -101,7 +100,7 @@ class _UbahPasswordViewState extends State<UbahPasswordView> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'Validasi Keamanan',
+          'Ubah Kata Sandi',
           style: TextStyle(color: Colors.black87, fontSize: 16),
         ),
         backgroundColor: Colors.white,
@@ -109,12 +108,12 @@ class _UbahPasswordViewState extends State<UbahPasswordView> {
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Demi keamanan, silakan masukkan kata sandi Anda saat ini.',
+              'Demi keamanan, silakan masukkan kata sandi Anda saat ini untuk melanjutkan.',
               style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
             ),
             const SizedBox(height: 24),
@@ -122,7 +121,7 @@ class _UbahPasswordViewState extends State<UbahPasswordView> {
               controller: _oldPassController,
               obscureText: _obscureText,
               decoration: InputDecoration(
-                labelText: 'Kata Sandi Lama',
+                labelText: 'Kata Sandi Saat Ini',
                 prefixIcon: const Icon(Icons.lock_open_outlined),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -165,7 +164,7 @@ class _UbahPasswordViewState extends State<UbahPasswordView> {
               child: TextButton(
                 onPressed: _isLoading ? null : _lupaSandi,
                 child: const Text(
-                  'Lupa Kata Sandi? Kirim OTP',
+                  'Lupa Kata Sandi? Kirim OTP ke Email',
                   style: TextStyle(
                     color: AppColors.primaryBlue,
                     fontWeight: FontWeight.w600,
@@ -180,9 +179,9 @@ class _UbahPasswordViewState extends State<UbahPasswordView> {
   }
 }
 
-// ==========================================
-// HALAMAN 2: INPUT OTP
-// ==========================================
+// ============================================================================
+// HALAMAN 2: Input Kode OTP
+// ============================================================================
 class InputOtpView extends StatefulWidget {
   final String token;
   const InputOtpView({super.key, required this.token});
@@ -213,7 +212,7 @@ class _InputOtpViewState extends State<InputOtpView> {
     if (_otpController.text.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Masukkan 6 digit OTP'),
+          content: Text('Masukkan 6 digit kode OTP'),
           backgroundColor: AppColors.errorRed,
         ),
       );
@@ -254,13 +253,13 @@ class _InputOtpViewState extends State<InputOtpView> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ DESAIN TEMA KOTAK PINPUT (6 Kotak)
+    // ✅ DESAIN TEMA KOTAK PINPUT
     final defaultPinTheme = PinTheme(
       width: 56,
       height: 60,
       textStyle: const TextStyle(
         fontSize: 22,
-        color: Colors.black87,
+        color: AppColors.primaryDark,
         fontWeight: FontWeight.w600,
       ),
       decoration: BoxDecoration(
@@ -282,7 +281,7 @@ class _InputOtpViewState extends State<InputOtpView> {
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(24),
         child: Column(
           children: [
             Container(
@@ -300,9 +299,9 @@ class _InputOtpViewState extends State<InputOtpView> {
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Kode OTP 6 digit telah terkirim. Mohon cek inbox email Anda.',
+                      'Kode OTP 6 digit telah dikirim ke email Anda. Berlaku 15 menit.',
                       style: TextStyle(
-                        color: Colors.black87,
+                        color: AppColors.primaryDark,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -326,6 +325,7 @@ class _InputOtpViewState extends State<InputOtpView> {
               submittedPinTheme: defaultPinTheme.copyDecorationWith(
                 border: Border.all(color: AppColors.primaryBlue, width: 1.5),
               ),
+              // Otomatis verifikasi jika 6 kotak sudah terisi penuh
               onCompleted: (pin) {
                 if (!_isLoading) _verifikasiOtp();
               },
@@ -337,8 +337,7 @@ class _InputOtpViewState extends State<InputOtpView> {
                 : ElevatedButton(
                     onPressed: _verifikasiOtp,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors
-                          .primaryBlue, // ✅ Diubah ke Biru agar seragam
+                      backgroundColor: AppColors.primaryBlue,
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -360,12 +359,12 @@ class _InputOtpViewState extends State<InputOtpView> {
   }
 }
 
-// ==========================================
-// HALAMAN 3: SET SANDI BARU (FINAL)
-// ==========================================
+// ============================================================================
+// HALAMAN 3: Set Sandi Baru
+// ============================================================================
 class SetSandiBaruView extends StatefulWidget {
   final String token;
-  final String mode;
+  final String mode; // 'direct' atau 'otp'
   final String? oldPass;
   final String? otpCode;
 
@@ -411,23 +410,30 @@ class _SetSandiBaruViewState extends State<SetSandiBaruView> {
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(
-                Icons.check_circle_rounded,
-                color: AppColors.successGreen,
-                size: 80,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.successGreen.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.successGreen,
+                  size: 72,
+                ),
               ),
-              SizedBox(height: 16),
-              Text(
-                'Berhasil Diperbarui!',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              const SizedBox(height: 20),
+              const Text(
+                'Berhasil!',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 8),
-              Text(
-                'Kata sandi akun Anda telah berhasil diubah.',
+              const SizedBox(height: 8),
+              const Text(
+                'Kata sandi Anda telah berhasil diperbarui.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey, fontSize: 13),
               ),
@@ -436,10 +442,12 @@ class _SetSandiBaruViewState extends State<SetSandiBaruView> {
         ),
       ),
     );
+
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
-        // Menutup Dialog, lalu kembali ke halaman Profil Utama (pop semua halaman di atasnya)
-        Navigator.popUntil(context, (route) => route.isFirst);
+        Navigator.pop(context); // Tutup dialog sukses
+        int count = 0;
+        Navigator.popUntil(context, (route) => count++ >= 2);
       }
     });
   }
@@ -468,35 +476,24 @@ class _SetSandiBaruViewState extends State<SetSandiBaruView> {
     }
 
     setState(() => _isLoading = true);
-    bool success = false;
-
-    if (widget.mode == 'direct') {
-      success = await _controller.changeDirect(
-        widget.token,
-        widget.oldPass!,
-        newPass,
-      );
-    } else {
-      success = await _controller.changeWithOtp(
-        widget.token,
-        widget.otpCode!,
-        newPass,
-      );
-    }
-
+    final success = widget.mode == 'direct'
+        ? await _controller.changeDirect(widget.token, widget.oldPass!, newPass)
+        : await _controller.changeWithOtp(
+            widget.token,
+            widget.otpCode!,
+            newPass,
+          );
     setState(() => _isLoading = false);
 
     if (success) {
       _showSuccessDialog();
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal menyimpan kata sandi. Silakan coba lagi.'),
-            backgroundColor: AppColors.errorRed,
-          ),
-        );
-      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal menyimpan kata sandi. Silakan coba lagi.'),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
     }
   }
 
@@ -506,7 +503,7 @@ class _SetSandiBaruViewState extends State<SetSandiBaruView> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'Buat Sandi Baru',
+          'Buat Kata Sandi Baru',
           style: TextStyle(color: Colors.black87, fontSize: 16),
         ),
         backgroundColor: Colors.white,
@@ -514,13 +511,13 @@ class _SetSandiBaruViewState extends State<SetSandiBaruView> {
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Langkah terakhir! Silakan buat kata sandi baru Anda.',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              'Langkah terakhir! Buat kata sandi baru yang kuat untuk akun Anda.',
+              style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
             ),
             const SizedBox(height: 24),
             TextField(
@@ -576,7 +573,7 @@ class _SetSandiBaruViewState extends State<SetSandiBaruView> {
                       ),
                     ),
                     child: const Text(
-                      'Simpan Sandi Baru',
+                      'Simpan Kata Sandi',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
