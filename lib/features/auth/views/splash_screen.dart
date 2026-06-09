@@ -5,6 +5,7 @@ import '../../admin/views/admin_main_page.dart';
 import '../../customer/view/customer_main_page.dart';
 import '../controllers/auth_controller.dart';
 import 'login_page.dart';
+import 'suspended_shop_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -42,7 +43,16 @@ class _SplashScreenState extends State<SplashScreen> {
       final role = user['jenis_role'];
 
       if (role == 'shops_admin' || role == 'staff') {
-        nextPage = AdminMainPage(token: token, user: user);
+        final shop = user['shop'];
+        if (role == 'shops_admin' &&
+            shop is Map &&
+            shop['status_verifikasi'] == 'suspended') {
+          nextPage = SuspendedShopPage(
+            shop: Map<String, dynamic>.from(shop),
+          );
+        } else {
+          nextPage = AdminMainPage(token: token, user: user);
+        }
       } else if (role == 'customer') {
         nextPage = CustomerMainPage(token: token, user: user);
       } else {
