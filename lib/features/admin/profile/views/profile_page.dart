@@ -4,14 +4,9 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:carekicks/features/admin/edit_profile/views/edit_profile_view.dart';
 import 'package:carekicks/features/admin/edit_profile/views/ubah_email_view.dart';
-// --- INI TAMBAHAN IMPORT UNTUK UBAH PASSWORD ---
+import 'package:carekicks/features/admin/metode_pembayaran/views/metode_pembayaran_view.dart';
 import 'package:carekicks/features/admin/ubah_password/views/ubah_password_view.dart';
-// -----------------------------------------------
-
-// --- TAMBAHAN IMPORT CONTROLLER BARU UNTUK UPLOAD FOTO ---
 import 'package:carekicks/features/admin/edit_profile/controllers/edit_profile_controller.dart';
-// ---------------------------------------------------------
-
 import 'package:carekicks/core/widgets/custom_scaffold.dart';
 import 'package:carekicks/core/constants/app_colors.dart';
 import 'package:carekicks/core/widgets/custom_appbar.dart';
@@ -22,6 +17,7 @@ import 'package:carekicks/features/admin/toko/views/jam_operasional_page.dart';
 import 'package:carekicks/features/admin/toko/views/profil_toko_page.dart';
 import 'package:carekicks/features/auth/controllers/auth_controller.dart';
 import 'package:carekicks/features/auth/views/login_page.dart';
+import 'package:carekicks/features/admin/metode_pembayaran/views/metode_pembayaran_view.dart';
 
 class ProfilePage extends StatefulWidget {
   final String token;
@@ -513,7 +509,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 12),
 
-                // 👇 INI BAGIAN YANG DITAMBAHKAN PENGECEKAN ROLE
                 if (_profileController.userRole == 'admin' ||
                     _profileController.userRole == 'shops_admin') ...[
                   // MANAJEMEN OPERASIONAL
@@ -550,13 +545,28 @@ class _ProfilePageState extends State<ProfilePage> {
                         _buildMenuCard(
                           icon: Icons.people,
                           title: 'Manajemen Karyawan',
-                          subtitle: 'Akses staf dan jadwal kerja',
+                          subtitle: 'Akses staf',
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
                                     ManajemenStaffScreen(token: widget.token),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildMenuCard(
+                          icon: Icons.account_balance_wallet_rounded,
+                          title: 'Metode Pembayaran',
+                          subtitle: 'Atur rekening dan QRIS toko',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    MetodePembayaranView(token: widget.token),
                               ),
                             );
                           },
@@ -616,7 +626,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 24),
                 ],
-                // 👆 BATAS PENGECEKAN ROLE SELESAI DI SINI
 
                 // KEAMANAN & AKUN (Semua role bisa melihat)
                 Padding(

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/widgets/custom_appbar.dart';
-import '../../../core/widgets/custom_scaffold.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../auth/views/login_page.dart';
-import '../../customer/riwayat/views/riwayat_page.dart';
+
+// ❌ 1. COMMENT IMPORT RIWAYAT KARENA BELUM DIBUAT
+// import '../../customer/riwayat/views/riwayat_page.dart';
+
+// ✅ 2. BIARKAN IMPORT PROFILE AKTIF
+import '../../customer/profile/views/customer_profile_page.dart';
 
 class CustomerMainPage extends StatefulWidget {
   final String token;
@@ -48,27 +51,80 @@ class _CustomerMainPageState extends State<CustomerMainPage> {
     ).showSnackBar(const SnackBar(content: Text('Berhasil logout')));
   }
 
+  // ✅ DIALOG LOGOUT YANG SUDAH DISAMAKAN DENGAN ADMIN (profile_page.dart)
   void _showLogoutDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Keluar Akun'),
-        content: const Text('Apakah Anda yakin ingin keluar?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _handleLogout();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.errorRed,
-              foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        title: Row(
+          children: const [
+            Icon(Icons.logout_rounded, color: AppColors.errorRed, size: 22),
+            SizedBox(width: 10),
+            Text(
+              'Keluar Akun',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
             ),
-            child: const Text('Keluar'),
+          ],
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin keluar dari akun ini?',
+          style: TextStyle(fontSize: 14, color: Colors.black54, height: 1.4),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    side: BorderSide(
+                      color: Colors.grey.shade400, // Lebih tegas
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Batal',
+                    style: TextStyle(
+                      color: Colors.black54, // Warna lebih gelap/tegas
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await _handleLogout();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.errorRed,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Keluar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
