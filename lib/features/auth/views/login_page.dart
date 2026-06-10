@@ -5,6 +5,7 @@ import '../controllers/auth_controller.dart';
 import 'register_page.dart';
 import '../../admin/views/admin_main_page.dart';
 import '../../customer/view/customer_main_page.dart';
+import 'suspended_shop_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -96,6 +97,17 @@ class _LoginPageState extends State<LoginPage> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Role tidak dikenali.')));
     } else if (mounted) {
+      final suspendedShop = _authController.suspendedShop;
+      if (suspendedShop != null) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => SuspendedShopPage(shop: suspendedShop),
+          ),
+          (route) => false,
+        );
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_authController.errorMessage ?? 'Login gagal')),
       );

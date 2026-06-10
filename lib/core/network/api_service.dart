@@ -50,6 +50,7 @@ class ApiService {
 
       if (response.statusCode == 200 ||
           response.statusCode == 400 ||
+          response.statusCode == 403 ||
           response.statusCode == 404) {
         return await _decodeJsonResponse(response);
       } else {
