@@ -7,13 +7,15 @@ class ManajemenStaffService {
   static final String _base = '${ApiService.baseUrl}/admin/manajemen_staff';
 
   static Map<String, String> _headers(String token) => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $token',
+  };
 
   // 1. Ambil semua staff
   static Future<List<ManajemenStaffModel>> getAllStaff(
-      String token, {String? search}) async {
+    String token, {
+    String? search,
+  }) async {
     try {
       final uri = Uri.parse(_base).replace(
         queryParameters: search != null && search.isNotEmpty
@@ -34,13 +36,12 @@ class ManajemenStaffService {
     }
   }
 
-  // 2. Tambah staff baru
+  // 2. Tambah staff baru (Role dihapus)
   static Future<void> createStaff({
     required String token,
     required String nama,
     required String email,
     required String noHp,
-    required List<StaffRole> roles,
     required String password,
   }) async {
     try {
@@ -51,7 +52,6 @@ class ManajemenStaffService {
           'nama': nama,
           'email': email,
           'no_hp': noHp,
-          'role': roles.map((e) => e.name).toList(),
           'password': password,
         }),
       );
@@ -67,7 +67,10 @@ class ManajemenStaffService {
 
   // 3. Update staff
   static Future<void> updateStaff(
-      String token, String id, Map<String, dynamic> updateData) async {
+    String token,
+    String id,
+    Map<String, dynamic> updateData,
+  ) async {
     try {
       final response = await http.patch(
         Uri.parse('$_base/$id'),

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../../../core/network/api_service.dart'; // Sesuaikan path jika error
+import '../../../../core/network/api_service.dart';
 import '../models/manajemen_staff_model.dart';
 
 class ManajemenStaffController {
@@ -36,12 +36,11 @@ class ManajemenStaffController {
     }
   }
 
-  // 2. Tambah staff baru (ada password)
+  // 2. Tambah staff baru (Role dihapus)
   Future<void> createStaff({
     required String nama,
     required String email,
     required String noHp,
-    required List<StaffRole> roles,
     required String password,
   }) async {
     try {
@@ -52,10 +51,8 @@ class ManajemenStaffController {
           'nama': nama,
           'email': email,
           'no_hp': noHp,
-          'role': roles
-              .map((e) => e.name)
-              .toList(), // Kirim sebagai array string
           'password': password,
+          // Role sudah tidak dikirim
         }),
       );
       final data = jsonDecode(response.body);
@@ -68,9 +65,10 @@ class ManajemenStaffController {
     }
   }
 
-  // 3. Update staff (bisa update status dan role array)
+  // 3. Update staff (Role dihapus dari updateData)
   Future<void> updateStaff(String id, Map<String, dynamic> updateData) async {
     try {
+      // Pastikan updateData di screen/form tidak menyertakan key 'role'
       final response = await http.patch(
         Uri.parse('$_base/$id'),
         headers: _headers,

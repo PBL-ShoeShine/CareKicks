@@ -16,13 +16,18 @@ class _RiwayatPageState extends State<RiwayatPage> {
   late RiwayatController _controller;
   final TextEditingController _searchController = TextEditingController();
 
+  // Dropdown filter options sesuai enum baru
   final List<Map<String, String>> _statusFilters = [
-    {'label': 'Semua', 'value': ''},
-    {'label': 'Menunggu', 'value': 'menunggu_jemput'},
-    {'label': 'Dijemput', 'value': 'sedang_dijemput'},
-    {'label': 'Di Toko', 'value': 'diterima_toko'},
-    {'label': 'Dikirim', 'value': 'siap_diantar'},
+    {'label': 'Semua Status', 'value': ''},
+    {'label': 'Menunggu Konfirmasi Admin', 'value': 'pending'},
+    {'label': 'Menunggu Pembayaran', 'value': 'menunggu_pembayaran'},
+    {'label': 'Menunggu Verifikasi Bayar', 'value': 'menunggu_konfirmasi'},
+    {'label': 'Menunggu Dijemput', 'value': 'menunggu_dijemput'},
+    {'label': 'Sedang Dijemput', 'value': 'sedang_dijemput'},
+    {'label': 'Sedang Dicuci', 'value': 'washing'},
+    {'label': 'Sedang Diantar', 'value': 'sedang_diantar'},
     {'label': 'Selesai', 'value': 'selesai'},
+    {'label': 'Dibatalkan', 'value': 'dibatalkan'},
   ];
 
   @override
@@ -41,20 +46,30 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
   String _getStatusLabel(String? status) {
     switch (status) {
-      case 'menunggu_jemput':
+      case 'pending':
         return 'Menunggu';
+      case 'menunggu_pembayaran':
+        return 'Menunggu Bayar';
+      case 'menunggu_konfirmasi':
+        return 'Verifikasi';
+      case 'dikonfirmasi':
+        return 'Dikonfirmasi';
+      case 'menunggu_dijemput':
+        return 'Menunggu Jemput';
       case 'sedang_dijemput':
         return 'Dijemput';
-      case 'diterima_toko':
-      case 'dicuci':
-      case 'diproses':
-        return 'Di Toko';
-      case 'siap_diantar':
+      case 'sudah_dijemput':
+        return 'Sudah Dijemput';
+      case 'washing':
+        return 'Dicuci';
+      case 'selesai_cuci':
+        return 'Selesai Cuci';
       case 'sedang_diantar':
-      case 'diantar':
         return 'Dikirim';
       case 'selesai':
         return 'Selesai';
+      case 'dibatalkan':
+        return 'Dibatalkan';
       default:
         return status?.replaceAll('_', ' ') ?? '-';
     }
@@ -64,16 +79,16 @@ class _RiwayatPageState extends State<RiwayatPage> {
     switch (status) {
       case 'selesai':
         return AppColors.successGreen;
-      case 'siap_diantar':
       case 'sedang_diantar':
-      case 'diantar':
+      case 'selesai_cuci':
         return AppColors.primaryBlue;
-      case 'diterima_toko':
-      case 'dicuci':
-      case 'diproses':
-        return Colors.orange;
-      case 'menunggu_jemput':
+      case 'washing':
+        return Colors.purple;
+      case 'menunggu_dijemput':
       case 'sedang_dijemput':
+      case 'sudah_dijemput':
+        return Colors.orange;
+      case 'dibatalkan':
         return Colors.red;
       default:
         return Colors.grey;
@@ -107,12 +122,17 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
     final selectedStatus = _controller.selectedStatus;
     if (selectedStatus.isNotEmpty) {
+      // Beberapa status di-group karena satu fase bisa punya beberapa status
       final Map<String, List<String>> faseMap = {
-        'menunggu_jemput': ['menunggu_jemput'],
-        'sedang_dijemput': ['sedang_dijemput'],
-        'diterima_toko': ['diterima_toko', 'dicuci', 'diproses'],
-        'siap_diantar': ['siap_diantar', 'sedang_diantar', 'diantar'],
+        'pending': ['pending'],
+        'menunggu_pembayaran': ['menunggu_pembayaran'],
+        'menunggu_konfirmasi': ['menunggu_konfirmasi'],
+        'menunggu_dijemput': ['dikonfirmasi', 'menunggu_dijemput'],
+        'sedang_dijemput': ['sedang_dijemput', 'sudah_dijemput'],
+        'washing': ['washing', 'selesai_cuci'],
+        'sedang_diantar': ['sedang_diantar'],
         'selesai': ['selesai'],
+        'dibatalkan': ['dibatalkan'],
       };
       final allowed = faseMap[selectedStatus] ?? [selectedStatus];
       result = result.where((o) {
@@ -131,6 +151,97 @@ class _RiwayatPageState extends State<RiwayatPage> {
     }
 
     return result;
+  }
+
+  // Ambil label dropdown yang sedang dipilih
+  String get _selectedFilterLabel {
+    return _statusFilters.firstWhere(
+      (f) => f['value'] == _controller.selectedStatus,
+      orElse: () => _statusFilters.first,
+    )['label']!;
+  }
+
+  void _showFilterDropdown(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      isScrollControlled: true, // ← tambah ini
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Filter Status',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Bungkus list dengan Flexible + SingleChildScrollView
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ..._statusFilters.map((filter) {
+                        final isSelected =
+                            _controller.selectedStatus == filter['value'];
+                        return ListTile(
+                          title: Text(
+                            filter['label']!,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? AppColors.primaryBlue
+                                  : Colors.black87,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(
+                                  Icons.check,
+                                  color: AppColors.primaryBlue,
+                                  size: 18,
+                                )
+                              : null,
+                          onTap: () {
+                            _controller.setStatus(filter['value']!);
+                            Navigator.pop(context);
+                            setState(() {});
+                          },
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _navigateToDetail(Map<String, dynamic> order) {
@@ -169,10 +280,11 @@ class _RiwayatPageState extends State<RiwayatPage> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Column(
               children: [
+                // Search bar
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search',
+                    hintText: 'Cari kode order atau nama toko',
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
                     filled: true,
                     fillColor: const Color(0xFFF5F5F5),
@@ -182,65 +294,76 @@ class _RiwayatPageState extends State<RiwayatPage> {
                     ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  onChanged: (value) {
-                    setState(() {});
-                  },
+                  onChanged: (value) => setState(() {}),
                 ),
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ListenableBuilder(
-                    listenable: _controller,
-                    builder: (context, _) {
-                      return Row(
-                        children: _statusFilters.map((filter) {
-                          final isSelected =
-                              _controller.selectedStatus == filter['value'];
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: GestureDetector(
-                              onTap: () {
-                                _controller.setStatus(filter['value']!);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
+                const SizedBox(height: 10),
+
+                // Dropdown filter
+                ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) {
+                    final hasFilter = _controller.selectedStatus.isNotEmpty;
+                    return GestureDetector(
+                      onTap: () => _showFilterDropdown(context),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: hasFilter
+                              ? AppColors.primaryBlue.withOpacity(0.05)
+                              : const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: hasFilter
+                                ? AppColors.primaryBlue.withOpacity(0.4)
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.filter_list,
+                              size: 18,
+                              color: hasFilter
+                                  ? AppColors.primaryBlue
+                                  : Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _selectedFilterLabel,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: hasFilter
                                       ? AppColors.primaryBlue
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? AppColors.primaryBlue
-                                        : Colors.grey.shade300,
-                                  ),
-                                ),
-                                child: Text(
-                                  filter['label']!,
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    fontSize: 13,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                                  ),
+                                      : Colors.grey.shade600,
+                                  fontWeight: hasFilter
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
                                 ),
                               ),
                             ),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
+                            Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 18,
+                              color: hasFilter
+                                  ? AppColors.primaryBlue
+                                  : Colors.grey,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
+
+          // List pesanan
           Expanded(
             child: ListenableBuilder(
               listenable: _controller,
@@ -269,7 +392,28 @@ class _RiwayatPageState extends State<RiwayatPage> {
                 final filtered = _filterOrders(_controller.orders);
 
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('Belum ada riwayat pesanan'));
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.inbox_outlined,
+                          size: 48,
+                          color: Colors.grey.shade300,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _controller.selectedStatus.isEmpty
+                              ? 'Belum ada riwayat pesanan'
+                              : 'Tidak ada pesanan dengan status ini',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 }
 
                 return RefreshIndicator(
@@ -293,22 +437,17 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
   Widget _buildOrderCard(Map<String, dynamic> order) {
     final detailOrders = order['detail_orders'] as List<dynamic>? ?? [];
-    
-    // Kalkulasi Biaya Layanan
     final totalHargaLayanan = detailOrders.fold<int>(0, (sum, item) {
       final value =
           double.tryParse(item['total_harga']?.toString() ?? '0') ?? 0;
       return sum + value.toInt();
     });
-
-    // Kalkulasi Ongkir
     final ongkir = int.tryParse(order['total_ongkir']?.toString() ?? '0') ?? 0;
-    
-    // Total Keseluruhan
     final totalKeseluruhan = totalHargaLayanan + ongkir;
-
     final nmToko = order['shops']?['nm_toko']?.toString() ?? '-';
     final statusOrder = order['status_order']?.toString() ?? '';
+    final metodeOrder = order['metode_order']?.toString().toLowerCase() ?? '';
+    final isOnline = metodeOrder == 'online';
 
     return GestureDetector(
       onTap: () => _navigateToDetail(order),
@@ -344,6 +483,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  // Badge status
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -368,6 +508,39 @@ class _RiwayatPageState extends State<RiwayatPage> {
                 ],
               ),
               const SizedBox(height: 6),
+
+              // Badge online/offline
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isOnline
+                          ? AppColors.primaryBlue.withOpacity(0.08)
+                          : Colors.orange.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isOnline
+                            ? AppColors.primaryBlue.withOpacity(0.3)
+                            : Colors.orange.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      isOnline ? 'Online' : 'Offline',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: isOnline ? AppColors.primaryBlue : Colors.orange,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+
               Text(
                 _formatDate(order['tgl_order']),
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
@@ -379,7 +552,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Jumlah: ${detailOrders.length}',
+                'Jumlah: ${detailOrders.length} item',
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
               const SizedBox(height: 4),

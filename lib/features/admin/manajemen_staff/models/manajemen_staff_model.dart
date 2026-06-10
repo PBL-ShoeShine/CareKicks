@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-enum StaffRole { WASHER, COURIER }
-
 enum StaffStatus { aktif, sedang_tugas, cuti, non_aktif }
 
 class ManajemenStaffModel {
@@ -10,7 +8,6 @@ class ManajemenStaffModel {
   final String email;
   final String noHp;
   final String idShops;
-  final List<StaffRole> roles; // Diubah menjadi List untuk multi-role
   final StaffStatus status;
 
   ManajemenStaffModel({
@@ -19,34 +16,11 @@ class ManajemenStaffModel {
     required this.email,
     required this.noHp,
     required this.idShops,
-    required this.roles,
     required this.status,
   });
 
   factory ManajemenStaffModel.fromJson(Map<String, dynamic> json) {
     final profile = json['staff_profile'] ?? json;
-
-    // Parsing Role dari Text[] (Array) Supabase
-    List<StaffRole> parsedRoles = [];
-    if (profile['role'] != null && profile['role'] is List) {
-      for (var r in profile['role']) {
-        if (r.toString().toUpperCase() == 'COURIER') {
-          parsedRoles.add(StaffRole.COURIER);
-        } else {
-          parsedRoles.add(StaffRole.WASHER);
-        }
-      }
-    } else if (profile['role'] is String) {
-      // Fallback jika masih string biasa
-      parsedRoles = [
-        profile['role'].toString().toUpperCase() == 'COURIER'
-            ? StaffRole.COURIER
-            : StaffRole.WASHER,
-      ];
-    }
-
-    // Pastikan minimal ada 1 role jika kosong
-    if (parsedRoles.isEmpty) parsedRoles = [StaffRole.WASHER];
 
     return ManajemenStaffModel(
       id: (json['id_staff_profile'] ?? json['id'] ?? '').toString(),
@@ -54,7 +28,6 @@ class ManajemenStaffModel {
       email: profile['email'] ?? '',
       noHp: profile['no_hp'] ?? '',
       idShops: (profile['id_shops'] ?? '').toString(),
-      roles: parsedRoles.toSet().toList(), // toSet agar tidak ada duplikat
       status: _parseStatus(profile['status']),
     );
   }

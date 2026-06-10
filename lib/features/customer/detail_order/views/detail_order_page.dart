@@ -35,80 +35,61 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     super.dispose();
   }
 
-  // REVISI LOGIKA: Step Indicator Anti-Tabrakan
-  int _getPhaseIndex(String? status, String? paymentStatus) {
-    final isPaid =
-        paymentStatus == 'paid' ||
-        paymentStatus == 'lunas' ||
-        paymentStatus == 'selesai';
+  bool get _isOnline =>
+      _controller.order?['metode_order']?.toString().toLowerCase() == 'online';
 
-    // Daftar status pesanan yang menandakan sudah lewat tahap awal
-    final activeStatuses = [
-      'menunggu_jemput',
-      'sedang_dijemput',
-      'diterima_toko',
-      'dicuci',
-      'diproses',
-      'siap_diantar',
-      'sedang_diantar',
-      'diantar',
-      'selesai',
-    ];
-    final isAlreadyProcessed = activeStatuses.contains(status);
-
-    // Kalau belum lunas DAN pesanan belum diproses admin, tahan di fase 0 (Diterima)
-    if (!isPaid && !isAlreadyProcessed) {
-      return 0;
-    }
-
-    // Jika sudah lunas ATAU pesanan sudah diproses, jalankan indikator normal
-    switch (status) {
-      case 'menunggu_konfirmasi':
-        return 0;
-      case 'menunggu_jemput':
-      case 'sedang_dijemput':
-        return 1;
-      case 'diterima_toko':
-      case 'dicuci':
-      case 'diproses':
-        return 2;
-      case 'siap_diantar':
-      case 'sedang_diantar':
-      case 'diantar':
-      case 'selesai':
-        return 3;
-      default:
-        return 0;
+  int _getPhaseIndex(String? status) {
+    if (_isOnline) {
+      switch (status) {
+        case 'pending':
+        case 'menunggu_pembayaran':
+        case 'menunggu_konfirmasi':
+          return 0;
+        case 'dikonfirmasi':
+        case 'menunggu_dijemput':
+        case 'sedang_dijemput':
+        case 'sudah_dijemput':
+          return 1;
+        case 'washing':
+        case 'selesai_cuci':
+          return 2;
+        case 'sedang_diantar':
+        case 'selesai':
+          return 3;
+        default:
+          return 0;
+      }
+    } else {
+      switch (status) {
+        case 'pending':
+        case 'menunggu_pembayaran':
+        case 'dikonfirmasi':
+          return 0;
+        case 'washing':
+          return 1;
+        case 'selesai_cuci':
+        case 'selesai':
+          return 2;
+        default:
+          return 0;
+      }
     }
   }
 
-  String _getPhaseLabel(int index) {
-    switch (index) {
-      case 0:
-        return 'Diterima';
-      case 1:
-        return 'Dijemput';
-      case 2:
-        return 'Di Toko';
-      case 3:
-        return 'Selesai';
-      default:
-        return '';
-    }
-  }
-
-  IconData _getPhaseIcon(int index) {
-    switch (index) {
-      case 0:
-        return Icons.receipt_long;
-      case 1:
-        return Icons.directions_bike;
-      case 2:
-        return Icons.store;
-      case 3:
-        return Icons.check_circle;
-      default:
-        return Icons.circle;
+  List<Map<String, dynamic>> _getPhases() {
+    if (_isOnline) {
+      return [
+        {'label': 'Pembayaran', 'icon': Icons.payment},
+        {'label': 'Penjemputan', 'icon': Icons.directions_bike},
+        {'label': 'Pencucian', 'icon': Icons.local_laundry_service},
+        {'label': 'Pengiriman', 'icon': Icons.local_shipping},
+      ];
+    } else {
+      return [
+        {'label': 'Pembayaran', 'icon': Icons.payment},
+        {'label': 'Pencucian', 'icon': Icons.local_laundry_service},
+        {'label': 'Selesai', 'icon': Icons.check_circle},
+      ];
     }
   }
 
@@ -146,22 +127,91 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     }
   }
 
-  String _formatStatusText(String? status) {
-    if (status == null || status.isEmpty) return '-';
-    return status
-        .split('_')
-        .map((word) {
-          if (word.isEmpty) return '';
-          return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
-        })
-        .join(' ');
+  String _formatDateTime(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '-';
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agt',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des',
+      ];
+      final time =
+          '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      return '${date.day} ${months[date.month - 1]} ${date.year}, $time';
+    } catch (_) {
+      return dateStr;
+    }
   }
 
+  // FIX: mapping eksplisit semua status → label yang benar
+  String _formatStatusText(String? status) {
+    switch (status) {
+      case 'pending':
+        return 'Pending';
+      case 'menunggu_pembayaran':
+        return 'Menunggu Pembayaran';
+      case 'menunggu_konfirmasi':
+        return 'Menunggu Konfirmasi';
+      case 'dikonfirmasi':
+        return 'Dikonfirmasi';
+      case 'menunggu_dijemput':
+        return 'Menunggu Dijemput';
+      case 'sedang_dijemput':
+        return 'Sedang Dijemput';
+      case 'sudah_dijemput':
+        return 'Sudah Dijemput';
+      case 'washing':
+        return 'Sedang Dicuci';
+      case 'selesai_cuci':
+        return 'Selesai Dicuci';
+      case 'sedang_diantar':
+        return 'Sedang Diantar';
+      case 'selesai':
+        return 'Selesai';
+      case 'dibatalkan':
+        return 'Dibatalkan';
+      default:
+        if (status == null || status.isEmpty) return '-';
+        return status
+            .split('_')
+            .map(
+              (w) => w.isEmpty
+                  ? ''
+                  : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}',
+            )
+            .join(' ');
+    }
+  }
+
+  // FIX: deduplikasi timeline — buang entry dengan status + created_at yang identik
+  List<Map<String, dynamic>> _deduplicatedTimeline() {
+    final raw = _controller.timeline;
+    final seen = <String>{};
+    final result = <Map<String, dynamic>>[];
+    for (final item in raw) {
+      final key = '${item['status']}_${item['created_at']}';
+      if (seen.contains(key)) continue;
+      seen.add(key);
+      result.add(item as Map<String, dynamic>);
+    }
+    return result;
+  }
+
+  // Step indicator — TANPA badge online/offline (dihapus sesuai permintaan)
   Widget _buildStepIndicator() {
-    final currentPhase = _getPhaseIndex(
-      _controller.status,
-      _controller.paymentStatus,
-    );
+    final currentPhase = _getPhaseIndex(_controller.status);
+    final phases = _getPhases();
+    final totalPhases = phases.length;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
@@ -170,7 +220,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
-        children: List.generate(4 * 2 - 1, (index) {
+        children: List.generate(totalPhases * 2 - 1, (index) {
           if (index.isOdd) {
             final lineIndex = index ~/ 2;
             final isActive = currentPhase > lineIndex;
@@ -185,6 +235,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
           final stepIndex = index ~/ 2;
           final isCompleted = currentPhase > stepIndex;
           final isActive = currentPhase == stepIndex;
+          final phase = phases[stepIndex];
 
           return Column(
             mainAxisSize: MainAxisSize.min,
@@ -194,9 +245,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                 height: isActive ? 44 : 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isCompleted || isActive
-                      ? Colors.white
-                      : Colors.grey.shade100,
+                  color: isCompleted ? AppColors.primaryBlue : Colors.white,
                   border: Border.all(
                     color: isCompleted || isActive
                         ? AppColors.primaryBlue
@@ -205,8 +254,10 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                   ),
                 ),
                 child: Icon(
-                  _getPhaseIcon(stepIndex),
-                  color: isCompleted || isActive
+                  phase['icon'] as IconData,
+                  color: isCompleted
+                      ? Colors.white
+                      : isActive
                       ? AppColors.primaryBlue
                       : Colors.grey.shade400,
                   size: isActive ? 22 : 18,
@@ -214,7 +265,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                _getPhaseLabel(stepIndex),
+                phase['label'] as String,
                 style: TextStyle(
                   fontSize: isActive ? 11 : 10,
                   color: isCompleted || isActive
@@ -236,7 +287,199 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     );
   }
 
+  // Timeline — pakai _deduplicatedTimeline(), nama staff selalu ditampilkan
+  Widget _buildTimeline() {
+    final timeline = _deduplicatedTimeline();
+    if (timeline.isEmpty) return const SizedBox.shrink();
+
+    String getStatusLabel(String? status) {
+      switch (status) {
+        case 'pending':
+          return 'Pesanan Masuk';
+        case 'menunggu_pembayaran':
+          return 'Menunggu Pembayaran';
+        case 'menunggu_konfirmasi':
+          return 'Bukti Bayar Dikirim';
+        case 'dikonfirmasi':
+          return 'Pembayaran Dikonfirmasi';
+        case 'menunggu_dijemput':
+          return 'Menunggu Dijemput';
+        case 'sedang_dijemput':
+          return 'Sedang Dijemput';
+        case 'sudah_dijemput':
+          return 'Sepatu Sudah Dijemput';
+        case 'washing':
+          return 'Sedang Dicuci';
+        case 'selesai_cuci':
+          return 'Pencucian Selesai';
+        case 'sedang_diantar':
+          return 'Sedang Diantar';
+        case 'selesai':
+          return 'Pesanan Selesai';
+        case 'dibatalkan':
+          return 'Pesanan Dibatalkan';
+        default:
+          return status ?? '-';
+      }
+    }
+
+    Color getStatusColor(String? status) {
+      switch (status) {
+        case 'selesai':
+          return Colors.green;
+        case 'dibatalkan':
+          return Colors.red;
+        case 'washing':
+        case 'selesai_cuci':
+          return Colors.purple;
+        case 'sedang_dijemput':
+        case 'sudah_dijemput':
+        case 'menunggu_dijemput':
+        case 'sedang_diantar':
+          return AppColors.primaryBlue;
+        case 'dikonfirmasi':
+          return Colors.green;
+        case 'menunggu_konfirmasi':
+          return Colors.orange;
+        default:
+          return Colors.grey;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Riwayat Status',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          const SizedBox(height: 16),
+          ...List.generate(timeline.length, (index) {
+            final item = timeline[index];
+            final isLast = index == timeline.length - 1;
+            final status = item['status']?.toString();
+            // FIX: coba beberapa kemungkinan key nama staff dari backend
+            final namaStaff =
+                (item['nama_staff'] ??
+                        item['staff']?['nama'] ??
+                        item['user']?['nama'] ??
+                        item['staff']?['name'] ??
+                        item['user']?['name'])
+                    ?.toString();
+            final color = getStatusColor(status);
+
+            return IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Dot + garis vertikal
+                  SizedBox(
+                    width: 24,
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 14,
+                          height: 14,
+                          margin: const EdgeInsets.only(top: 3),
+                          decoration: BoxDecoration(
+                            color: isLast ? color : Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: color, width: 2),
+                          ),
+                        ),
+                        if (!isLast)
+                          Expanded(
+                            child: Container(
+                              width: 2,
+                              color: Colors.grey.shade200,
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Konten
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            getStatusLabel(status),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: color,
+                            ),
+                          ),
+                          if (item['keterangan'] != null &&
+                              item['keterangan'].toString().isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                item['keterangan'].toString(),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          // FIX: nama staff selalu tampil jika ada
+                          if (namaStaff != null && namaStaff.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.person_outline,
+                                    size: 12,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    namaStaff,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              _formatDateTime(item['created_at']?.toString()),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMapCard() {
+    if (!_isOnline) return const SizedBox.shrink();
+
     final shopLat = _controller.shopLat;
     final shopLng = _controller.shopLng;
     final custLat = _controller.customerLat;
@@ -448,7 +691,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     final ongkir =
         int.tryParse((_controller.order?['total_ongkir'] ?? '0').toString()) ??
         0;
-
     final total = biayaLayanan + ongkir;
     final catatanPengiriman = _controller.order?['catatan_pengiriman']
         ?.toString();
@@ -468,11 +710,13 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
           ),
           const SizedBox(height: 12),
           _buildDetailRow('Tanggal', _formatDate(_controller.date)),
+          // FIX: gunakan _formatStatusText yang sudah punya mapping eksplisit
+          _buildDetailRow('Status', _formatStatusText(_controller.status)),
           _buildDetailRow(
-            'Status Pesanan',
-            _formatStatusText(_controller.status),
+            'Metode',
+            _isOnline ? 'Online (Antar Jemput)' : 'Offline (Ke Toko)',
           ),
-          _buildDetailRow('Alamat', _controller.address ?? '-'),
+          if (_isOnline) _buildDetailRow('Alamat', _controller.address ?? '-'),
 
           if (catatanPengiriman != null && catatanPengiriman.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -495,7 +739,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Catatan pengiriman: $catatanPengiriman',
+                      'Catatan: $catatanPengiriman',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.orange.shade900,
@@ -556,7 +800,8 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
           ],
 
           _buildDetailRow('Biaya Layanan', _formatCurrency(biayaLayanan)),
-          _buildDetailRow('Biaya Ongkir', _formatCurrency(ongkir)),
+          if (_isOnline)
+            _buildDetailRow('Biaya Ongkir', _formatCurrency(ongkir)),
           const Divider(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -580,41 +825,33 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     );
   }
 
-  // REVISI LOGIKA: Button Pembayaran Anti-Tabrakan
   Widget _buildPaymentButton() {
     final orderStatus = _controller.status;
     final paymentStatus = _controller.paymentStatus;
 
-    final isPaid =
-        paymentStatus == 'paid' ||
-        paymentStatus == 'lunas' ||
-        paymentStatus == 'selesai';
-
-    final activeStatuses = [
-      'menunggu_jemput',
+    final sudahDiproses = [
+      'dikonfirmasi',
+      'menunggu_dijemput',
       'sedang_dijemput',
-      'diterima_toko',
-      'dicuci',
-      'diproses',
-      'siap_diantar',
+      'sudah_dijemput',
+      'washing',
+      'selesai_cuci',
       'sedang_diantar',
-      'diantar',
       'selesai',
-    ];
-    final isAlreadyProcessed = activeStatuses.contains(orderStatus);
+    ].contains(orderStatus);
 
-    if (orderStatus == 'menunggu_konfirmasi') {
+    if (orderStatus == 'pending') {
       return ElevatedButton(
         onPressed: null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.grey.shade300,
+          disabledBackgroundColor: Colors.grey.shade200,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
         child: const Text(
-          'Menunggu Konfirmasi Order',
+          'Menunggu Konfirmasi Admin',
           style: TextStyle(
             color: Colors.grey,
             fontSize: 16,
@@ -624,48 +861,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
       );
     }
 
-    // LOGIKA KUNCI: Jika sudah lunas ATAU pesanan sudah diproses admin (bypass validasi)
-    if (isPaid || isAlreadyProcessed) {
-      return ElevatedButton(
-        onPressed: null,
-        style: ElevatedButton.styleFrom(
-          disabledBackgroundColor: Colors.green.shade50,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.green.shade300),
-          ),
-        ),
-        child: const Text(
-          'Pembayaran Lunas',
-          style: TextStyle(
-            color: Colors.green,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    } else if (paymentStatus == 'menunggu_verifikasi') {
-      return ElevatedButton(
-        onPressed: null,
-        style: ElevatedButton.styleFrom(
-          disabledBackgroundColor: Colors.orange.shade50,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.orange.shade300),
-          ),
-        ),
-        child: Text(
-          'Menunggu Verifikasi Pembayaran',
-          style: TextStyle(
-            color: Colors.orange.shade800,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    } else {
+    if (orderStatus == 'menunggu_pembayaran') {
       return ElevatedButton(
         onPressed: () {
           Navigator.push(
@@ -697,6 +893,53 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
         ),
       );
     }
+
+    if (orderStatus == 'menunggu_konfirmasi' ||
+        paymentStatus == 'menunggu_verifikasi') {
+      return ElevatedButton(
+        onPressed: null,
+        style: ElevatedButton.styleFrom(
+          disabledBackgroundColor: Colors.orange.shade50,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.orange.shade300),
+          ),
+        ),
+        child: Text(
+          'Menunggu Verifikasi Pembayaran',
+          style: TextStyle(
+            color: Colors.orange.shade800,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    if (sudahDiproses) {
+      return ElevatedButton(
+        onPressed: null,
+        style: ElevatedButton.styleFrom(
+          disabledBackgroundColor: Colors.green.shade50,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.green.shade300),
+          ),
+        ),
+        child: const Text(
+          'Pembayaran Lunas',
+          style: TextStyle(
+            color: Colors.green,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   @override
@@ -751,9 +994,14 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                     children: [
                       _buildStepIndicator(),
                       const SizedBox(height: 16),
+
                       _buildMapCard(),
+                      if (_isOnline) const SizedBox(height: 16),
+
+                      _buildTimeline(),
                       const SizedBox(height: 16),
 
+                      // Produk
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -863,19 +1111,22 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
+
                       _buildRincianPesanan(),
                       const SizedBox(height: 16),
                     ],
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: _buildPaymentButton(),
+
+              if (_isOnline)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: _buildPaymentButton(),
+                  ),
                 ),
-              ),
             ],
           );
         },

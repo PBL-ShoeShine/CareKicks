@@ -23,9 +23,9 @@ class _AntreanScreenState extends State<AntreanScreen>
   int _currentTab = 0;
 
   final _tabs = const [
-    {'label': 'Pesanan Baru', 'status': 'pending'},
-    {'label': 'Sedang Dicuci', 'status': 'diproses'},
-    {'label': 'Siap', 'status': 'selesai'},
+    {'label': 'Pesanan Baru', 'status': 'pesanan_baru'},
+    {'label': 'Sedang Dicuci', 'status': 'sedang_dicuci'},
+    {'label': 'Siap', 'status': 'siap'},
   ];
 
   @override
@@ -352,22 +352,70 @@ class _AntreanScreenState extends State<AntreanScreen>
   }
 
   String? _nextStatus(String s) {
-    if (s == 'pending') return 'diproses';
-    if (s == 'diproses') return 'selesai';
-    return null;
+    switch (s) {
+      case 'dikonfirmasi':
+        return 'menunggu_dijemput';
+      case 'menunggu_dijemput':
+        return 'sedang_dijemput';
+      case 'sedang_dijemput':
+        return 'sudah_dijemput';
+      case 'sudah_dijemput':
+        return 'washing';
+      case 'washing':
+        return 'selesai_cuci';
+      case 'selesai_cuci':
+        return 'sedang_diantar';
+      case 'sedang_diantar':
+        return 'selesai';
+      default:
+        return null;
+    }
   }
 
   String _btnLabel(String s) {
-    if (s == 'pending') return 'Mulai Pengerjaan';
-    if (s == 'diproses') return 'Selesaikan Order';
-    return '';
+    switch (s) {
+      case 'dikonfirmasi':
+        return 'Tugaskan Kurir';
+      case 'menunggu_dijemput':
+        return 'Mulai Jemput';
+      case 'sedang_dijemput':
+        return 'Sepatu Dijemput';
+      case 'sudah_dijemput':
+        return 'Mulai Cuci';
+      case 'washing':
+        return 'Selesai Cuci';
+      case 'selesai_cuci':
+        return 'Mulai Antar';
+      case 'sedang_diantar':
+        return 'Selesaikan Order';
+      default:
+        return '';
+    }
   }
 
   Color _statusColor(String s) {
-    if (s == 'pending') return AppColors.primaryBlue;
-    if (s == 'diproses') return Colors.orange;
-    if (s == 'selesai') return AppColors.successGreen;
-    return Colors.grey;
+    switch (s) {
+      case 'dikonfirmasi':
+        return AppColors.primaryBlue;
+      case 'menunggu_dijemput':
+        return Colors.blue.shade300;
+      case 'sedang_dijemput':
+        return Colors.orange;
+      case 'sudah_dijemput':
+        return Colors.orange.shade700;
+      case 'washing':
+        return Colors.purple;
+      case 'selesai_cuci':
+        return Colors.teal;
+      case 'sedang_diantar':
+        return AppColors.primaryBlue;
+      case 'selesai':
+        return AppColors.successGreen;
+      case 'dibatalkan':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   String _formatTgl(String tgl) {

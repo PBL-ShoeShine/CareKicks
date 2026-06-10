@@ -25,24 +25,24 @@ class AntreanController extends ChangeNotifier {
 
   bool get _isStaff => _role == 'courier' || _role == 'washer';
 
-  String get _baseEndpoint =>
-      _isStaff ? '${ApiService.baseUrl}/staff/antrean'
-               : '${ApiService.baseUrl}/admin/antrean';
+  String get _baseEndpoint => _isStaff
+      ? '${ApiService.baseUrl}/staff/antrean'
+      : '${ApiService.baseUrl}/admin/antrean';
 
   Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_token',
-      };
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $_token',
+  };
 
   // ─── Fetch Antrean ───────────────────────────────────────────────────────
 
-  Future<void> fetchAntrean(String status) async {
+  Future<void> fetchAntrean(String tab) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final uri = Uri.parse('$_baseEndpoint?status=$status');
+      final uri = Uri.parse('$_baseEndpoint?tab=$tab');
       final response = await http.get(uri, headers: _headers);
 
       debugPrint('=== FETCH ANTREAN ===');
@@ -66,7 +66,6 @@ class AntreanController extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
-
   // ─── Update Status ───────────────────────────────────────────────────────
 
   Future<bool> updateStatus(int idOrder, String status) async {

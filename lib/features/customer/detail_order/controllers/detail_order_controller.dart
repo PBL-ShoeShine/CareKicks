@@ -11,6 +11,7 @@ class DetailOrderController extends ChangeNotifier {
   Map<String, dynamic>? _order;
   List<dynamic> _items = [];
   Map<String, dynamic>? _payment;
+  List<dynamic> _timeline = []; // BARU
   List<LatLng> _routePoints = [];
   double? _routeDistanceMeters;
   double? _routeDurationSeconds;
@@ -22,6 +23,7 @@ class DetailOrderController extends ChangeNotifier {
   Map<String, dynamic>? get order => _order;
   List<dynamic> get items => _items;
   Map<String, dynamic>? get payment => _payment;
+  List<dynamic> get timeline => _timeline; // BARU
   List<LatLng> get routePoints => _routePoints;
   double? get routeDistanceMeters => _routeDistanceMeters;
   double? get routeDurationSeconds => _routeDurationSeconds;
@@ -37,7 +39,6 @@ class DetailOrderController extends ChangeNotifier {
       double.tryParse(_order?['lat_order']?.toString() ?? '');
   double? get customerLng =>
       double.tryParse(_order?['long_order']?.toString() ?? '');
-
   double? get shopLat =>
       double.tryParse(_order?['shops']?['lat_toko']?.toString() ?? '');
   double? get shopLng =>
@@ -45,7 +46,6 @@ class DetailOrderController extends ChangeNotifier {
 
   List<dynamic> get detailItems => _items;
 
-  // Total = biaya layanan + ongkir
   int get totalAmount {
     final biayaLayanan = _items.fold<int>(0, (sum, item) {
       final value =
@@ -76,9 +76,12 @@ class DetailOrderController extends ChangeNotifier {
         _order = data['order'];
         _items = data['items'] ?? [];
         _payment = data['payment'];
+        _timeline = data['timeline'] ?? []; // BARU
 
         debugPrint('=== ORDER DATA ===');
         debugPrint(_order.toString());
+        debugPrint('=== TIMELINE (${_timeline.length} entries) ===');
+        debugPrint(_timeline.toString());
         debugPrint('=================');
 
         await _tryFetchRoute();

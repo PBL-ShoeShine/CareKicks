@@ -75,22 +75,70 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
 
   // Bawa fungsi utilitas dari layar sebelumnya
   String? _nextStatus(String s) {
-    if (s == 'pending') return 'diproses';
-    if (s == 'diproses') return 'selesai';
-    return null;
+    switch (s) {
+      case 'dikonfirmasi':
+        return 'menunggu_dijemput';
+      case 'menunggu_dijemput':
+        return 'sedang_dijemput';
+      case 'sedang_dijemput':
+        return 'sudah_dijemput';
+      case 'sudah_dijemput':
+        return 'washing';
+      case 'washing':
+        return 'selesai_cuci';
+      case 'selesai_cuci':
+        return 'sedang_diantar';
+      case 'sedang_diantar':
+        return 'selesai';
+      default:
+        return null;
+    }
   }
 
   String _btnLabel(String s) {
-    if (s == 'pending') return 'Mulai Pengerjaan';
-    if (s == 'diproses') return 'Selesaikan Order';
-    return '';
+    switch (s) {
+      case 'dikonfirmasi':
+        return 'Tugaskan Kurir';
+      case 'menunggu_dijemput':
+        return 'Mulai Jemput';
+      case 'sedang_dijemput':
+        return 'Sepatu Dijemput';
+      case 'sudah_dijemput':
+        return 'Mulai Cuci';
+      case 'washing':
+        return 'Selesai Cuci';
+      case 'selesai_cuci':
+        return 'Mulai Antar';
+      case 'sedang_diantar':
+        return 'Selesaikan Order';
+      default:
+        return '';
+    }
   }
 
   Color _statusColor(String s) {
-    if (s == 'pending') return AppColors.primaryBlue;
-    if (s == 'diproses') return Colors.orange;
-    if (s == 'selesai') return AppColors.successGreen;
-    return Colors.grey;
+    switch (s) {
+      case 'dikonfirmasi':
+        return AppColors.primaryBlue;
+      case 'menunggu_dijemput':
+        return Colors.blue.shade300;
+      case 'sedang_dijemput':
+        return Colors.orange;
+      case 'sudah_dijemput':
+        return Colors.orange.shade700;
+      case 'washing':
+        return Colors.purple;
+      case 'selesai_cuci':
+        return Colors.teal;
+      case 'sedang_diantar':
+        return AppColors.primaryBlue;
+      case 'selesai':
+        return AppColors.successGreen;
+      case 'dibatalkan':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   String _formatTgl(String tgl) {
@@ -389,11 +437,9 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                               fit: BoxFit.contain,
                               loadingBuilder:
                                   (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return _buildQrPlaceholder(
-                                  isLoading: true,
-                                );
-                              },
+                                    if (loadingProgress == null) return child;
+                                    return _buildQrPlaceholder(isLoading: true);
+                                  },
                               errorBuilder: (_, __, ___) =>
                                   _buildQrPlaceholder(),
                             )
@@ -406,8 +452,8 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryBlue,
-                          disabledBackgroundColor:
-                              AppColors.primaryBlue.withOpacity(0.45),
+                          disabledBackgroundColor: AppColors.primaryBlue
+                              .withOpacity(0.45),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
