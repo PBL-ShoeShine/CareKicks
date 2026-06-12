@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/widgets/custom_appbar.dart';
-import '../../../core/widgets/custom_scaffold.dart';
-import '../../auth/controllers/auth_controller.dart';
-import '../../auth/views/login_page.dart';
 import '../../customer/riwayat/views/riwayat_page.dart';
+import '../../customer/profile/views/customer_profile_page.dart';
 
 class CustomerMainPage extends StatefulWidget {
   final String token;
@@ -17,60 +14,172 @@ class CustomerMainPage extends StatefulWidget {
 }
 
 class _CustomerMainPageState extends State<CustomerMainPage> {
-  late final AuthController _authController;
   int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _authController = AuthController();
   }
 
   @override
   void dispose() {
-    _authController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogout() async {
-    await _authController.logout();
+  // 🔥 DESAIN HEADER BARU ALA UI REFERENSI 🔥
+  Widget _buildBeranda() {
+    // Ambil data user untuk ditampilkan di header
+    final userName = widget.user['nama'] ?? 'Customer';
+    final avatarUrl = widget.user['path_gambar'];
+    final isValidAvatar = avatarUrl != null && avatarUrl.toString().startsWith('http');
 
-    if (!mounted) return;
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-      (route) => false,
-    );
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Berhasil logout')));
-  }
-
-  void _showLogoutDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Keluar Akun'),
-        content: const Text('Apakah Anda yakin ingin keluar?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _handleLogout();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.errorRed,
-              foregroundColor: Colors.white,
+    return SafeArea(
+      child: Container(
+        color: Colors.white, // Latar belakang putih bersih
+        child: Column(
+          children: [
+            // ─── 1. BARIS PROFIL & NOTIFIKASI ───
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Row(
+                children: [
+                  // Foto Profil
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+                    backgroundImage: isValidAvatar ? NetworkImage(avatarUrl) : null,
+                    child: !isValidAvatar
+                        ? const Icon(Icons.person, color: AppColors.primaryBlue)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  // Teks Selamat Datang
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome Back',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                userName,
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Text('📌', style: TextStyle(fontSize: 14)), // Emoji sesuai gambar
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Ikon Keranjang/Notifikasi dengan titik merah
+                  Stack(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                        child: const Icon(
+                          Icons.shopping_bag_outlined, // Ikon tas belanja
+                          color: Colors.black87,
+                          size: 20,
+                        ),
+                      ),
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: AppColors.errorRed,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            child: const Text('Keluar'),
-          ),
-        ],
+
+            // ─── 2. BARIS PENCARIAN & FILTER ───
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  // Search Bar
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.search, color: Colors.grey.shade500, size: 20),
+                          const SizedBox(width: 10),
+                          Text(
+                            "What's on your list?",
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Tombol Filter
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    child: const Icon(
+                      Icons.tune_rounded, // Ikon filter slider
+                      color: AppColors.primaryBlue, // Warna biru agar stand out
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+
+            // ─── 3. KONTEN BERANDA BAWAH (SISA HALAMAN) ───
+            const Expanded(
+              child: Center(
+                child: Text('Beranda / Coming Soon'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -78,60 +187,63 @@ class _CustomerMainPageState extends State<CustomerMainPage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
-      const Center(child: Text('Beranda / Coming Soon')),
+      _buildBeranda(),
       RiwayatPage(token: widget.token),
-      const Center(child: Text('Profile / Coming Soon')),
+      CustomerProfilePage(token: widget.token),
     ];
 
-    // AppBar hanya muncul di tab Beranda dan Profile (bukan Riwayat)
-    // karena Riwayat sudah punya AppBar sendiri
-    final bool showAppBar = _currentIndex != 1;
-
     return Scaffold(
-      appBar: showAppBar
-          ? AppBar(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              title: const Text(
-                'CareKicks',
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              actions: [
-                IconButton(
-                  tooltip: 'Keluar Akun',
-                  onPressed: _showLogoutDialog,
-                  icon: const Icon(Icons.logout_rounded, color: Colors.black87),
-                ),
-              ],
-            )
-          : null,
+      backgroundColor: Colors.white,
       body: pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        selectedItemColor: AppColors.primaryBlue,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Beranda',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history_rounded),
-            label: 'Riwayat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          backgroundColor: Colors.white,
+          elevation: 0, // Hilangkan bayangan bawaan agar lebih flat
+          selectedItemColor: AppColors.primaryBlue,
+          unselectedItemColor: Colors.grey.shade400,
+          showUnselectedLabels: true,
+          type: BottomNavigationBarType.fixed,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.home_rounded),
+              ),
+              label: 'Home', // Mengikuti gaya referensi (Home, Orders, Favorites, Profile)
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.inventory_2_outlined), // Ikon orders
+              ),
+              label: 'Orders',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.person_outline_rounded),
+              ),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }

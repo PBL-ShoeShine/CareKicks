@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://172.16.161.95:3000/api/v1';
+  static const String baseUrl = 'http://10.137.229.70:3000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -1063,6 +1063,7 @@ class ApiService {
       if (response.statusCode == 200 ||
           response.statusCode == 400 ||
           response.statusCode == 401 ||
+          response.statusCode == 403 ||
           response.statusCode == 404 ||
           response.statusCode == 500) {
         return await _decodeJsonResponse(response);
