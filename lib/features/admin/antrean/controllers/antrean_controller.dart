@@ -68,13 +68,22 @@ class AntreanController extends ChangeNotifier {
   }
   // ─── Update Status ───────────────────────────────────────────────────────
 
-  Future<bool> updateStatus(int idOrder, String status) async {
+  Future<bool> updateStatus(
+    int idOrder,
+    String status, {
+    String? keterangan,
+  }) async {
     try {
       final uri = Uri.parse('$_baseEndpoint/$idOrder/status');
+      final body = <String, dynamic>{'status': status};
+      if (keterangan != null && keterangan.trim().isNotEmpty) {
+        body['keterangan'] = keterangan.trim();
+      }
+
       final response = await http.patch(
         uri,
         headers: _headers,
-        body: jsonEncode({'status': status}),
+        body: jsonEncode(body),
       );
 
       debugPrint('=== UPDATE STATUS ===');

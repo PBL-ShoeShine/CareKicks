@@ -23,6 +23,7 @@ class _AntreanScreenState extends State<AntreanScreen>
   int _currentTab = 0;
 
   final _tabs = const [
+    {'label': 'Pembayaran', 'status': 'pembayaran'},
     {'label': 'Pesanan Baru', 'status': 'pesanan_baru'},
     {'label': 'Sedang Dicuci', 'status': 'sedang_dicuci'},
     {'label': 'Siap', 'status': 'siap'},
@@ -65,6 +66,7 @@ class _AntreanScreenState extends State<AntreanScreen>
         bottom: CustomTabBar(
           controller: _tabController,
           labels: _tabs.map((t) => t['label']!).toList(),
+          isScrollable: true,
         ),
       ),
       // ← _buildTitleCard() dihapus dari sini
@@ -267,45 +269,7 @@ class _AntreanScreenState extends State<AntreanScreen>
               const SizedBox(height: 12),
               // Tombol aksi
               nextStatus != null
-                  ? SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryBlue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        icon: const Icon(
-                          Icons.play_arrow,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        label: Text(
-                          btnLabel,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        onPressed: () async {
-                          final ok = await _controller.updateStatus(
-                            antrean.idOrders,
-                            nextStatus,
-                          );
-                          if (ok && mounted) {
-                            _loadData();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Status diubah ke $nextStatus'),
-                                backgroundColor: AppColors.successGreen,
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    )
+                  ? _buildActionButtons(antrean, nextStatus, btnLabel)
                   : Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -339,6 +303,254 @@ class _AntreanScreenState extends State<AntreanScreen>
     );
   }
 
+  Widget _buildActionButtons(
+    AntreanModel antrean,
+    String nextStatus,
+    String btnLabel,
+  ) {
+    if (antrean.statusOrder == 'menunggu_konfirmasi') {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.errorRed,
+                side: const BorderSide(color: AppColors.errorRed),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              icon: const Icon(Icons.close_rounded, size: 18),
+              label: const Text(
+                'Tolak',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              onPressed: () => _rejectPayment(antrean),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _buildPrimaryActionButton(antrean, nextStatus, btnLabel),
+          ),
+        ],
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: _buildPrimaryActionButton(antrean, nextStatus, btnLabel),
+    );
+  }
+
+  Widget _buildPrimaryActionButton(
+    AntreanModel antrean,
+    String nextStatus,
+    String btnLabel,
+  ) {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primaryBlue,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+      ),
+      icon: const Icon(Icons.play_arrow, color: Colors.white, size: 18),
+      label: Text(
+        btnLabel,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      onPressed: () async {
+        final ok = await _controller.updateStatus(antrean.idOrders, nextStatus);
+        if (ok && mounted) {
+          _loadData();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Status diubah ke $nextStatus'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _rejectPayment(AntreanModel antrean) async {
+    final reason = await _showRejectReasonDialog();
+    if (reason == null || reason.trim().isEmpty) return;
+
+    final ok = await _controller.updateStatus(
+      antrean.idOrders,
+      'menunggu_pembayaran',
+      keterangan: reason,
+    );
+
+    if (ok && mounted) {
+      _loadData();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pembayaran ditolak'),
+          backgroundColor: AppColors.successGreen,
+        ),
+      );
+    }
+  }
+
+  Future<String?> _showRejectReasonDialog() async {
+    final reasonController = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final canSubmit = reasonController.text.trim().isNotEmpty;
+
+            return Dialog(
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.errorRed.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.receipt_long_outlined,
+                            color: AppColors.errorRed,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tolak Pembayaran',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Alasan akan ditampilkan ke customer.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    TextField(
+                      controller: reasonController,
+                      autofocus: true,
+                      maxLines: 4,
+                      minLines: 3,
+                      maxLength: 180,
+                      textInputAction: TextInputAction.newline,
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: Nominal transfer tidak sesuai',
+                        filled: true,
+                        fillColor: const Color(0xFFF9FAFB),
+                        counterStyle: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                        contentPadding: const EdgeInsets.all(14),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: AppColors.errorRed,
+                            width: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              foregroundColor: AppColors.textPrimary,
+                              side: const BorderSide(color: AppColors.border),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text(
+                              'Batal',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: canSubmit
+                                ? () => Navigator.pop(
+                                      context,
+                                      reasonController.text.trim(),
+                                    )
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              backgroundColor: AppColors.errorRed,
+                              disabledBackgroundColor:
+                                  AppColors.errorRed.withOpacity(0.32),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text(
+                              'Tolak',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _placeholder() {
     return Container(
       width: 56,
@@ -353,6 +565,8 @@ class _AntreanScreenState extends State<AntreanScreen>
 
   String? _nextStatus(String s) {
     switch (s) {
+      case 'menunggu_konfirmasi':
+        return 'dikonfirmasi';
       case 'dikonfirmasi':
         return 'menunggu_dijemput';
       case 'menunggu_dijemput':
@@ -374,6 +588,8 @@ class _AntreanScreenState extends State<AntreanScreen>
 
   String _btnLabel(String s) {
     switch (s) {
+      case 'menunggu_konfirmasi':
+        return 'ACC Pembayaran';
       case 'dikonfirmasi':
         return 'Tugaskan Kurir';
       case 'menunggu_dijemput':
@@ -395,6 +611,8 @@ class _AntreanScreenState extends State<AntreanScreen>
 
   Color _statusColor(String s) {
     switch (s) {
+      case 'menunggu_konfirmasi':
+        return Colors.amber.shade700;
       case 'dikonfirmasi':
         return AppColors.primaryBlue;
       case 'menunggu_dijemput':

@@ -37,6 +37,9 @@ class AntreanModel {
   final int idOrders;
   final String kodeOrder;
   final String statusOrder;
+  final String statusPembayaran;
+  final String? uploadBktByr;
+  final String? alasanTolakPembayaran;
   final String tglOrder;
   final String? qrImage;
   final String? linkQr;
@@ -46,6 +49,9 @@ class AntreanModel {
     required this.idOrders,
     required this.kodeOrder,
     required this.statusOrder,
+    required this.statusPembayaran,
+    this.uploadBktByr,
+    this.alasanTolakPembayaran,
     required this.tglOrder,
     this.qrImage,
     this.linkQr,
@@ -60,6 +66,9 @@ class AntreanModel {
       idOrders: json['id_orders'],
       kodeOrder: json['kode_order'] ?? '',
       statusOrder: json['status_order'] ?? '',
+      statusPembayaran: json['status_pembayaran'] ?? '',
+      uploadBktByr: json['upload_bkt_byr']?.toString(),
+      alasanTolakPembayaran: json['alasan_tolak_pembayaran']?.toString(),
       tglOrder: json['tgl_order'] ?? '',
       qrImage: json['qr_image']?.toString(),
       linkQr: json['link_qr']?.toString(),

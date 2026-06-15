@@ -38,12 +38,13 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     _currentStatus = widget.antrean.statusOrder;
   }
 
-  Future<void> _updateStatus(String nextStatus) async {
+  Future<void> _updateStatus(String nextStatus, {String? keterangan}) async {
     setState(() => _isLoading = true);
     try {
       final success = await _controller.updateStatus(
         widget.antrean.idOrders,
         nextStatus,
+        keterangan: keterangan,
       );
       if (success && mounted) {
         setState(() {
@@ -76,6 +77,8 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
   // Bawa fungsi utilitas dari layar sebelumnya
   String? _nextStatus(String s) {
     switch (s) {
+      case 'menunggu_konfirmasi':
+        return 'dikonfirmasi';
       case 'dikonfirmasi':
         return 'menunggu_dijemput';
       case 'menunggu_dijemput':
@@ -97,6 +100,8 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
 
   String _btnLabel(String s) {
     switch (s) {
+      case 'menunggu_konfirmasi':
+        return 'ACC Pembayaran';
       case 'dikonfirmasi':
         return 'Tugaskan Kurir';
       case 'menunggu_dijemput':
@@ -118,6 +123,8 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
 
   Color _statusColor(String s) {
     switch (s) {
+      case 'menunggu_konfirmasi':
+        return Colors.amber.shade700;
       case 'dikonfirmasi':
         return AppColors.primaryBlue;
       case 'menunggu_dijemput':
@@ -161,6 +168,175 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
       return linkQr;
     }
 
+    return null;
+  }
+
+  Future<void> _rejectPayment() async {
+    final reason = await _showRejectReasonDialog();
+    if (reason == null || reason.trim().isEmpty) return;
+    await _updateStatus('menunggu_pembayaran', keterangan: reason);
+  }
+
+  Future<String?> _showRejectReasonDialog() async {
+    final reasonController = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final canSubmit = reasonController.text.trim().isNotEmpty;
+
+            return Dialog(
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.errorRed.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.receipt_long_outlined,
+                            color: AppColors.errorRed,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tolak Pembayaran',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Alasan akan ditampilkan ke customer.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    TextField(
+                      controller: reasonController,
+                      autofocus: true,
+                      maxLines: 4,
+                      minLines: 3,
+                      maxLength: 180,
+                      textInputAction: TextInputAction.newline,
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: Nominal transfer tidak sesuai',
+                        filled: true,
+                        fillColor: const Color(0xFFF9FAFB),
+                        counterStyle: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                        contentPadding: const EdgeInsets.all(14),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: AppColors.errorRed,
+                            width: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              foregroundColor: AppColors.textPrimary,
+                              side: const BorderSide(color: AppColors.border),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text(
+                              'Batal',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: canSubmit
+                                ? () => Navigator.pop(
+                                      context,
+                                      reasonController.text.trim(),
+                                    )
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              backgroundColor: AppColors.errorRed,
+                              disabledBackgroundColor:
+                                  AppColors.errorRed.withOpacity(0.32),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text(
+                              'Tolak',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String? get _paymentProofUrl {
+    final proofUrl = widget.antrean.uploadBktByr?.trim();
+    if (proofUrl != null &&
+        proofUrl.isNotEmpty &&
+        proofUrl.startsWith('http')) {
+      return proofUrl;
+    }
     return null;
   }
 
@@ -228,6 +404,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     final nextStatus = _nextStatus(_currentStatus);
     final statusColor = _statusColor(_currentStatus);
     final qrImageUrl = _qrImageUrl;
+    final paymentProofUrl = _paymentProofUrl;
 
     return WillPopScope(
       onWillPop: () async {
@@ -402,6 +579,59 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
               ),
               const SizedBox(height: 20),
 
+              if (_currentStatus == 'menunggu_konfirmasi') ...[
+                const Text(
+                  'Bukti Pembayaran',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A2E),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInfoItem(
+                        'Status Pembayaran',
+                        widget.antrean.statusPembayaran.isEmpty
+                            ? '-'
+                            : widget.antrean.statusPembayaran,
+                      ),
+                      const SizedBox(height: 16),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: paymentProofUrl != null
+                            ? Image.network(
+                                paymentProofUrl,
+                                width: double.infinity,
+                                height: 260,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _buildPaymentProofPlaceholder(),
+                              )
+                            : _buildPaymentProofPlaceholder(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+
               const Text(
                 'QR Order',
                 style: TextStyle(
@@ -507,49 +737,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
             ],
           ),
           child: nextStatus != null
-              ? SizedBox(
-                  height: 54,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: _isLoading
-                        ? null
-                        : () => _updateStatus(nextStatus),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _btnLabel(_currentStatus),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Icon(
-                                Icons.arrow_forward_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                  ),
-                )
+              ? _buildBottomActions(nextStatus)
               : Container(
                   height: 54,
                   decoration: BoxDecoration(
@@ -572,6 +760,89 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                     ],
                   ),
                 ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomActions(String nextStatus) {
+    if (_isLoading) {
+      return const SizedBox(
+        height: 54,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: AppColors.primaryBlue,
+            strokeWidth: 2.5,
+          ),
+        ),
+      );
+    }
+
+    if (_currentStatus == 'menunggu_konfirmasi') {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.errorRed,
+                side: const BorderSide(color: AppColors.errorRed),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                minimumSize: const Size.fromHeight(54),
+              ),
+              onPressed: _rejectPayment,
+              icon: const Icon(Icons.close_rounded),
+              label: const Text(
+                'Tolak',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildPrimaryBottomButton(nextStatus),
+          ),
+        ],
+      );
+    }
+
+    return _buildPrimaryBottomButton(nextStatus);
+  }
+
+  Widget _buildPrimaryBottomButton(String nextStatus) {
+    return SizedBox(
+      height: 54,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryBlue,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          elevation: 0,
+        ),
+        onPressed: () => _updateStatus(nextStatus),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                _btnLabel(_currentStatus),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.arrow_forward_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ],
         ),
       ),
     );
@@ -616,6 +887,32 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
           const SizedBox(height: 8),
           Text(
             'Foto tidak tersedia',
+            style: TextStyle(color: Colors.grey.shade500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentProofPlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: 260,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 48,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Bukti pembayaran tidak tersedia',
             style: TextStyle(color: Colors.grey.shade500),
           ),
         ],

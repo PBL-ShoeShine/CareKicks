@@ -34,6 +34,7 @@ class DetailOrderController extends ChangeNotifier {
   String? get date => _order?['tgl_order'];
   String? get address => _order?['alamat_pengantaran'];
   String? get paymentStatus => _order?['status_pembayaran'];
+  String? get paymentRejectReason => _order?['alasan_tolak_pembayaran'];
 
   double? get customerLat =>
       double.tryParse(_order?['lat_order']?.toString() ?? '');

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/widgets/custom_scaffold.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/notification_registration_service.dart';
 import '../../admin/views/admin_main_page.dart';
 import '../../customer/view/customer_main_page.dart';
 import '../controllers/auth_controller.dart';
@@ -54,6 +55,11 @@ class _SplashScreenState extends State<SplashScreen> {
           nextPage = AdminMainPage(token: token, user: user);
         }
       } else if (role == 'customer') {
+        await NotificationRegistrationService.registerForUser(
+          token: token,
+          user: user,
+        );
+        if (!mounted) return;
         nextPage = CustomerMainPage(token: token, user: user);
       } else {
         await _authController.logout();

@@ -679,6 +679,56 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     );
   }
 
+  Widget _buildPaymentRejectionNotice() {
+    final reason = _controller.paymentRejectReason?.trim();
+    if (!_shouldShowPaymentRejectionNotice) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: Colors.red.shade700, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Pembayaran ditolak',
+                  style: TextStyle(
+                    color: Colors.red.shade800,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  reason ?? '',
+                  style: TextStyle(color: Colors.red.shade900, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool get _shouldShowPaymentRejectionNotice {
+    final reason = _controller.paymentRejectReason?.trim();
+    return _controller.status == 'menunggu_pembayaran' &&
+        reason != null &&
+        reason.isNotEmpty;
+  }
+
   Widget _buildRincianPesanan() {
     final items = _controller.detailItems;
 
@@ -994,6 +1044,10 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                     children: [
                       _buildStepIndicator(),
                       const SizedBox(height: 16),
+
+                      _buildPaymentRejectionNotice(),
+                      if (_shouldShowPaymentRejectionNotice)
+                        const SizedBox(height: 16),
 
                       _buildMapCard(),
                       if (_isOnline) const SizedBox(height: 16),

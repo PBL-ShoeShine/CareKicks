@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/notification_registration_service.dart';
 import '../../../core/widgets/custom_scaffold.dart';
 import '../controllers/auth_controller.dart';
 import 'register_page.dart';
@@ -79,6 +80,11 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (role == 'customer') {
+        await NotificationRegistrationService.registerForUser(
+          token: token,
+          user: user,
+        );
+        if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Login berhasil!')));
