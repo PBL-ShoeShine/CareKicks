@@ -1,32 +1,16 @@
-import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
+import '../../../../../core/network/api_service.dart';
 
 class CustomerProfileService {
-  static const String baseUrl =
-      'http://10.137.229.70:3000/api/v1/customer/profile';
-  static const String alamatUrl =
-      'http://10.137.229.70:3000/api/v1/customer/addresses';
-
-  static Map<String, String> _headers(String token) => {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer $token',
-  };
-
   // =========================================================================
   // PROFILE
   // =========================================================================
   static Future<Map<String, dynamic>> fetchProfile(String token) async {
-    try {
-      final response = await http.get(
-        Uri.parse(baseUrl),
-        headers: _headers(token),
-      );
-      return jsonDecode(response.body);
-    } catch (e) {
-      return {'success': false, 'message': 'Gagal mengambil profil'};
+    final response = await ApiService.getCustomerProfile(token: token);
+    if (response == null) {
+      return {'success': false, 'message': 'Gagal menghubungi server'};
     }
+    return response;
   }
 
   static Future<Map<String, dynamic>> updateProfile({
@@ -35,36 +19,30 @@ class CustomerProfileService {
     required String gender,
     required String birthday,
   }) async {
-    try {
-      final response = await http.put(
-        Uri.parse(baseUrl),
-        headers: _headers(token),
-        body: jsonEncode({
-          'nama': nama,
-          'gender': gender,
-          'birthday': birthday,
-        }),
-      );
-      return jsonDecode(response.body);
-    } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
+    final response = await ApiService.updateCustomerProfile(
+      token: token,
+      nama: nama,
+      gender: gender,
+      birthday: birthday,
+    );
+    if (response == null) {
+      return {'success': false, 'message': 'Gagal menghubungi server'};
     }
+    return response;
   }
 
   static Future<Map<String, dynamic>> requestEmailChange({
     required String token,
     required String email,
   }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/request-email-change'),
-        headers: _headers(token),
-        body: jsonEncode({'email': email}),
-      );
-      return jsonDecode(response.body);
-    } catch (e) {
+    final response = await ApiService.requestCustomerEmailChange(
+      token: token,
+      email: email,
+    );
+    if (response == null) {
       return {'success': false, 'message': 'Gagal mengirim verifikasi email'};
     }
+    return response;
   }
 
   static Future<Map<String, dynamic>> updateNoHp({
@@ -72,58 +50,40 @@ class CustomerProfileService {
     required String noHp,
     required String password,
   }) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/phone'),
-        headers: _headers(token),
-        body: jsonEncode({'no_hp': noHp, 'password': password}),
-      );
-      return jsonDecode(response.body);
-    } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
+    final response = await ApiService.updateCustomerNoHp(
+      token: token,
+      noHp: noHp,
+      password: password,
+    );
+    if (response == null) {
+      return {'success': false, 'message': 'Gagal menghubungi server'};
     }
+    return response;
   }
 
   static Future<Map<String, dynamic>> uploadProfilePicture({
     required String token,
     required File imageFile,
   }) async {
-    try {
-      var request = http.MultipartRequest('PUT', Uri.parse('$baseUrl/picture'));
-      request.headers['Authorization'] = 'Bearer $token';
-
-      String ext = imageFile.path.split('.').last.toLowerCase();
-      if (ext == 'jpg') ext = 'jpeg';
-
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'image',
-          imageFile.path,
-          contentType: MediaType('image', ext),
-        ),
-      );
-
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
-      return jsonDecode(response.body);
-    } catch (e) {
-      return {'success': false, 'message': 'Gagal unggah foto'};
+    final response = await ApiService.uploadCustomerProfilePicture(
+      token: token,
+      imageFile: imageFile,
+    );
+    if (response == null) {
+      return {'success': false, 'message': 'Gagal upload foto'};
     }
+    return response;
   }
 
   // =========================================================================
   // ALAMAT
   // =========================================================================
   static Future<Map<String, dynamic>> fetchAlamat(String token) async {
-    try {
-      final response = await http.get(
-        Uri.parse(alamatUrl),
-        headers: _headers(token),
-      );
-      return jsonDecode(response.body);
-    } catch (e) {
+    final response = await ApiService.getCustomerAlamat(token: token);
+    if (response == null) {
       return {'success': false, 'message': 'Gagal mengambil daftar alamat'};
     }
+    return response;
   }
 
   static Future<Map<String, dynamic>> addAlamat({
@@ -136,24 +96,20 @@ class CustomerProfileService {
     double? latitude,
     double? longitude,
   }) async {
-    try {
-      final response = await http.post(
-        Uri.parse(alamatUrl),
-        headers: _headers(token),
-        body: jsonEncode({
-          'recipient_name': recipientName,
-          'phone_number': phoneNumber,
-          'full_address': fullAddress,
-          'address_label': addressLabel,
-          'is_default': isDefault,
-          if (latitude != null) 'latitude': latitude,
-          if (longitude != null) 'longitude': longitude,
-        }),
-      );
-      return jsonDecode(response.body);
-    } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
+    final response = await ApiService.addCustomerAlamat(
+      token: token,
+      recipientName: recipientName,
+      phoneNumber: phoneNumber,
+      fullAddress: fullAddress,
+      addressLabel: addressLabel,
+      isDefault: isDefault,
+      latitude: latitude,
+      longitude: longitude,
+    );
+    if (response == null) {
+      return {'success': false, 'message': 'Gagal menghubungi server'};
     }
+    return response;
   }
 
   static Future<Map<String, dynamic>> updateAlamat({
@@ -167,55 +123,40 @@ class CustomerProfileService {
     double? latitude,
     double? longitude,
   }) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$alamatUrl/$idAddress'),
-        headers: _headers(token),
-        body: jsonEncode({
-          'recipient_name': recipientName,
-          'phone_number': phoneNumber,
-          'full_address': fullAddress,
-          'address_label': addressLabel,
-          'is_default': isDefault,
-          if (latitude != null) 'latitude': latitude,
-          if (longitude != null) 'longitude': longitude,
-        }),
-      );
-      return jsonDecode(response.body);
-    } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
+    final response = await ApiService.updateCustomerAlamat(
+      token: token,
+      idAddress: idAddress,
+      recipientName: recipientName,
+      phoneNumber: phoneNumber,
+      fullAddress: fullAddress,
+      addressLabel: addressLabel,
+      isDefault: isDefault,
+      latitude: latitude,
+      longitude: longitude,
+    );
+    if (response == null) {
+      return {'success': false, 'message': 'Gagal menghubungi server'};
     }
+    return response;
   }
 
   static Future<bool> setDefaultAlamat({
     required String token,
     required int idAddress,
   }) async {
-    try {
-      final response = await http.patch(
-        Uri.parse('$alamatUrl/$idAddress/default'),
-        headers: _headers(token),
-      );
-      final data = jsonDecode(response.body);
-      return data['success'] == true;
-    } catch (e) {
-      return false;
-    }
+    return ApiService.setDefaultCustomerAlamat(
+      token: token,
+      idAddress: idAddress,
+    );
   }
 
   static Future<bool> deleteAlamat({
     required String token,
     required int idAddress,
   }) async {
-    try {
-      final response = await http.delete(
-        Uri.parse('$alamatUrl/$idAddress'),
-        headers: _headers(token),
-      );
-      final data = jsonDecode(response.body);
-      return data['success'] == true;
-    } catch (e) {
-      return false;
-    }
+    return ApiService.deleteCustomerAlamat(
+      token: token,
+      idAddress: idAddress,
+    );
   }
 }
