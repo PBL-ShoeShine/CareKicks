@@ -39,10 +39,17 @@ class AntreanController extends ChangeNotifier {
   Future<void> fetchAntrean(String tab) async {
     _isLoading = true;
     _errorMessage = null;
+    _antreanList = [];
     notifyListeners();
 
     try {
-      final uri = Uri.parse('$_baseEndpoint?tab=$tab');
+      // Gunakan endpoint konfirmasi_pesanan jika di tab pesanan_masuk, pembayaran, atau pesanan_baru
+      String endpoint = _baseEndpoint;
+      if (!_isStaff && (tab == 'pesanan_masuk' || tab == 'pembayaran' || tab == 'pesanan_baru')) {
+        endpoint = '${ApiService.baseUrl}/admin/konfirmasi_pesanan';
+      }
+
+      final uri = Uri.parse('$endpoint?tab=$tab');
       final response = await http.get(uri, headers: _headers);
 
       debugPrint('=== FETCH ANTREAN ===');
@@ -66,6 +73,45 @@ class AntreanController extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  // ─── Konfirmasi Actions ──────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> processPayment({
+    required int idOrders,
+    required String action,
+    String? reason,
+  }) async {
+    try {
+      final response = await ApiService.confirmPayment(
+        token: _token!,
+        idOrders: idOrders,
+        action: action,
+        reason: reason,
+      );
+      return response ?? {'success': false, 'message': 'Gagal menghubungi server'};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  Future<Map<String, dynamic>> processOrder({
+    required int idOrders,
+    required String action,
+    String? reason,
+  }) async {
+    try {
+      final response = await ApiService.confirmOrder(
+        token: _token!,
+        idOrders: idOrders,
+        action: action,
+        reason: reason,
+      );
+      return response ?? {'success': false, 'message': 'Gagal menghubungi server'};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
   // ─── Update Status ───────────────────────────────────────────────────────
 
   Future<bool> updateStatus(

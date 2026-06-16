@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.0.3:5000/api/v1';
+  static const String baseUrl = 'http://192.168.10.120:3000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -1475,6 +1475,97 @@ class ApiService {
       debugPrint('Gagal menghubungi backend (uploadAdminQrisImage): $e');
       return {'success': false, 'message': 'Gagal upload gambar QRIS: $e'};
     }
+  }
+
+  // ─── Admin Konfirmasi Pesanan ──────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>?> getOrdersToConfirm({
+    required String token,
+    String tab = 'pembayaran',
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/admin/konfirmasi_pesanan?tab=$tab'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200 ||
+          response.statusCode == 401 ||
+          response.statusCode == 500) {
+        return await _decodeJsonResponse(response);
+      } else {
+        debugPrint('Error Server getOrdersToConfirm: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> confirmPayment({
+    required String token,
+    required int idOrders,
+    required String action,
+    String? reason,
+  }) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/admin/konfirmasi_pesanan/pembayaran/$idOrders'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'action': action,
+          if (reason != null) 'reason': reason,
+        }),
+      );
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 500) {
+        return await _decodeJsonResponse(response);
+      } else {
+        debugPrint('Error Server confirmPayment: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> confirmOrder({
+    required String token,
+    required int idOrders,
+    required String action,
+    String? reason,
+  }) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/admin/konfirmasi_pesanan/pesanan/$idOrders'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'action': action,
+          if (reason != null) 'reason': reason,
+        }),
+      );
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 500) {
+        return await _decodeJsonResponse(response);
+      } else {
+        debugPrint('Error Server confirmOrder: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
   }
 
   // ─── Customer Profile ─────────────────────────────────────────────────────
