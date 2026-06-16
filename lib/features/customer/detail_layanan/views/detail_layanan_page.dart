@@ -375,13 +375,6 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                                   : int.parse(idShops.toString()),
                               prefillNama: widget.user['nama'],
                               prefillNoHp: widget.user['no_hp'],
-                              prefillAlamat: widget.user['alamat'],
-                              prefillLat: double.tryParse(
-                                widget.user['latitude']?.toString() ?? '',
-                              ),
-                              prefillLng: double.tryParse(
-                                widget.user['longitude']?.toString() ?? '',
-                              ),
                               prefillServiceId: widget.serviceId,
                             ),
                           ),

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/order_service.dart';
+import '../../../../core/utils/location_utils.dart';
 
 class OrderController extends ChangeNotifier {
   // ─── State: Services ──────────────────────────────────────────────────────
@@ -12,9 +13,13 @@ class OrderController extends ChangeNotifier {
   List<Map<String, dynamic>> _services = [];
   final List<int> _selectedServiceIds = [];
   String _nmToko = '';
+  double? _latToko;
+  double? _longToko;
 
   // ─── State: Form Fields ───────────────────────────────────────────────────
-  File? _fotoSepatu;
+  final List<File> _fotoSepatuList = [];
+  double? _currentLat;
+  double? _currentLong;
 
   // ─── Getters ──────────────────────────────────────────────────────────────
   bool get isLoadingServices => _isLoadingServices;
@@ -24,13 +29,32 @@ class OrderController extends ChangeNotifier {
   List<Map<String, dynamic>> get services => _services;
   List<int> get selectedServiceIds => List.unmodifiable(_selectedServiceIds);
   String get nmToko => _nmToko;
-  File? get fotoSepatu => _fotoSepatu;
+  List<File> get fotoSepatuList => List.unmodifiable(_fotoSepatuList);
+
+  double? get latToko => _latToko;
+  double? get longToko => _longToko;
 
   bool isServiceSelected(int idServices) =>
       _selectedServiceIds.contains(idServices);
 
-  /// Hitung total harga dari layanan yang dipilih
-  int get totalHarga {
+  /// Hitung jarak (KM) antara toko dan lokasi customer saat ini
+  double get distanceKm {
+    if (_latToko == null || _longToko == null || _currentLat == null || _currentLong == null) {
+      return 0.0;
+    }
+    return LocationUtils.calculateDistanceKm(
+      _latToko!,
+      _longToko!,
+      _currentLat!,
+      _currentLong!,
+    );
+  }
+
+  /// Hitung ongkos kirim berdasarkan jarak
+  int get totalOngkir => LocationUtils.calculateOngkir(distanceKm);
+
+  /// Hitung total harga dari layanan yang dipilih + ongkir
+  int get totalHargaLayanan {
     int total = 0;
     for (final svc in _services) {
       if (_selectedServiceIds.contains(svc['id_services'])) {
@@ -41,11 +65,28 @@ class OrderController extends ChangeNotifier {
     return total;
   }
 
+  int get totalHargaKeseluruhan => totalHargaLayanan + totalOngkir;
+
   // ─── Actions ──────────────────────────────────────────────────────────────
 
-  void setFotoSepatu(File? file) {
-    _fotoSepatu = file;
+  void updateLocation(double? lat, double? lng) {
+    _currentLat = lat;
+    _currentLong = lng;
     notifyListeners();
+  }
+
+  void addFotoSepatu(File file) {
+    if (_fotoSepatuList.length < 5) {
+      _fotoSepatuList.add(file);
+      notifyListeners();
+    }
+  }
+
+  void removeFotoSepatu(int index) {
+    if (index >= 0 && index < _fotoSepatuList.length) {
+      _fotoSepatuList.removeAt(index);
+      notifyListeners();
+    }
   }
 
   void toggleService(int idServices) {
@@ -83,6 +124,8 @@ class OrderController extends ChangeNotifier {
       final data = result['data'] as Map<String, dynamic>? ?? {};
       _services = List<Map<String, dynamic>>.from(data['services'] ?? []);
       _nmToko = data['nm_toko']?.toString() ?? '';
+      _latToko = double.tryParse(data['lat_toko']?.toString() ?? '');
+      _longToko = double.tryParse(data['long_toko']?.toString() ?? '');
       
       // Auto-select layanan jika diberikan
       if (prefillServiceId != null) {
@@ -107,12 +150,21 @@ class OrderController extends ChangeNotifier {
     required String namaPemilik,
     required String noHp,
     required String alamat,
+    required String merk,
+    required String jenisSepatu,
+    required String warna,
     String? catatan,
     double? latOrder,
     double? longOrder,
   }) async {
     if (_selectedServiceIds.isEmpty) {
       _errorMessage = 'Pilih minimal satu layanan';
+      notifyListeners();
+      return null;
+    }
+    
+    if (_fotoSepatuList.isEmpty) {
+      _errorMessage = 'Minimal 1 foto sepatu harus diunggah';
       notifyListeners();
       return null;
     }
@@ -127,11 +179,15 @@ class OrderController extends ChangeNotifier {
       namaPemilik: namaPemilik,
       noHp: noHp,
       alamat: alamat,
+      merk: merk,
+      jenisSepatu: jenisSepatu,
+      warna: warna,
       selectedServiceIds: _selectedServiceIds,
+      totalOngkir: totalOngkir,
       catatan: catatan,
       latOrder: latOrder,
       longOrder: longOrder,
-      fotoSepatu: _fotoSepatu,
+      fotoSepatuList: _fotoSepatuList,
     );
 
     _isSubmitting = false;

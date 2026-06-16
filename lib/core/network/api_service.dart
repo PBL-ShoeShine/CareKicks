@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.110.48:5000/api/v1';
+  static const String baseUrl = 'http://192.168.10.153:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -2211,11 +2211,15 @@ class ApiService {
     required String namaPemilik,
     required String noHp,
     required String alamat,
+    required String merk,
+    required String jenisSepatu,
+    required String warna,
     required List<int> selectedServiceIds,
     String? catatan,
     double? latOrder,
     double? longOrder,
-    File? fotoSepatu,
+    int? totalOngkir,
+    List<File>? fotoSepatuList,
   }) async {
     try {
       final uri = Uri.parse('$baseUrl/customer/order');
@@ -2225,6 +2229,10 @@ class ApiService {
         ..fields['nama_pemilik'] = namaPemilik
         ..fields['no_hp'] = noHp
         ..fields['alamat'] = alamat
+        ..fields['merk'] = merk
+        ..fields['jenis_sepatu'] = jenisSepatu
+        ..fields['warna'] = warna
+        ..fields['total_ongkir'] = (totalOngkir ?? 0).toString()
         ..fields['services'] = jsonEncode(
           selectedServiceIds.map((id) => {'id_services': id}).toList(),
         );
@@ -2237,18 +2245,21 @@ class ApiService {
         request.fields['long_order'] = longOrder.toString();
       }
 
-      if (fotoSepatu != null) {
-        final bytes = await fotoSepatu.readAsBytes();
-        final ext = fotoSepatu.path.split('.').last.toLowerCase();
-        final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
-        request.files.add(
-          http.MultipartFile.fromBytes(
-            'foto_sepatu',
-            bytes,
-            filename: 'foto_sepatu.$ext',
-            contentType: MediaType.parse(mimeType),
-          ),
-        );
+      if (fotoSepatuList != null && fotoSepatuList.isNotEmpty) {
+        for (int i = 0; i < fotoSepatuList.length; i++) {
+          final foto = fotoSepatuList[i];
+          final bytes = await foto.readAsBytes();
+          final ext = foto.path.split('.').last.toLowerCase();
+          final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'foto_sepatu',
+              bytes,
+              filename: 'foto_${i}_$ext',
+              contentType: MediaType.parse(mimeType),
+            ),
+          );
+        }
       }
 
       debugPrint('POST createCustomerOrder → $uri');

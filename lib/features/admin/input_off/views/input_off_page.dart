@@ -21,14 +21,13 @@ class _InputOffPageState extends State<InputOffPage> {
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _merkController = TextEditingController();
+  final TextEditingController _jenisSepatuController = TextEditingController(text: 'Sneakers');
   final TextEditingController _warnaController = TextEditingController();
   final TextEditingController _catatanController = TextEditingController();
 
-  String _selectedJenisSepatu = 'Sneakers';
   String _selectedMetodeBayar = 'tunai';
   File? _selectedImage;
 
-  final List<String> _jenisSepatuList = ['Sneakers', 'Leather', 'Canvas'];
   final List<String> _metodeBayarList = ['tunai', 'qris'];
 
   @override
@@ -43,6 +42,7 @@ class _InputOffPageState extends State<InputOffPage> {
     _namaController.dispose();
     _phoneController.dispose();
     _merkController.dispose();
+    _jenisSepatuController.dispose();
     _warnaController.dispose();
     _catatanController.dispose();
     _controller.dispose();
@@ -82,7 +82,7 @@ class _InputOffPageState extends State<InputOffPage> {
       token: widget.token,
       namaCustomer: _namaController.text,
       nomorTelepon: _phoneController.text,
-      jenisSepatu: _selectedJenisSepatu,
+      jenisSepatu: _jenisSepatuController.text.trim(),
       merk: _merkController.text,
       warna: _warnaController.text,
       catatan: _catatanController.text,
@@ -184,7 +184,11 @@ class _InputOffPageState extends State<InputOffPage> {
                   const SizedBox(height: 24),
                   _buildSectionTitle('Jenis Sepatu'),
                   const SizedBox(height: 12),
-                  _buildShoeTypeButtons(),
+                  _buildTextField(
+                    controller: _jenisSepatuController,
+                    label: '',
+                    hint: 'Contoh: Sneakers, Boots, dll',
+                  ),
                   const SizedBox(height: 24),
                   _buildSectionTitle('Detail Sepatu'),
                   const SizedBox(height: 12),
@@ -316,46 +320,6 @@ class _InputOffPageState extends State<InputOffPage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildShoeTypeButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: _jenisSepatuList.map((type) {
-        final isSelected = _selectedJenisSepatu == type;
-
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                backgroundColor: isSelected
-                    ? AppColors.primaryDark
-                    : Colors.white,
-                side: BorderSide(
-                  color: isSelected
-                      ? AppColors.primaryDark
-                      : const Color(0xFFE2E8F0),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              onPressed: () => setState(() => _selectedJenisSepatu = type),
-              child: Text(
-                type,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 

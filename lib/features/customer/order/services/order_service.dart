@@ -39,11 +39,15 @@ class OrderService {
     required String namaPemilik,
     required String noHp,
     required String alamat,
+    required String merk,
+    required String jenisSepatu,
+    required String warna,
     required List<int> selectedServiceIds,
+    int? totalOngkir,
     String? catatan,
     double? latOrder,
     double? longOrder,
-    File? fotoSepatu,
+    List<File>? fotoSepatuList,
   }) async {
     try {
       final response = await ApiService.createCustomerOrder(
@@ -52,11 +56,15 @@ class OrderService {
         namaPemilik: namaPemilik,
         noHp: noHp,
         alamat: alamat,
+        merk: merk,
+        jenisSepatu: jenisSepatu,
+        warna: warna,
         selectedServiceIds: selectedServiceIds,
+        totalOngkir: totalOngkir,
         catatan: catatan,
         latOrder: latOrder,
         longOrder: longOrder,
-        fotoSepatu: fotoSepatu,
+        fotoSepatuList: fotoSepatuList,
       );
 
       if (response == null) {
