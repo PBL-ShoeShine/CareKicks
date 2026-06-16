@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../controllers/detail_layanan_controller.dart';
 import 'semua_ulasan_page.dart';
+import '../../order/screens/kirim_pesanan_page.dart';
 // import 'halaman_keranjang_atau_pemesanan.dart'; // TODO
 
 class DetailLayananPage extends StatefulWidget {
   final String token;
+  final Map<String, dynamic> user;
   final int serviceId;
 
   const DetailLayananPage({
     super.key,
     required this.token,
+    required this.user,
     required this.serviceId,
   });
 
@@ -351,11 +354,41 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: null, // Disabled untuk sementara
+                      onPressed: () {
+                        final idShops = toko['id_shops'];
+                        if (idShops == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Data toko tidak ditemukan'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => KirimPesananPage(
+                              token: widget.token,
+                              idShops: idShops is int
+                                  ? idShops
+                                  : int.parse(idShops.toString()),
+                              prefillNama: widget.user['nama'],
+                              prefillNoHp: widget.user['no_hp'],
+                              prefillAlamat: widget.user['alamat'],
+                              prefillLat: double.tryParse(
+                                widget.user['latitude']?.toString() ?? '',
+                              ),
+                              prefillLng: double.tryParse(
+                                widget.user['longitude']?.toString() ?? '',
+                              ),
+                              prefillServiceId: widget.serviceId,
+                            ),
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey.shade400, // Ubah warna jadi abu-abu agar terlihat non-aktif
-                        disabledBackgroundColor: Colors.grey.shade300,
-                        disabledForegroundColor: Colors.grey.shade600,
+                        backgroundColor: AppColors.primaryBlue,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -466,6 +499,7 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
           MaterialPageRoute(
             builder: (_) => DetailLayananPage(
               token: widget.token,
+              user: widget.user,
               serviceId: service['id_services'],
             ),
           ),

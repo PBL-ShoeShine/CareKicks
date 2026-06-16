@@ -31,7 +31,7 @@ class _CustomerMainPageState extends State<CustomerMainPage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
-      BerandaPage(token: widget.token),
+      BerandaPage(token: widget.token, user: widget.user),
       RiwayatPage(token: widget.token),
       CustomerProfilePage(token: widget.token),
     ];

@@ -5,8 +5,9 @@ import '../../detail_layanan/views/detail_layanan_page.dart';
 
 class BerandaPage extends StatefulWidget {
   final String token;
+  final Map<String, dynamic> user;
 
-  const BerandaPage({super.key, required this.token});
+  const BerandaPage({super.key, required this.token, required this.user});
 
   @override
   State<BerandaPage> createState() => _BerandaPageState();
@@ -353,6 +354,7 @@ class _BerandaPageState extends State<BerandaPage> {
           MaterialPageRoute(
             builder: (_) => DetailLayananPage(
               token: widget.token,
+              user: widget.user,
               serviceId: service['id_services'],
             ),
           ),

@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.0.5:5000/api/v1';
+  static const String baseUrl = 'http://192.168.0.3:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -1177,7 +1177,8 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server verifyAdminOldPassword: ${response.statusCode}');
+          'Error Server verifyAdminOldPassword: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (verifyAdminOldPassword): $e');
@@ -1204,7 +1205,8 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server requestAdminPasswordOtp: ${response.statusCode}');
+          'Error Server requestAdminPasswordOtp: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (requestAdminPasswordOtp): $e');
@@ -1233,7 +1235,8 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server verifyAdminPasswordOtp: ${response.statusCode}');
+          'Error Server verifyAdminPasswordOtp: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (verifyAdminPasswordOtp): $e');
@@ -1266,11 +1269,11 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server changeAdminPasswordDirect: ${response.statusCode}');
+          'Error Server changeAdminPasswordDirect: ${response.statusCode}',
+        );
       }
     } catch (e) {
-      debugPrint(
-          'Gagal menghubungi backend (changeAdminPasswordDirect): $e');
+      debugPrint('Gagal menghubungi backend (changeAdminPasswordDirect): $e');
     }
     return null;
   }
@@ -1287,10 +1290,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'otpCode': otpCode,
-          'newPassword': newPassword,
-        }),
+        body: jsonEncode({'otpCode': otpCode, 'newPassword': newPassword}),
       );
       if (response.statusCode == 200 ||
           response.statusCode == 400 ||
@@ -1300,17 +1300,16 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server changeAdminPasswordWithOtp: ${response.statusCode}');
+          'Error Server changeAdminPasswordWithOtp: ${response.statusCode}',
+        );
       }
     } catch (e) {
-      debugPrint(
-          'Gagal menghubungi backend (changeAdminPasswordWithOtp): $e');
+      debugPrint('Gagal menghubungi backend (changeAdminPasswordWithOtp): $e');
     }
     return null;
   }
 
   // ─── Admin Metode Pembayaran ──────────────────────────────────────────────
-
 
   static Future<Map<String, dynamic>?> getAdminPaymentMethods({
     required String token,
@@ -1329,7 +1328,8 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server getAdminPaymentMethods: ${response.statusCode}');
+          'Error Server getAdminPaymentMethods: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (getAdminPaymentMethods): $e');
@@ -1368,7 +1368,8 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server addAdminPaymentMethod: ${response.statusCode}');
+          'Error Server addAdminPaymentMethod: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (addAdminPaymentMethod): $e');
@@ -1397,11 +1398,13 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server toggleAdminPaymentMethodStatus: ${response.statusCode}');
+          'Error Server toggleAdminPaymentMethodStatus: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint(
-          'Gagal menghubungi backend (toggleAdminPaymentMethodStatus): $e');
+        'Gagal menghubungi backend (toggleAdminPaymentMethodStatus): $e',
+      );
     }
     return null;
   }
@@ -1426,7 +1429,8 @@ class ApiService {
         return data?['success'] == true;
       } else {
         debugPrint(
-            'Error Server deleteAdminPaymentMethod: ${response.statusCode}');
+          'Error Server deleteAdminPaymentMethod: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (deleteAdminPaymentMethod): $e');
@@ -1474,7 +1478,6 @@ class ApiService {
   }
 
   // ─── Customer Profile ─────────────────────────────────────────────────────
-
 
   static Future<Map<String, dynamic>?> getCustomerProfile({
     required String token,
@@ -1526,7 +1529,8 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server updateCustomerProfile: ${response.statusCode}');
+          'Error Server updateCustomerProfile: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (updateCustomerProfile): $e');
@@ -1561,7 +1565,8 @@ class ApiService {
       final responseString = await response.stream.bytesToString();
 
       debugPrint(
-          'UPLOAD Customer Profile Picture Status: ${response.statusCode}');
+        'UPLOAD Customer Profile Picture Status: ${response.statusCode}',
+      );
 
       if (responseString.isNotEmpty) {
         return await _decodeJsonString(responseString);
@@ -1569,7 +1574,8 @@ class ApiService {
       return {'success': false, 'message': 'Response kosong dari server'};
     } catch (e) {
       debugPrint(
-          'Gagal menghubungi backend (uploadCustomerProfilePicture): $e');
+        'Gagal menghubungi backend (uploadCustomerProfilePicture): $e',
+      );
       return {'success': false, 'message': 'Gagal upload foto: $e'};
     }
   }
@@ -1595,11 +1601,11 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server requestCustomerEmailChange: ${response.statusCode}');
+          'Error Server requestCustomerEmailChange: ${response.statusCode}',
+        );
       }
     } catch (e) {
-      debugPrint(
-          'Gagal menghubungi backend (requestCustomerEmailChange): $e');
+      debugPrint('Gagal menghubungi backend (requestCustomerEmailChange): $e');
     }
     return null;
   }
@@ -1625,8 +1631,7 @@ class ApiService {
           response.statusCode == 500) {
         return await _decodeJsonResponse(response);
       } else {
-        debugPrint(
-            'Error Server updateCustomerNoHp: ${response.statusCode}');
+        debugPrint('Error Server updateCustomerNoHp: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (updateCustomerNoHp): $e');
@@ -1652,8 +1657,7 @@ class ApiService {
           response.statusCode == 500) {
         return await _decodeJsonResponse(response);
       } else {
-        debugPrint(
-            'Error Server getCustomerAlamat: ${response.statusCode}');
+        debugPrint('Error Server getCustomerAlamat: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (getCustomerAlamat): $e');
@@ -1695,8 +1699,7 @@ class ApiService {
           response.statusCode == 500) {
         return await _decodeJsonResponse(response);
       } else {
-        debugPrint(
-            'Error Server addCustomerAlamat: ${response.statusCode}');
+        debugPrint('Error Server addCustomerAlamat: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (addCustomerAlamat): $e');
@@ -1739,8 +1742,7 @@ class ApiService {
           response.statusCode == 500) {
         return await _decodeJsonResponse(response);
       } else {
-        debugPrint(
-            'Error Server updateCustomerAlamat: ${response.statusCode}');
+        debugPrint('Error Server updateCustomerAlamat: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (updateCustomerAlamat): $e');
@@ -1769,11 +1771,11 @@ class ApiService {
         return data?['success'] == true;
       } else {
         debugPrint(
-            'Error Server setDefaultCustomerAlamat: ${response.statusCode}');
+          'Error Server setDefaultCustomerAlamat: ${response.statusCode}',
+        );
       }
     } catch (e) {
-      debugPrint(
-          'Gagal menghubungi backend (setDefaultCustomerAlamat): $e');
+      debugPrint('Gagal menghubungi backend (setDefaultCustomerAlamat): $e');
     }
     return false;
   }
@@ -1798,8 +1800,7 @@ class ApiService {
         final data = await _decodeJsonResponse(response);
         return data?['success'] == true;
       } else {
-        debugPrint(
-            'Error Server deleteCustomerAlamat: ${response.statusCode}');
+        debugPrint('Error Server deleteCustomerAlamat: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend (deleteCustomerAlamat): $e');
@@ -1830,11 +1831,11 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server verifyCustomerOldPassword: ${response.statusCode}');
+          'Error Server verifyCustomerOldPassword: ${response.statusCode}',
+        );
       }
     } catch (e) {
-      debugPrint(
-          'Gagal menghubungi backend (verifyCustomerOldPassword): $e');
+      debugPrint('Gagal menghubungi backend (verifyCustomerOldPassword): $e');
     }
     return null;
   }
@@ -1858,11 +1859,11 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server requestCustomerPasswordOtp: ${response.statusCode}');
+          'Error Server requestCustomerPasswordOtp: ${response.statusCode}',
+        );
       }
     } catch (e) {
-      debugPrint(
-          'Gagal menghubungi backend (requestCustomerPasswordOtp): $e');
+      debugPrint('Gagal menghubungi backend (requestCustomerPasswordOtp): $e');
     }
     return null;
   }
@@ -1888,11 +1889,11 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server verifyCustomerPasswordOtp: ${response.statusCode}');
+          'Error Server verifyCustomerPasswordOtp: ${response.statusCode}',
+        );
       }
     } catch (e) {
-      debugPrint(
-          'Gagal menghubungi backend (verifyCustomerPasswordOtp): $e');
+      debugPrint('Gagal menghubungi backend (verifyCustomerPasswordOtp): $e');
     }
     return null;
   }
@@ -1922,11 +1923,13 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server changeCustomerPasswordDirect: ${response.statusCode}');
+          'Error Server changeCustomerPasswordDirect: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint(
-          'Gagal menghubungi backend (changeCustomerPasswordDirect): $e');
+        'Gagal menghubungi backend (changeCustomerPasswordDirect): $e',
+      );
     }
     return null;
   }
@@ -1953,17 +1956,18 @@ class ApiService {
         return await _decodeJsonResponse(response);
       } else {
         debugPrint(
-            'Error Server changeCustomerPasswordWithOtp: ${response.statusCode}');
+          'Error Server changeCustomerPasswordWithOtp: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint(
-          'Gagal menghubungi backend (changeCustomerPasswordWithOtp): $e');
+        'Gagal menghubungi backend (changeCustomerPasswordWithOtp): $e',
+      );
     }
     return null;
   }
 
   // ─── Customer Beranda ─────────────────────────────────────────────────────
-
 
   static Future<Map<String, dynamic>?> getCustomerBeranda({
     required String token,
@@ -2196,6 +2200,94 @@ class ApiService {
       debugPrint('Error OSRM: ${response.statusCode}');
     } catch (e) {
       debugPrint('Gagal menghubungi OSRM: $e');
+    }
+    return null;
+  }
+
+  // ─── Customer: Buat Pesanan Online ────────────────────────────────────────
+  static Future<Map<String, dynamic>?> createCustomerOrder({
+    required String token,
+    required int idShops,
+    required String namaPemilik,
+    required String noHp,
+    required String alamat,
+    required List<int> selectedServiceIds,
+    String? catatan,
+    double? latOrder,
+    double? longOrder,
+    File? fotoSepatu,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/customer/order');
+      final request = http.MultipartRequest('POST', uri)
+        ..headers['Authorization'] = 'Bearer $token'
+        ..fields['id_shops'] = idShops.toString()
+        ..fields['nama_pemilik'] = namaPemilik
+        ..fields['no_hp'] = noHp
+        ..fields['alamat'] = alamat
+        ..fields['services'] = jsonEncode(
+          selectedServiceIds.map((id) => {'id_services': id}).toList(),
+        );
+
+      if (catatan != null && catatan.isNotEmpty) {
+        request.fields['catatan'] = catatan;
+      }
+      if (latOrder != null) request.fields['lat_order'] = latOrder.toString();
+      if (longOrder != null) {
+        request.fields['long_order'] = longOrder.toString();
+      }
+
+      if (fotoSepatu != null) {
+        final bytes = await fotoSepatu.readAsBytes();
+        final ext = fotoSepatu.path.split('.').last.toLowerCase();
+        final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'foto_sepatu',
+            bytes,
+            filename: 'foto_sepatu.$ext',
+            contentType: MediaType.parse(mimeType),
+          ),
+        );
+      }
+
+      debugPrint('POST createCustomerOrder → $uri');
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+      debugPrint('createCustomerOrder status: ${response.statusCode}');
+
+      if ([200, 201, 400, 401, 403, 404, 500].contains(response.statusCode)) {
+        return await _decodeJsonResponse(response);
+      }
+    } catch (e) {
+      debugPrint('createCustomerOrder error: $e');
+    }
+    return null;
+  }
+
+  // ─── Customer: Ambil Layanan Toko (untuk form order) ─────────────────────
+  static Future<Map<String, dynamic>?> getCustomerOrderServices({
+    required String token,
+    required int idShops,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/customer/order/services/$idShops');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint(
+        'GET order services idShops=$idShops → ${response.statusCode}',
+      );
+      if ([200, 400, 401, 404, 500].contains(response.statusCode)) {
+        return await _decodeJsonResponse(response);
+      }
+    } catch (e) {
+      debugPrint('getCustomerOrderServices error: $e');
     }
     return null;
   }
