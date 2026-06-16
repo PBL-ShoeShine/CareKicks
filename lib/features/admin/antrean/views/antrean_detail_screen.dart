@@ -574,6 +574,14 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                         ),
                       ],
                     ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Divider(height: 1, color: Color(0xFFEEEEEE)),
+                    ),
+                    _buildInfoItem(
+                      'Jenis Layanan',
+                      detail?.namaLayanan ?? '-',
+                    ),
                   ],
                 ),
               ),
@@ -631,136 +639,27 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                 ),
                 const SizedBox(height: 20),
               ],
-
-              const Text(
-                'QR Order',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1A2E),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: qrImageUrl != null
-                          ? Image.network(
-                              qrImageUrl,
-                              width: 220,
-                              height: 220,
-                              fit: BoxFit.contain,
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return _buildQrPlaceholder(isLoading: true);
-                                  },
-                              errorBuilder: (_, __, ___) =>
-                                  _buildQrPlaceholder(),
-                            )
-                          : _buildQrPlaceholder(),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryBlue,
-                          disabledBackgroundColor: AppColors.primaryBlue
-                              .withOpacity(0.45),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        onPressed: qrImageUrl == null || _isDownloadingQr
-                            ? null
-                            : _downloadQr,
-                        icon: _isDownloadingQr
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.download_rounded,
-                                color: Colors.white,
-                              ),
-                        label: Text(
-                          _isDownloadingQr ? 'Mengunduh...' : 'Unduh QR',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
             ],
           ),
         ),
 
         // Bottom Navigation Bar untuk Tombol Aksi
-        bottomNavigationBar: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: nextStatus != null
-              ? _buildBottomActions(nextStatus)
-              : Container(
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: AppColors.successGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle, color: AppColors.successGreen),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Pesanan Selesai',
-                        style: TextStyle(
-                          color: AppColors.successGreen,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
+        bottomNavigationBar: nextStatus != null
+            ? Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
                 ),
-        ),
+                child: _buildBottomActions(nextStatus),
+              )
+            : null,
       ),
     );
   }
