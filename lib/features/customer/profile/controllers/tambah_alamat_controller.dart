@@ -5,21 +5,28 @@ import 'package:latlong2/latlong.dart';
 import '../services/tambah_alamat_service.dart';
 
 class TambahAlamatController extends ChangeNotifier {
-  // ── Controllers teks ──────────────────────────────────────────────────────
+  // ===========================================================================
+  // 1. CONTROLLERS & STATE
+  // ===========================================================================
+
+  // Text Controllers
   final streetCtrl = TextEditingController();
   final detailCtrl = TextEditingController();
   final recipientCtrl = TextEditingController();
-  // FIX: init langsung '+62-' agar tampil sebelum field diklik
-  final phoneCtrl = TextEditingController(text: '+62-');
+  final phoneCtrl = TextEditingController(
+    text: '+62-',
+  ); // Tampil sebelum diklik
+
+  // Map Controller
   final MapController mapCtrl = MapController();
 
-  // ── State wilayah ─────────────────────────────────────────────────────────
+  // State Wilayah Administratif
   Wilayah? provinsi;
   Wilayah? kabupaten;
   Wilayah? kecamatan;
   Wilayah? kelurahan;
 
-  // ── State peta & geocoding ────────────────────────────────────────────────
+  // State Peta & Geocoding
   LatLng pinLocation = const LatLng(-7.0051, 110.4381);
   String resolvedAddress = '';
   bool mapReady = false;
@@ -27,7 +34,7 @@ class TambahAlamatController extends ChangeNotifier {
   bool isGeocoding = false;
   bool _streetAutoFilled = false;
 
-  // ── State form ────────────────────────────────────────────────────────────
+  // State Form & Lainnya
   String? selectedLabel;
   bool isDefault = false;
   bool isSaving = false;
@@ -35,7 +42,10 @@ class TambahAlamatController extends ChangeNotifier {
   Timer? _geocodeDebounce;
   bool _disposed = false;
 
-  // ── Inisialisasi dari data existing (mode edit) ───────────────────────────
+  // ===========================================================================
+  // 2. INITIALIZATION (MODE EDIT)
+  // ===========================================================================
+
   void initFromExisting(Map<String, dynamic> e) {
     recipientCtrl.text = e['recipient_name'] ?? '';
     phoneCtrl.text = _formatPhone(e['phone_number'] ?? '');
@@ -58,23 +68,30 @@ class TambahAlamatController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Dipanggil oleh View setelah inisialisasi edit selesai
+  /// Dipanggil oleh View setelah inisialisasi edit selesai
   Future<void> syncWilayahFromCoordinates() async {
+    // Jika koordinat default, lewati
     if (pinLocation.latitude == -7.0051 && pinLocation.longitude == 110.4381) {
-      return; // Jika koordinat default, lewati
+      return;
     }
     await _doReverseGeocode(pinLocation, clearStreet: false);
   }
 
-  // ── GPS ───────────────────────────────────────────────────────────────────
+  // ===========================================================================
+  // 3. MAP & GEOCODING LOGIC
+  // ===========================================================================
+
   Future<void> useCurrentLocation() async {
     _set(() => isLoadingLoc = true);
     final ll = await GpsService.getCurrentLocation();
-    if (ll != null) _movePinAndGeocode(ll, clearStreet: true);
+
+    if (ll != null) {
+      _movePinAndGeocode(ll, clearStreet: true);
+    }
+
     _set(() => isLoadingLoc = false);
   }
 
-  // ── Saat peta digeser selesai ─────────────────────────────────────────────
   void onMapMoveEnd(LatLng center) {
     pinLocation = center;
     _geocodeDebounce?.cancel();
@@ -84,14 +101,13 @@ class TambahAlamatController extends ChangeNotifier {
     );
   }
 
-  // ── Setelah user memilih dari hasil search ────────────────────────────────
   void applySearchResult(Map<String, dynamic> item) {
     final result = GeocodingService.parseSearchItem(item);
     if (result == null) return;
+
     _movePinAndGeocode(result.latLng, preloaded: result);
   }
 
-  // ── Gerak peta + reverse geocode ─────────────────────────────────────────
   void _movePinAndGeocode(
     LatLng ll, {
     bool clearStreet = false,
@@ -99,10 +115,12 @@ class TambahAlamatController extends ChangeNotifier {
   }) {
     pinLocation = ll;
     if (mapReady) mapCtrl.move(ll, 17);
+
     if (clearStreet) {
       streetCtrl.clear();
       _streetAutoFilled = false;
     }
+
     if (preloaded != null) {
       _applyGeoResult(preloaded);
     } else {
@@ -113,9 +131,11 @@ class TambahAlamatController extends ChangeNotifier {
   Future<void> _doReverseGeocode(LatLng ll, {bool clearStreet = false}) async {
     _set(() => isGeocoding = true);
     final result = await GeocodingService.reverseGeocode(ll);
+
     if (!_disposed && result != null) {
       _applyGeoResult(result, clearStreet: clearStreet);
     }
+
     _set(() => isGeocoding = false);
   }
 
@@ -165,9 +185,12 @@ class TambahAlamatController extends ChangeNotifier {
   Wilayah? _findBestMatch(List<Wilayah> list, String query) {
     if (query.isEmpty || list.isEmpty) return null;
     final q = query.toLowerCase();
+
+    // Exact match
     for (final w in list) {
       if (w.nama.toLowerCase() == q) return w;
     }
+    // Partial match
     for (final w in list) {
       if (w.nama.toLowerCase().contains(q) ||
           q.contains(w.nama.toLowerCase())) {
@@ -177,7 +200,10 @@ class TambahAlamatController extends ChangeNotifier {
     return null;
   }
 
-  // ── Getters ───────────────────────────────────────────────────────────────
+  // ===========================================================================
+  // 4. GETTERS & FORMATTERS
+  // ===========================================================================
+
   String get wilayahText {
     if (provinsi == null) return '';
     return [
@@ -200,32 +226,49 @@ class TambahAlamatController extends ChangeNotifier {
     return '0$digits';
   }
 
-  String get fullAddressForSave => [
-    streetCtrl.text.trim(),
-    if (detailCtrl.text.trim().isNotEmpty) detailCtrl.text.trim(),
-    if (wilayahText.isNotEmpty) wilayahText,
-    if (resolvedAddress.isNotEmpty) resolvedAddress,
-  ].join('\n');
+  String get fullAddressForSave {
+    final components = <String>[];
 
-  void markStreetManual() => _streetAutoFilled = true;
+    if (streetCtrl.text.trim().isNotEmpty) {
+      components.add(streetCtrl.text.trim());
+    }
 
-  void _set(VoidCallback fn) {
-    fn();
-    if (!_disposed) notifyListeners();
+    if (detailCtrl.text.trim().isNotEmpty) {
+      components.add(detailCtrl.text.trim());
+    }
+
+    if (wilayahText.isNotEmpty) {
+      components.add(wilayahText);
+    }
+
+    return components.join('\n');
   }
 
   String _formatPhone(String raw) {
     if (raw.isEmpty) return '+62-';
+
     String digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.startsWith('62')) digits = digits.substring(2);
     if (digits.startsWith('0')) digits = digits.substring(1);
     if (digits.length > 12) digits = digits.substring(0, 12);
+
     final buf = StringBuffer('+62');
     for (int i = 0; i < digits.length; i++) {
       if (i % 4 == 0) buf.write('-');
       buf.write(digits[i]);
     }
     return buf.toString();
+  }
+
+  // ===========================================================================
+  // 5. UTILITIES & DISPOSE
+  // ===========================================================================
+
+  void markStreetManual() => _streetAutoFilled = true;
+
+  void _set(VoidCallback fn) {
+    fn();
+    if (!_disposed) notifyListeners();
   }
 
   @override

@@ -446,8 +446,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
     final totalKeseluruhan = totalHargaLayanan + ongkir;
     final nmToko = order['shops']?['nm_toko']?.toString() ?? '-';
     final statusOrder = order['status_order']?.toString() ?? '';
-    final metodeOrder = order['metode_order']?.toString().toLowerCase() ?? '';
-    final isOnline = metodeOrder == 'online';
+    
 
     return GestureDetector(
       onTap: () => _navigateToDetail(order),
@@ -509,37 +508,6 @@ class _RiwayatPageState extends State<RiwayatPage> {
               ),
               const SizedBox(height: 6),
 
-              // Badge online/offline
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isOnline
-                          ? AppColors.primaryBlue.withOpacity(0.08)
-                          : Colors.orange.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isOnline
-                            ? AppColors.primaryBlue.withOpacity(0.3)
-                            : Colors.orange.withOpacity(0.3),
-                      ),
-                    ),
-                    child: Text(
-                      isOnline ? 'Online' : 'Offline',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: isOnline ? AppColors.primaryBlue : Colors.orange,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
 
               Text(
                 _formatDate(order['tgl_order']),

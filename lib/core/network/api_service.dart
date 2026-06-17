@@ -6,11 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-<<<<<<< HEAD
-  static const String baseUrl = 'http://192.168.10.153:5000/api/v1';
-=======
-  static const String baseUrl = 'http://192.168.10.120:3000/api/v1';
->>>>>>> 96c18d25efef9f329859ac3e7aba4d3728decdaa
+  static const String baseUrl = 'http://172.16.160.223:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
