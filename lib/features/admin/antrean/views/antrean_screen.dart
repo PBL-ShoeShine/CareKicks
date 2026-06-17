@@ -361,8 +361,8 @@ class _AntreanScreenState extends State<AntreanScreen>
       );
     }
 
-    // 2. Tab Pembayaran (menunggu_pembayaran)
-    if (antrean.statusOrder == 'menunggu_pembayaran') {
+    // 2. Tab Pembayaran (menunggu_pembayaran atau menunggu_konfirmasi)
+    if (antrean.statusOrder == 'menunggu_pembayaran' || antrean.statusOrder == 'menunggu_konfirmasi') {
       return Row(
         children: [
           Expanded(
@@ -658,13 +658,21 @@ class _AntreanScreenState extends State<AntreanScreen>
       case 'pending':
         return 'menunggu_pembayaran';
       case 'menunggu_pembayaran':
-        return 'pesanan_baru';
-      case 'pesanan_baru':
+      case 'menunggu_konfirmasi':
+        return 'menunggu_dijemput';
+      case 'menunggu_dijemput':
+        return 'sedang_dijemput';
+      case 'sedang_dijemput':
+        return 'sudah_dijemput';
+      case 'sudah_dijemput':
         return 'washing';
       case 'washing':
         return 'selesai_cuci';
       case 'selesai_cuci':
         return 'selesai';
+      case 'selesai':
+      case 'dibatalkan':
+        return null;
       default:
         return null;
     }
@@ -675,8 +683,13 @@ class _AntreanScreenState extends State<AntreanScreen>
       case 'pending':
         return 'Setujui Pesanan';
       case 'menunggu_pembayaran':
+      case 'menunggu_konfirmasi':
         return 'Cek Pembayaran';
-      case 'pesanan_baru':
+      case 'menunggu_dijemput':
+        return 'Mulai Jemput';
+      case 'sedang_dijemput':
+        return 'Sepatu Dijemput';
+      case 'sudah_dijemput':
         return 'Mulai Cuci';
       case 'washing':
         return 'Selesai Cuci';
@@ -692,9 +705,14 @@ class _AntreanScreenState extends State<AntreanScreen>
       case 'pending':
         return AppColors.primaryBlue;
       case 'menunggu_pembayaran':
+      case 'menunggu_konfirmasi':
         return Colors.amber.shade700;
-      case 'pesanan_baru':
+      case 'menunggu_dijemput':
         return AppColors.successGreen;
+      case 'sedang_dijemput':
+        return Colors.orange;
+      case 'sudah_dijemput':
+        return Colors.orange.shade700;
       case 'washing':
         return Colors.purple;
       case 'selesai_cuci':
