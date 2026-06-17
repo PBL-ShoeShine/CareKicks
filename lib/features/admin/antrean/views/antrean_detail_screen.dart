@@ -77,9 +77,10 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
   // Bawa fungsi utilitas dari layar sebelumnya
   String? _nextStatus(String s) {
     switch (s) {
+      case 'pending':
+        return 'menunggu_pembayaran';
+      case 'menunggu_pembayaran':
       case 'menunggu_konfirmasi':
-        return 'dikonfirmasi';
-      case 'dikonfirmasi':
         return 'menunggu_dijemput';
       case 'menunggu_dijemput':
         return 'sedang_dijemput';
@@ -90,8 +91,6 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
       case 'washing':
         return 'selesai_cuci';
       case 'selesai_cuci':
-        return 'sedang_diantar';
-      case 'sedang_diantar':
         return 'selesai';
       default:
         return null;
@@ -100,10 +99,11 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
 
   String _btnLabel(String s) {
     switch (s) {
+      case 'pending':
+        return 'Setujui Pesanan';
+      case 'menunggu_pembayaran':
       case 'menunggu_konfirmasi':
-        return 'ACC Pembayaran';
-      case 'dikonfirmasi':
-        return 'Tugaskan Kurir';
+        return 'Cek Pembayaran';
       case 'menunggu_dijemput':
         return 'Mulai Jemput';
       case 'sedang_dijemput':
@@ -113,8 +113,6 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
       case 'washing':
         return 'Selesai Cuci';
       case 'selesai_cuci':
-        return 'Mulai Antar';
-      case 'sedang_diantar':
         return 'Selesaikan Order';
       default:
         return '';
@@ -123,12 +121,11 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
 
   Color _statusColor(String s) {
     switch (s) {
+      case 'menunggu_pembayaran':
       case 'menunggu_konfirmasi':
         return Colors.amber.shade700;
-      case 'dikonfirmasi':
-        return AppColors.primaryBlue;
       case 'menunggu_dijemput':
-        return Colors.blue.shade300;
+        return AppColors.successGreen;
       case 'sedang_dijemput':
         return Colors.orange;
       case 'sudah_dijemput':
@@ -137,8 +134,6 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
         return Colors.purple;
       case 'selesai_cuci':
         return Colors.teal;
-      case 'sedang_diantar':
-        return AppColors.primaryBlue;
       case 'selesai':
         return AppColors.successGreen;
       case 'dibatalkan':
