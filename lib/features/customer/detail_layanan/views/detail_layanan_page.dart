@@ -3,7 +3,7 @@ import '../../../../../core/constants/app_colors.dart';
 import '../controllers/detail_layanan_controller.dart';
 import 'semua_ulasan_page.dart';
 import '../../order/screens/kirim_pesanan_page.dart';
-// import 'halaman_keranjang_atau_pemesanan.dart'; // TODO
+import '../../shop/views/shop_profile_page.dart';
 
 class DetailLayananPage extends StatefulWidget {
   final String token;
@@ -126,6 +126,7 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
 
           final toko = data['toko'] ?? {};
           final rating = toko['rating'] ?? 0.0;
+          final isOpen = toko['is_open'] == true;
           final rekomendasi = List<Map<String, dynamic>>.from(data['rekomendasi'] ?? []);
 
           return Stack(
@@ -155,7 +156,21 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                           // Toko Info (Bisa diklik menuju profil toko)
                           GestureDetector(
                             onTap: () {
-                              // TODO: Navigasi ke Profil Toko
+                              final idShops = toko['id_shops'];
+                              if (idShops != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ShopProfilePage(
+                                      token: widget.token,
+                                      idShops: idShops is int
+                                          ? idShops
+                                          : int.parse(idShops.toString()),
+                                      user: widget.user,
+                                    ),
+                                  ),
+                                );
+                              }
                             },
                             child: Row(
                               children: [
@@ -354,7 +369,7 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: !isOpen ? null : () {
                         final idShops = toko['id_shops'];
                         if (idShops == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -381,15 +396,15 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlue,
+                        backgroundColor: isOpen ? AppColors.primaryBlue : Colors.grey,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        'Pesan Jasa',
-                        style: TextStyle(
+                      child: Text(
+                        isOpen ? 'Pesan Jasa' : 'Toko Sedang Tutup',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
