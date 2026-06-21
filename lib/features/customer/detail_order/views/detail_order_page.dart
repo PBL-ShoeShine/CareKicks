@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -41,6 +42,34 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
 
   bool get _isOnline =>
       _controller.order?['metode_order']?.toString().toLowerCase() == 'online';
+
+  // ===== FIX: hitung jarak toko -> customer pakai Haversine formula =====
+  double? _calculateDistanceKm() {
+    final shopLat = _controller.shopLat;
+    final shopLng = _controller.shopLng;
+    final custLat = _controller.customerLat;
+    final custLng = _controller.customerLng;
+
+    if (shopLat == null ||
+        shopLng == null ||
+        custLat == null ||
+        custLng == null) {
+      return null;
+    }
+
+    return LocationUtils.calculateDistanceKm(
+      shopLat,
+      shopLng,
+      custLat,
+      custLng,
+    );
+  }
+
+  String _formatDistance(double? km) {
+    if (km == null) return '-';
+    return '${km.toStringAsFixed(1)} km';
+  }
+  // ===== END FIX =====
 
   int _getPhaseIndex(String? status) {
     if (_isOnline) {
@@ -750,6 +779,9 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
         ?.toString();
     final cleanAddress = LocationUtils.cleanAddress(_controller.address);
 
+    // FIX: hitung jarak khusus order online
+    final distanceKm = _isOnline ? _calculateDistanceKm() : null;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -776,6 +808,9 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
               'Alamat',
               cleanAddress.isNotEmpty ? cleanAddress : '-',
             ),
+          // FIX: tampilkan jarak (hanya untuk order online & jika koordinat tersedia)
+          if (_isOnline && distanceKm != null)
+            _buildDetailRow('Jarak', _formatDistance(distanceKm)),
 
           if (catatanPengiriman != null && catatanPengiriman.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -1177,11 +1212,24 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                                   children: [
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
-                                      child: item['foto_sebelum'] != null && item['foto_sebelum'].toString().trim().isNotEmpty
+                                      child:
+                                          item['foto_sebelum'] != null &&
+                                              item['foto_sebelum']
+                                                  .toString()
+                                                  .trim()
+                                                  .isNotEmpty
                                           ? Image.network(
-                                              item['foto_sebelum'].toString().contains(',')
-                                                  ? item['foto_sebelum'].toString().split(',').first.trim()
-                                                  : item['foto_sebelum'].toString().trim(),
+                                              item['foto_sebelum']
+                                                      .toString()
+                                                      .contains(',')
+                                                  ? item['foto_sebelum']
+                                                        .toString()
+                                                        .split(',')
+                                                        .first
+                                                        .trim()
+                                                  : item['foto_sebelum']
+                                                        .toString()
+                                                        .trim(),
                                               width: 70,
                                               height: 70,
                                               fit: BoxFit.cover,

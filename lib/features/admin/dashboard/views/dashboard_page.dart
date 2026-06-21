@@ -4,6 +4,7 @@ import '../../history/views/history_page.dart';
 import '../../input_off/views/input_off_page.dart';
 import 'package:carekicks/features/admin/profile/views/profile_page.dart';
 import '../controllers/dashboard_controller.dart';
+import 'package:carekicks/features/admin/ulasan/views/ulasan_admin_page.dart';
 
 class DashboardPage extends StatefulWidget {
   final String token;
@@ -185,7 +186,6 @@ class _DashboardPageState extends State<DashboardPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Top Profile Section (Bisa Diklik untuk ke Halaman Profil)
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -304,7 +304,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // STATS ROW (Komponen Statis Murni - Tidak Terlihat Seperti Bisa Diklik)
                       Row(
                         children: [
                           Expanded(
@@ -412,7 +411,10 @@ class _DashboardPageState extends State<DashboardPage> {
 
                       const SizedBox(height: 16),
 
-                      // INPUT MANUAL OFFLINE BANNER (Komponen Interaktif Dengan Tombol Jelas)
+                      _buildUlasanCard(context),
+                      const SizedBox(height: 16),
+
+                      // INPUT MANUAL OFFLINE BANNER
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(18),
@@ -487,7 +489,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
                       const SizedBox(height: 26),
 
-                      // AKTIVITAS TERKINI HEADER
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -533,7 +534,6 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                       const SizedBox(height: 12),
 
-                      // AKTIVITAS LIST ITEMS
                       if (_dashboardController.aktivitasTerkini != null &&
                           _dashboardController.aktivitasTerkini is List)
                         ...(_dashboardController.aktivitasTerkini as List)
@@ -643,7 +643,6 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  // Widget Helper: Desain Grid Kard Statistik Flat Murni (Tanpa Efek Klik)
   Widget _buildGridStatCard({
     required String title,
     required int count,
@@ -715,6 +714,89 @@ class _DashboardPageState extends State<DashboardPage> {
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUlasanCard(BuildContext context) {
+    final int? myShopId = int.tryParse(
+      widget.user['id_shops']?.toString() ??
+          widget.user['shop']?['id_shops']?.toString() ??
+          '',
+    );
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.015),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    UlasanAdminPage(token: widget.token, idShops: myShopId),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.star_rounded,
+                    size: 24,
+                    color: Colors.amber,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Ulasan Pelanggan',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2C3E50),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Lihat rating dan masukan dari pembeli',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
