@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../controllers/beranda_controller.dart';
 import '../../detail_layanan/views/detail_layanan_page.dart';
+import '../../cart/views/cart_page.dart';
+import '../../cart/services/cart_service.dart';
 
 class BerandaPage extends StatefulWidget {
   final String token;
@@ -16,12 +18,29 @@ class BerandaPage extends StatefulWidget {
 class _BerandaPageState extends State<BerandaPage> {
   late BerandaController _controller;
   final TextEditingController _searchController = TextEditingController();
+  int _cartItemCount = 0;
 
   @override
   void initState() {
     super.initState();
     _controller = BerandaController();
     _controller.fetchBeranda(widget.token, isRefresh: true);
+    _loadCartCount();
+  }
+
+  Future<void> _loadCartCount() async {
+    try {
+      final result = await CartService.getCart(token: widget.token);
+      if (result != null && result['success'] == true) {
+        final data = result['data'] as List<dynamic>? ?? [];
+        int count = 0;
+        for (final shop in data) {
+          final items = shop['items'] as List<dynamic>? ?? [];
+          count += items.length;
+        }
+        if (mounted) setState(() => _cartItemCount = count);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -281,13 +300,48 @@ class _BerandaPageState extends State<BerandaPage> {
             constraints: const BoxConstraints(),
             padding: const EdgeInsets.symmetric(horizontal: 4),
           ),
-          IconButton(
-            onPressed: () {
-              // TODO: Navigasi ke keranjang
-            },
-            icon: const Icon(Icons.shopping_cart_outlined, color: Colors.grey),
-            padding: const EdgeInsets.only(right: 16, left: 4),
-          ),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CartPage(
+                                token: widget.token,
+                                user: widget.user,
+                              ),
+                            ),
+                          ).then((_) => _loadCartCount());
+                        },
+                        icon: const Icon(Icons.shopping_cart_outlined, color: Colors.grey),
+                        padding: const EdgeInsets.only(right: 16, left: 4),
+                      ),
+                      if (_cartItemCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 2,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            child: Text(
+                              _cartItemCount > 99 ? '99+' : '$_cartItemCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
         ],
       ),
       body: ListenableBuilder(

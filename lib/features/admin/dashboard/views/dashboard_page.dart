@@ -255,22 +255,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                   ),
                                 ),
-                                Container(
-                                  height: 40,
-                                  width: 40,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.15),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: IconButton(
-                                    icon: const Icon(
-                                      Icons.notifications_none_rounded,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    onPressed: () {},
-                                  ),
-                                ),
                               ],
                             ),
                             const SizedBox(height: 28),
@@ -612,8 +596,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
+                                        // --- PERBAIKAN: MENGHILANGKAN UNDERSCORE DI SINI ---
                                         activity['status_order']
                                                 ?.toString()
+                                                .replaceAll('_', ' ')
                                                 .toUpperCase() ??
                                             'PENDING',
                                         style: TextStyle(

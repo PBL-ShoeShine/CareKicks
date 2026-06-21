@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.10.221:5000/api/v1';
+  static const String baseUrl = 'http://192.168.10.218:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -2390,6 +2390,47 @@ class ApiService {
     return null;
   }
 
+  static Future<Map<String, dynamic>?> createOrderFromCart({
+    required String token,
+    required List<int> selectedIds,
+    required String namaPemilik,
+    required String noHp,
+    required String alamat,
+    double? latOrder,
+    double? longOrder,
+    int? totalOngkir,
+    String? metodePengambilan,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/customer/order/from-cart');
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'selected_ids': selectedIds,
+          'nama_pemilik': namaPemilik,
+          'no_hp': noHp,
+          'alamat': alamat,
+          'lat_order': latOrder,
+          'long_order': longOrder,
+          'total_ongkir': totalOngkir ?? 0,
+          'metode_pengambilan': metodePengambilan ?? 'delivery',
+        }),
+      );
+
+      debugPrint('POST createOrderFromCart → ${response.statusCode}');
+      if ([200, 201, 400, 401, 404, 500].contains(response.statusCode)) {
+        return _decodeJsonResponse(response);
+      }
+    } catch (e) {
+      debugPrint('createOrderFromCart error: $e');
+    }
+    return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
+  }
+
   // ─── Customer: Ambil Layanan Toko (untuk form order) ─────────────────────
   static Future<Map<String, dynamic>?> getCustomerOrderServices({
     required String token,
@@ -2415,5 +2456,152 @@ class ApiService {
       debugPrint('getCustomerOrderServices error: $e');
     }
     return null;
+  }
+
+  // ─── Customer Cart ────────────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>?> getCustomerCart({
+    required String token,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/customer/cart'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return _decodeJsonResponse(response);
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend (getCustomerCart): $e');
+      return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
+    }
+  }
+
+  static Future<Map<String, dynamic>?> addToCart({
+    required String token,
+    required String idShops,
+    required String idServices,
+    required String hargaLayanan,
+    String? catatan,
+    required String merk,
+    required String jenisSepatu,
+    required String warna,
+    required List<File> fotoSebelumList,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/customer/cart');
+      final request = http.MultipartRequest('POST', uri);
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      request.fields['id_shops'] = idShops;
+      request.fields['id_services'] = idServices;
+      request.fields['harga_layanan'] = hargaLayanan;
+      if (catatan != null && catatan.isNotEmpty) request.fields['catatan'] = catatan;
+      request.fields['merk'] = merk;
+      request.fields['jenis_sepatu'] = jenisSepatu;
+      request.fields['warna'] = warna;
+
+      for (final file in fotoSebelumList) {
+        final extension = file.path.split('.').last.toLowerCase();
+        String mimeType = 'image/jpeg';
+        if (extension == 'png') mimeType = 'image/png';
+        if (extension == 'webp') mimeType = 'image/webp';
+
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'foto_sebelum',
+            file.path,
+            contentType: MediaType.parse(mimeType),
+          ),
+        );
+      }
+
+      final response = await request.send();
+      final responseString = await response.stream.bytesToString();
+
+      debugPrint('ADD TO CART Status: ${response.statusCode}');
+      debugPrint('ADD TO CART Response: $responseString');
+
+      if (responseString.isNotEmpty) {
+        return _decodeJsonString(responseString);
+      }
+      return {'success': false, 'message': 'Response kosong dari server'};
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend (addToCart): $e');
+      return {'success': false, 'message': 'Gagal menambahkan ke keranjang: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>?> deleteCartItem({
+    required String token,
+    required int idCartItem,
+  }) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/customer/cart/item/$idCartItem'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return _decodeJsonResponse(response);
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend (deleteCartItem): $e');
+      return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
+    }
+  }
+
+  static Future<Map<String, dynamic>?> updateCartItem({
+    required String token,
+    required int idCartItem,
+    String? catatan,
+    String? merk,
+    String? jenisSepatu,
+    String? warna,
+    String? fotoIndices,
+    List<File>? fotoSebelumList,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/customer/cart/item/$idCartItem');
+      final request = http.MultipartRequest('PATCH', uri);
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      if (catatan != null) request.fields['catatan'] = catatan;
+      if (merk != null) request.fields['merk'] = merk;
+      if (jenisSepatu != null) request.fields['jenis_sepatu'] = jenisSepatu;
+      if (warna != null) request.fields['warna'] = warna;
+      if (fotoIndices != null) request.fields['foto_indices'] = fotoIndices;
+
+      if (fotoSebelumList != null) {
+        for (final file in fotoSebelumList) {
+          final extension = file.path.split('.').last.toLowerCase();
+          String mimeType = 'image/jpeg';
+          if (extension == 'png') mimeType = 'image/png';
+          if (extension == 'webp') mimeType = 'image/webp';
+
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'foto_sebelum',
+              file.path,
+              contentType: MediaType.parse(mimeType),
+            ),
+          );
+        }
+      }
+
+      final streamed = await request.send();
+      final responseString = await streamed.stream.bytesToString();
+      if (responseString.isNotEmpty) {
+        return _decodeJsonString(responseString);
+      }
+      return {'success': false, 'message': 'Response kosong dari server'};
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend (updateCartItem): $e');
+      return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
+    }
   }
 }
