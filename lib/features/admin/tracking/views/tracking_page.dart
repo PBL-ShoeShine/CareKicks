@@ -29,8 +29,10 @@ class _TrackingPageState extends State<TrackingPage> {
 
   static const Set<String> _pickupStatuses = {
     'menunggu_jemput',
+    'menunggu_dijemput',
     'sedang_dijemput',
     'diterima_toko',
+    'sudah_dijemput',
   };
 
   static const Set<String> _deliveryStatuses = {
@@ -64,6 +66,7 @@ class _TrackingPageState extends State<TrackingPage> {
   Color _statusColor(String? status) {
     switch (status?.toLowerCase()) {
       case 'menunggu_jemput':
+      case 'menunggu_dijemput':
       case 'pending':
       case 'siap_diantar':
         return AppColors.warning;
@@ -73,6 +76,7 @@ class _TrackingPageState extends State<TrackingPage> {
       case 'diantar':
         return AppColors.primaryBlue;
       case 'diterima_toko':
+      case 'sudah_dijemput':
       case 'selesai':
         return AppColors.success;
       default:

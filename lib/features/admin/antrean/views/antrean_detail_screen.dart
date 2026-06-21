@@ -633,7 +633,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildInfoItem(
-                        'Status Pembayaran1',
+                        'Status Pembayaran',
                         widget.antrean.statusPembayaran.isEmpty
                             ? '-'
                             : widget.antrean.statusPembayaran,

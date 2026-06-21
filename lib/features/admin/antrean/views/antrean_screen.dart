@@ -6,6 +6,7 @@ import '../../../../core/widgets/custom_tab_bar.dart';
 import '../controllers/antrean_controller.dart';
 import '../models/antrean_model.dart';
 import '../views/antrean_detail_screen.dart';
+import '../../tracking/views/tracking_detail_page.dart';
 import '../../../../core/utils/date_utils.dart';
 
 class AntreanScreen extends StatefulWidget {
@@ -27,8 +28,10 @@ class _AntreanScreenState extends State<AntreanScreen>
     {'label': 'Pesanan Masuk', 'status': 'pesanan_masuk'},
     {'label': 'Pembayaran', 'status': 'pembayaran'},
     {'label': 'Pesanan Baru', 'status': 'pesanan_baru'},
+    {'label': 'Pickup', 'status': 'pickup'},
     {'label': 'Sedang Dicuci', 'status': 'sedang_dicuci'},
     {'label': 'Siap', 'status': 'siap'},
+    {'label': 'Delivery', 'status': 'delivery'},
   ];
 
   @override
@@ -148,17 +151,33 @@ class _AntreanScreenState extends State<AntreanScreen>
     final nextStatus = _nextStatus(antrean.statusOrder);
     final btnLabel = _btnLabel(antrean.statusOrder);
     final statusColor = _statusColor(antrean.statusOrder);
+    final currentStatus = _tabs[_currentTab]['status'];
+    final isTrackingTab = currentStatus == 'pickup' || currentStatus == 'delivery';
 
     return GestureDetector(
       onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                AntreanDetailScreen(token: widget.token, antrean: antrean),
-          ),
-        );
-        if (result == true) _loadData();
+        if (isTrackingTab) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TrackingDetailPage(
+                token: widget.token,
+                user: widget.user,
+                orderId: antrean.idOrders,
+              ),
+            ),
+          );
+          _loadData();
+        } else {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  AntreanDetailScreen(token: widget.token, antrean: antrean),
+            ),
+          );
+          if (result == true) _loadData();
+        }
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -267,8 +286,8 @@ class _AntreanScreenState extends State<AntreanScreen>
                             Text(
                               _formatTgl(antrean.tglOrder),
                               style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.orange.shade600,
+                                  fontSize: 11,
+                                  color: Colors.orange.shade600,
                               ),
                             ),
                           ],
@@ -280,34 +299,72 @@ class _AntreanScreenState extends State<AntreanScreen>
               ),
               const SizedBox(height: 12),
               // Tombol aksi
-              nextStatus != null
-                  ? _buildActionButtons(antrean, nextStatus, btnLabel)
-                  : Container(
+              isTrackingTab
+                  ? SizedBox(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.successGreen.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: AppColors.successGreen,
-                            size: 18,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryBlue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Pesanan Selesai',
-                            style: TextStyle(
-                              color: AppColors.successGreen,
-                              fontWeight: FontWeight.w600,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        icon: const Icon(
+                          Icons.local_shipping_outlined,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        label: const Text(
+                          'Detail Tracking',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TrackingDetailPage(
+                                token: widget.token,
+                                user: widget.user,
+                                orderId: antrean.idOrders,
+                              ),
                             ),
-                          ),
-                        ],
+                          );
+                          _loadData();
+                        },
                       ),
-                    ),
+                    )
+                  : nextStatus != null
+                      ? _buildActionButtons(antrean, nextStatus, btnLabel)
+                      : Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.successGreen.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                color: AppColors.successGreen,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Pesanan Selesai',
+                                style: TextStyle(
+                                  color: AppColors.successGreen,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
             ],
           ),
         ),
@@ -693,6 +750,8 @@ class _AntreanScreenState extends State<AntreanScreen>
       case 'washing':
         return 'selesai_cuci';
       case 'selesai_cuci':
+        return 'sedang_diantar';
+      case 'sedang_diantar':
         return 'selesai';
       case 'selesai':
       case 'dibatalkan':
@@ -718,6 +777,8 @@ class _AntreanScreenState extends State<AntreanScreen>
       case 'washing':
         return 'Selesai Cuci';
       case 'selesai_cuci':
+        return 'Mulai Antar';
+      case 'sedang_diantar':
         return 'Selesaikan Order';
       default:
         return '';
@@ -741,6 +802,8 @@ class _AntreanScreenState extends State<AntreanScreen>
         return Colors.purple;
       case 'selesai_cuci':
         return Colors.teal;
+      case 'sedang_diantar':
+        return Colors.indigo;
       case 'selesai':
         return AppColors.successGreen;
       case 'dibatalkan':
