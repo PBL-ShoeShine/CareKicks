@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.10.237:5000/api/v1';
+  static const String baseUrl = 'http://192.168.10.218:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -1021,7 +1021,7 @@ class ApiService {
       };
 
       final uri = Uri.parse(
-        '$baseUrl/customer/orders',
+        '$baseUrl/customer/riwayat',
       ).replace(queryParameters: queryParams);
 
       final response = await http.get(
@@ -1053,7 +1053,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/customer/orders/$orderId'),
+        Uri.parse('$baseUrl/customer/detail-order/$orderId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

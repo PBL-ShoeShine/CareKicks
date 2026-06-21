@@ -182,15 +182,20 @@ class _AntreanScreenState extends State<AntreanScreen>
                   // Foto
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: detail?.fotoSebelum != null
-                        ? Image.network(
-                            detail!.fotoSebelum!,
-                            width: 56,
-                            height: 56,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholder(),
-                          )
-                        : _placeholder(),
+                    child: Builder(
+                      builder: (context) {
+                        final fotoSebelumUrl = detail?.fotoSebelum?.split(',').first.trim();
+                        return (fotoSebelumUrl != null && fotoSebelumUrl.isNotEmpty)
+                            ? Image.network(
+                                fotoSebelumUrl,
+                                width: 56,
+                                height: 56,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _placeholder(),
+                              )
+                            : _placeholder();
+                      }
+                    ),
                   ),
                   const SizedBox(width: 12),
                   // Info

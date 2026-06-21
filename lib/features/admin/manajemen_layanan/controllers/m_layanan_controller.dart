@@ -171,7 +171,11 @@ class MLayananController extends ChangeNotifier {
         _services.removeWhere((s) => s['id_services'] == serviceId);
         return true;
       } else {
-        _errorMessage = result['message'] ?? 'Gagal menghapus layanan';
+        String msg = result['message'] ?? 'Gagal menghapus layanan';
+        if (msg.toLowerCase().contains('foreign key') || msg.toLowerCase().contains('violates')) {
+          msg = "Layanan tidak dapat dihapus karena sudah memiliki riwayat pesanan atau ulasan dari pelanggan. Silakan nonaktifkan saja layanan ini agar tidak dapat dipesan lagi.";
+        }
+        _errorMessage = msg;
         return false;
       }
     } catch (e) {
