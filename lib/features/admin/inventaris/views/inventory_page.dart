@@ -158,7 +158,7 @@ class _InventoryPageState extends State<InventoryPage> {
                   icon: Icons.inventory_2_outlined,
                   label: 'Total Produk',
                   value: '${summary?.totalJenis ?? 0}',
-                  color: AppColors.primaryBlue,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(width: 12),
@@ -167,7 +167,7 @@ class _InventoryPageState extends State<InventoryPage> {
                   icon: Icons.warning_amber_rounded,
                   label: 'Butuh Restock',
                   value: '${summary?.butuhRestock ?? 0}',
-                  color: AppColors.errorRed,
+                  color: Colors.white,
                 ),
               ),
             ],
@@ -217,9 +217,17 @@ class _InventoryPageState extends State<InventoryPage> {
 
   Widget _buildItemCard(InventoryItem item) {
     final bool isLowStock = item.stokSaatIni <= item.stokMinimum;
-    final double progress = item.stokMinimum > 0
-        ? (item.stokSaatIni / (item.stokMinimum * 2)).clamp(0.0, 1.0)
-        : 1.0;
+    final double maxStok = item.stokMinimum > 0 ? item.stokMinimum : 10.0;
+    final double barValue = item.stokSaatIni == 0
+        ? 1.0
+        : (item.stokSaatIni / maxStok).clamp(0.0, 1.0);
+    final Color barColor = item.stokSaatIni == 0
+        ? Colors.white
+        : (item.stokSaatIni <= 0.03 * maxStok
+            ? AppColors.errorRed
+            : (item.stokSaatIni >= maxStok
+                ? AppColors.successGreen
+                : AppColors.primaryBlue));
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -360,12 +368,10 @@ class _InventoryPageState extends State<InventoryPage> {
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: progress,
+                value: barValue,
                 minHeight: 6,
                 backgroundColor: AppColors.border,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  isLowStock ? AppColors.errorRed : AppColors.successGreen,
-                ),
+                valueColor: AlwaysStoppedAnimation<Color>(barColor),
               ),
             ),
           ],

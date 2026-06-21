@@ -64,14 +64,20 @@ class _MLayananPageState extends State<MLayananPage> {
               if (mounted) {
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Layanan berhasil dihapus')),
+                    const SnackBar(
+                      content: Text('Layanan berhasil dihapus'),
+                      backgroundColor: AppColors.successGreen,
+                    ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
                         _controller.errorMessage ?? 'Gagal menghapus layanan',
+                        style: const TextStyle(color: Colors.white),
                       ),
+                      backgroundColor: AppColors.errorRed,
+                      duration: const Duration(seconds: 5),
                     ),
                   );
                 }

@@ -6,6 +6,7 @@ import '../../../../core/widgets/custom_tab_bar.dart';
 import '../controllers/antrean_controller.dart';
 import '../models/antrean_model.dart';
 import '../views/antrean_detail_screen.dart';
+import '../../tracking/views/tracking_detail_page.dart';
 import '../../../../core/utils/date_utils.dart';
 
 class AntreanScreen extends StatefulWidget {
@@ -18,18 +19,31 @@ class AntreanScreen extends StatefulWidget {
 }
 
 class _AntreanScreenState extends State<AntreanScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
   late AntreanController _controller;
   int _currentTab = 0;
+  String _metodeOrder = 'online';
 
-  final _tabs = const [
-    {'label': 'Pesanan Masuk', 'status': 'pesanan_masuk'},
-    {'label': 'Pembayaran', 'status': 'pembayaran'},
-    {'label': 'Pesanan Baru', 'status': 'pesanan_baru'},
-    {'label': 'Sedang Dicuci', 'status': 'sedang_dicuci'},
-    {'label': 'Siap', 'status': 'siap'},
-  ];
+  List<Map<String, String>> get _tabs {
+    if (_metodeOrder == 'offline') {
+      return const [
+        {'label': 'Pesanan Baru', 'status': 'pesanan_baru'},
+        {'label': 'Sedang Dicuci', 'status': 'sedang_dicuci'},
+        {'label': 'Siap', 'status': 'siap'},
+      ];
+    } else {
+      return const [
+        {'label': 'Pesanan Masuk', 'status': 'pesanan_masuk'},
+        {'label': 'Pembayaran', 'status': 'pembayaran'},
+        {'label': 'Pesanan Baru', 'status': 'pesanan_baru'},
+        {'label': 'Pickup', 'status': 'pickup'},
+        {'label': 'Sedang Dicuci', 'status': 'sedang_dicuci'},
+        {'label': 'Siap', 'status': 'siap'},
+        {'label': 'Delivery', 'status': 'delivery'},
+      ];
+    }
+  }
 
   @override
   void initState() {
@@ -37,6 +51,11 @@ class _AntreanScreenState extends State<AntreanScreen>
     _controller = AntreanController();
     _controller.setToken(widget.token);
     _controller.setRole(widget.user['jenis_role']); // ← role-based endpoint
+    _initTabController();
+    _loadData();
+  }
+
+  void _initTabController() {
     _tabController = TabController(length: _tabs.length, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -44,11 +63,21 @@ class _AntreanScreenState extends State<AntreanScreen>
         _loadData();
       }
     });
+  }
+
+  void _switchMetodeOrder(String metode) {
+    if (_metodeOrder == metode) return;
+    setState(() {
+      _metodeOrder = metode;
+      _currentTab = 0;
+      _tabController.dispose();
+      _initTabController();
+    });
     _loadData();
   }
 
   Future<void> _loadData() async {
-    await _controller.fetchAntrean(_tabs[_currentTab]['status']!);
+    await _controller.fetchAntrean(_tabs[_currentTab]['status']!, _metodeOrder);
   }
 
   @override
@@ -65,13 +94,13 @@ class _AntreanScreenState extends State<AntreanScreen>
         title: 'Manajemen Antrean',
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        bottom: CustomTabBar(
-          controller: _tabController,
+        bottom: _AntreanHeader(
+          tabController: _tabController,
           labels: _tabs.map((t) => t['label']!).toList(),
-          isScrollable: true,
+          selectedMetode: _metodeOrder,
+          onMetodeChanged: _switchMetodeOrder,
         ),
       ),
-      // ← _buildTitleCard() dihapus dari sini
       body: _buildList(),
     );
   }
@@ -145,20 +174,36 @@ class _AntreanScreenState extends State<AntreanScreen>
 
   Widget _buildCard(AntreanModel antrean) {
     final detail = antrean.detail;
-    final nextStatus = _nextStatus(antrean.statusOrder);
-    final btnLabel = _btnLabel(antrean.statusOrder);
+    final nextStatus = _nextStatus(antrean.statusOrder, antrean.metodeOrder);
+    final btnLabel = _btnLabel(antrean.statusOrder, antrean.metodeOrder);
     final statusColor = _statusColor(antrean.statusOrder);
+    final currentStatus = _tabs[_currentTab]['status'];
+    final isTrackingTab = currentStatus == 'pickup' || currentStatus == 'delivery';
 
     return GestureDetector(
       onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                AntreanDetailScreen(token: widget.token, antrean: antrean),
-          ),
-        );
-        if (result == true) _loadData();
+        if (isTrackingTab) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TrackingDetailPage(
+                token: widget.token,
+                user: widget.user,
+                orderId: antrean.idOrders,
+              ),
+            ),
+          );
+          _loadData();
+        } else {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  AntreanDetailScreen(token: widget.token, antrean: antrean),
+            ),
+          );
+          if (result == true) _loadData();
+        }
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -183,15 +228,20 @@ class _AntreanScreenState extends State<AntreanScreen>
                   // Foto
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: detail?.fotoSebelum != null
-                        ? Image.network(
-                            detail!.fotoSebelum!,
-                            width: 56,
-                            height: 56,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholder(),
-                          )
-                        : _placeholder(),
+                    child: Builder(
+                      builder: (context) {
+                        final fotoSebelumUrl = detail?.fotoSebelum?.split(',').first.trim();
+                        return (fotoSebelumUrl != null && fotoSebelumUrl.isNotEmpty)
+                            ? Image.network(
+                                fotoSebelumUrl,
+                                width: 56,
+                                height: 56,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _placeholder(),
+                              )
+                            : _placeholder();
+                      }
+                    ),
                   ),
                   const SizedBox(width: 12),
                   // Info
@@ -223,7 +273,10 @@ class _AntreanScreenState extends State<AntreanScreen>
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                antrean.statusOrder.toUpperCase(),
+                                // --- PERBAIKAN: MENGHILANGKAN UNDERSCORE DI SINI ---
+                                antrean.statusOrder
+                                    .replaceAll('_', ' ')
+                                    .toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.bold,
@@ -267,8 +320,8 @@ class _AntreanScreenState extends State<AntreanScreen>
                             Text(
                               _formatTgl(antrean.tglOrder),
                               style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.orange.shade600,
+                                  fontSize: 11,
+                                  color: Colors.orange.shade600,
                               ),
                             ),
                           ],
@@ -280,34 +333,72 @@ class _AntreanScreenState extends State<AntreanScreen>
               ),
               const SizedBox(height: 12),
               // Tombol aksi
-              nextStatus != null
-                  ? _buildActionButtons(antrean, nextStatus, btnLabel)
-                  : Container(
+              isTrackingTab
+                  ? SizedBox(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.successGreen.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: AppColors.successGreen,
-                            size: 18,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryBlue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Pesanan Selesai',
-                            style: TextStyle(
-                              color: AppColors.successGreen,
-                              fontWeight: FontWeight.w600,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        icon: const Icon(
+                          Icons.local_shipping_outlined,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        label: const Text(
+                          'Detail Tracking',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TrackingDetailPage(
+                                token: widget.token,
+                                user: widget.user,
+                                orderId: antrean.idOrders,
+                              ),
                             ),
-                          ),
-                        ],
+                          );
+                          _loadData();
+                        },
                       ),
-                    ),
+                    )
+                  : nextStatus != null
+                      ? _buildActionButtons(antrean, nextStatus, btnLabel)
+                      : Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.successGreen.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                color: AppColors.successGreen,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Pesanan Selesai',
+                                style: TextStyle(
+                                  color: AppColors.successGreen,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
             ],
           ),
         ),
@@ -369,9 +460,8 @@ class _AntreanScreenState extends State<AntreanScreen>
       );
     }
 
-    // 2. Tab Pembayaran (menunggu_pembayaran atau menunggu_konfirmasi)
-    if (antrean.statusOrder == 'menunggu_pembayaran' ||
-        antrean.statusOrder == 'menunggu_konfirmasi') {
+    // 2. Tab Pembayaran (menunggu_pembayaran)
+    if (antrean.statusOrder == 'menunggu_pembayaran') {
       return Row(
         children: [
           Expanded(
@@ -473,7 +563,20 @@ class _AntreanScreenState extends State<AntreanScreen>
     if (mounted) {
       if (result['success'] == true) {
         _loadData();
-      } else {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Berhasil diproses'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Gagal memproses'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
     }
   }
 
@@ -502,7 +605,9 @@ class _AntreanScreenState extends State<AntreanScreen>
           _loadData();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Status diubah ke $nextStatus'),
+              content: Text(
+                'Status diubah ke ${nextStatus.replaceAll('_', ' ')}',
+              ),
               backgroundColor: AppColors.successGreen,
             ),
           );
@@ -677,50 +782,76 @@ class _AntreanScreenState extends State<AntreanScreen>
     );
   }
 
-  String? _nextStatus(String s) {
-    switch (s) {
-      case 'pending':
-        return 'menunggu_pembayaran';
-      case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
-        return 'menunggu_dijemput';
-      case 'menunggu_dijemput':
-        return 'sedang_dijemput';
-      case 'sedang_dijemput':
-        return 'sudah_dijemput';
-      case 'sudah_dijemput':
-        return 'washing';
-      case 'washing':
-        return 'selesai_cuci';
-      case 'selesai_cuci':
-        return 'selesai';
-      case 'selesai':
-      case 'dibatalkan':
-        return null;
-      default:
-        return null;
+  String? _nextStatus(String s, String metodeOrder) {
+    if (metodeOrder == 'offline') {
+      switch (s) {
+        case 'dikonfirmasi':
+          return 'washing';
+        case 'washing':
+          return 'selesai';
+        default:
+          return null;
+      }
+    } else {
+      switch (s) {
+        case 'pending':
+          return 'menunggu_pembayaran';
+        case 'menunggu_pembayaran':
+        case 'menunggu_konfirmasi':
+          return 'menunggu_dijemput';
+        case 'menunggu_dijemput':
+          return 'sedang_dijemput';
+        case 'sedang_dijemput':
+          return 'sudah_dijemput';
+        case 'sudah_dijemput':
+          return 'washing';
+        case 'washing':
+          return 'selesai_cuci';
+        case 'selesai_cuci':
+          return 'sedang_diantar';
+        case 'sedang_diantar':
+          return 'selesai';
+        case 'selesai':
+        case 'dibatalkan':
+          return null;
+        default:
+          return null;
+      }
     }
   }
 
-  String _btnLabel(String s) {
-    switch (s) {
-      case 'pending':
-        return 'Setujui Pesanan';
-      case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
-        return 'Cek Pembayaran';
-      case 'menunggu_dijemput':
-        return 'Mulai Jemput';
-      case 'sedang_dijemput':
-        return 'Sepatu Dijemput';
-      case 'sudah_dijemput':
-        return 'Mulai Cuci';
-      case 'washing':
-        return 'Selesai Cuci';
-      case 'selesai_cuci':
-        return 'Selesaikan Order';
-      default:
-        return '';
+  String _btnLabel(String s, String metodeOrder) {
+    if (metodeOrder == 'offline') {
+      switch (s) {
+        case 'dikonfirmasi':
+          return 'Mulai Cuci';
+        case 'washing':
+          return 'Selesai Cuci';
+        default:
+          return '';
+      }
+    } else {
+      switch (s) {
+        case 'pending':
+          return 'Setujui Pesanan';
+        case 'menunggu_pembayaran':
+        case 'menunggu_konfirmasi':
+          return 'Cek Pembayaran';
+        case 'menunggu_dijemput':
+          return 'Mulai Jemput';
+        case 'sedang_dijemput':
+          return 'Sepatu Dijemput';
+        case 'sudah_dijemput':
+          return 'Mulai Cuci';
+        case 'washing':
+          return 'Selesai Cuci';
+        case 'selesai_cuci':
+          return 'Mulai Antar';
+        case 'sedang_diantar':
+          return 'Selesaikan Order';
+        default:
+          return '';
+      }
     }
   }
 
@@ -729,18 +860,15 @@ class _AntreanScreenState extends State<AntreanScreen>
       case 'pending':
         return AppColors.primaryBlue;
       case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
         return Colors.amber.shade700;
-      case 'menunggu_dijemput':
+      case 'pesanan_baru':
         return AppColors.successGreen;
-      case 'sedang_dijemput':
-        return Colors.orange;
-      case 'sudah_dijemput':
-        return Colors.orange.shade700;
       case 'washing':
         return Colors.purple;
       case 'selesai_cuci':
         return Colors.teal;
+      case 'sedang_diantar':
+        return Colors.indigo;
       case 'selesai':
         return AppColors.successGreen;
       case 'dibatalkan':
@@ -752,12 +880,97 @@ class _AntreanScreenState extends State<AntreanScreen>
 
   String _formatTgl(String tgl) {
     try {
-      final dt = DateTimeUtils.parseToWib(tgl);
+      final dt = DateTime.parse(tgl).toLocal();
       return '${dt.day}/${dt.month}/${dt.year} '
           '${dt.hour.toString().padLeft(2, '0')}:'
           '${dt.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return tgl;
     }
+  }
+}
+
+class _AntreanHeader extends StatelessWidget implements PreferredSizeWidget {
+  final TabController tabController;
+  final List<String> labels;
+  final String selectedMetode;
+  final ValueChanged<String> onMetodeChanged;
+
+  const _AntreanHeader({
+    required this.tabController,
+    required this.labels,
+    required this.selectedMetode,
+    required this.onMetodeChanged,
+  });
+
+  @override
+  Size get preferredSize => const Size.fromHeight(100.0);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  _buildSelectorBtn('online', 'Online'),
+                  _buildSelectorBtn('offline', 'Offline'),
+                ],
+              ),
+            ),
+          ),
+          CustomTabBar(
+            controller: tabController,
+            labels: labels,
+            isScrollable: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectorBtn(String value, String label) {
+    final isSelected = selectedMetode == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onMetodeChanged(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 34,
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? AppColors.primaryBlue : const Color(0xFF64748B),
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

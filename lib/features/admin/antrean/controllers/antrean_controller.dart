@@ -36,7 +36,7 @@ class AntreanController extends ChangeNotifier {
 
   // ─── Fetch Antrean ───────────────────────────────────────────────────────
 
-  Future<void> fetchAntrean(String tab) async {
+  Future<void> fetchAntrean(String tab, String metodeOrder) async {
     _isLoading = true;
     _errorMessage = null;
     _antreanList = [];
@@ -49,7 +49,7 @@ class AntreanController extends ChangeNotifier {
         endpoint = '${ApiService.baseUrl}/admin/konfirmasi_pesanan';
       }
 
-      final uri = Uri.parse('$endpoint?tab=$tab');
+      final uri = Uri.parse('$endpoint?tab=$tab&metode_order=$metodeOrder');
       final response = await http.get(uri, headers: _headers);
 
       debugPrint('=== FETCH ANTREAN ===');

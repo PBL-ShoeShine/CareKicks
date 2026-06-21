@@ -102,47 +102,69 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
   }
 
   // Bawa fungsi utilitas dari layar sebelumnya
-  String? _nextStatus(String s) {
-    switch (s) {
-      case 'pending':
-        return 'menunggu_pembayaran';
-      case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
-        return 'menunggu_dijemput';
-      case 'menunggu_dijemput':
-        return 'sedang_dijemput';
-      case 'sedang_dijemput':
-        return 'sudah_dijemput';
-      case 'sudah_dijemput':
-        return 'washing';
-      case 'washing':
-        return 'selesai_cuci';
-      case 'selesai_cuci':
-        return 'selesai';
-      default:
-        return null;
+  String? _nextStatus(String s, String metodeOrder) {
+    if (metodeOrder == 'offline') {
+      switch (s) {
+        case 'dikonfirmasi':
+          return 'washing';
+        case 'washing':
+          return 'selesai';
+        default:
+          return null;
+      }
+    } else {
+      switch (s) {
+        case 'pending':
+          return 'menunggu_pembayaran';
+        case 'menunggu_pembayaran':
+        case 'menunggu_konfirmasi':
+          return 'menunggu_dijemput';
+        case 'menunggu_dijemput':
+          return 'sedang_dijemput';
+        case 'sedang_dijemput':
+          return 'sudah_dijemput';
+        case 'sudah_dijemput':
+          return 'washing';
+        case 'washing':
+          return 'selesai_cuci';
+        case 'selesai_cuci':
+          return 'selesai';
+        default:
+          return null;
+      }
     }
   }
 
-  String _btnLabel(String s) {
-    switch (s) {
-      case 'pending':
-        return 'Setujui Pesanan';
-      case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
-        return 'Cek Pembayaran';
-      case 'menunggu_dijemput':
-        return 'Mulai Jemput';
-      case 'sedang_dijemput':
-        return 'Sepatu Dijemput';
-      case 'sudah_dijemput':
-        return 'Mulai Cuci';
-      case 'washing':
-        return 'Selesai Cuci';
-      case 'selesai_cuci':
-        return 'Selesaikan Order';
-      default:
-        return '';
+  String _btnLabel(String s, String metodeOrder) {
+    if (metodeOrder == 'offline') {
+      switch (s) {
+        case 'dikonfirmasi':
+          return 'Mulai Cuci';
+        case 'washing':
+          return 'Selesai Cuci';
+        default:
+          return '';
+      }
+    } else {
+      switch (s) {
+        case 'pending':
+          return 'Setujui Pesanan';
+        case 'menunggu_pembayaran':
+        case 'menunggu_konfirmasi':
+          return 'Cek Pembayaran';
+        case 'menunggu_dijemput':
+          return 'Mulai Jemput';
+        case 'sedang_dijemput':
+          return 'Sepatu Dijemput';
+        case 'sudah_dijemput':
+          return 'Mulai Cuci';
+        case 'washing':
+          return 'Selesai Cuci';
+        case 'selesai_cuci':
+          return 'Selesaikan Order';
+        default:
+          return '';
+      }
     }
   }
 
@@ -423,7 +445,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final detail = widget.antrean.detail;
-    final nextStatus = _nextStatus(_currentStatus);
+    final nextStatus = _nextStatus(_currentStatus, widget.antrean.metodeOrder);
     final statusColor = _statusColor(_currentStatus);
     final paymentProofUrl = _paymentProofUrl;
 
@@ -537,72 +559,119 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Card 2: Foto Sepatu & Detail Merek
-              const Text(
-                'Detail Sepatu',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1A2E),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
+              // Card 2: Detail Sepatu (Multi-item & Multi-gambar)
+              ...List.generate(widget.antrean.detailOrders.length, (index) {
+                final item = widget.antrean.detailOrders[index];
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Foto Sepatu
-                    Center(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: detail?.fotoSebelum != null
-                            ? Image.network(
-                                detail!.fotoSebelum!,
-                                width: double.infinity,
-                                height: 200,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    _buildPlaceholderImage(),
-                              )
-                            : _buildPlaceholderImage(),
+                    Text(
+                      'Pesanan ${index + 1}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1A1A2E),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    // Info Merek & Warna
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildInfoItem(
-                            'Merk Sepatu',
-                            detail?.merk ?? '-',
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
-                        Expanded(
-                          child: _buildInfoItem('Warna', detail?.warna ?? '-'),
-                        ),
-                      ],
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Foto Sepatu - Multi Gambar (Swipeable Carousel)
+                          Builder(
+                            builder: (context) {
+                              List<String> splitUrls(String? path) {
+                                if (path == null || path.isEmpty) return [];
+                                return path.split(',').map((u) => u.trim()).where((u) => u.isNotEmpty).toList();
+                              }
+
+                              final List<String> sebelumUrls = splitUrls(item.fotoSebelum);
+                              final List<String> sesudahUrls = splitUrls(item.fotoSesudah);
+
+                              final List<Map<String, String>> photos = [
+                                ...sebelumUrls.map((url) => {'url': url, 'label': 'Sebelum'}),
+                                ...sesudahUrls.map((url) => {'url': url, 'label': 'Sesudah'}),
+                              ];
+
+                              if (photos.isEmpty) {
+                                return _buildPlaceholderImage(
+                                  label: 'Foto sebelum & sesudah tidak tersedia',
+                                  height: 200,
+                                );
+                              }
+
+                              return _ImageCarousel(
+                                photos: photos,
+                                onImageTap: (initialIndex) {
+                                  _showFullscreenImage(
+                                    context,
+                                    photos,
+                                    initialIndex,
+                                    'Pesanan ${index + 1}',
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          // Info Merek & Warna
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildInfoItem(
+                                  'Merk Sepatu',
+                                  item.merk.isEmpty ? '-' : item.merk,
+                                ),
+                              ),
+                              Expanded(
+                                child: _buildInfoItem(
+                                  'Warna',
+                                  item.warna.isEmpty ? '-' : item.warna,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Divider(height: 1, color: Color(0xFFEEEEEE)),
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildInfoItem(
+                                  'Jenis Layanan',
+                                  item.namaLayanan ?? '-',
+                                ),
+                              ),
+                              Expanded(
+                                child: _buildInfoItem(
+                                  'Harga',
+                                  _formatHarga(item.totalHarga),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Divider(height: 1, color: Color(0xFFEEEEEE)),
-                    ),
-                    _buildInfoItem('Jenis Layanan', detail?.namaLayanan ?? '-'),
                   ],
-                ),
-              ),
+                );
+              }),
               const SizedBox(height: 20),
 
               if (_currentStatus == 'menunggu_konfirmasi') ...[
@@ -633,7 +702,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildInfoItem(
-                        'Status Pembayaran1',
+                        'Status Pembayaran',
                         widget.antrean.statusPembayaran.isEmpty
                             ? '-'
                             : widget.antrean.statusPembayaran,
@@ -797,7 +866,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
           children: [
             Flexible(
               child: Text(
-                _btnLabel(_currentStatus),
+                _btnLabel(_currentStatus, widget.antrean.metodeOrder),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -838,10 +907,10 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     );
   }
 
-  Widget _buildPlaceholderImage() {
+  Widget _buildPlaceholderImage({String label = 'Foto tidak tersedia', double height = 140}) {
     return Container(
       width: double.infinity,
-      height: 200,
+      height: height,
       decoration: BoxDecoration(
         color: const Color(0xFFF0F0F0),
         borderRadius: BorderRadius.circular(12),
@@ -851,17 +920,126 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
         children: [
           Icon(
             Icons.image_not_supported_outlined,
-            size: 48,
+            size: 32,
             color: Colors.grey.shade400,
           ),
           const SizedBox(height: 8),
-          Text(
-            'Foto tidak tersedia',
-            style: TextStyle(color: Colors.grey.shade500),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),
     );
+  }
+
+  void _showFullscreenImage(
+    BuildContext context,
+    List<Map<String, String>> photos,
+    int initialPage,
+    String baseTitle,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PageView.builder(
+                itemCount: photos.length,
+                controller: PageController(initialPage: initialPage),
+                itemBuilder: (context, index) {
+                  final photo = photos[index];
+                  return InteractiveViewer(
+                    panEnabled: true,
+                    boundaryMargin: const EdgeInsets.all(20),
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          photo['url']!,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(color: Colors.white),
+                            );
+                          },
+                          errorBuilder: (_, __, ___) => Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.all(20),
+                            child: const Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text('Gagal memuat gambar', style: TextStyle(color: Colors.black)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: CircleAvatar(
+                  backgroundColor: Colors.black.withOpacity(0.5),
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+              if (photos.length > 1) ...[
+                Positioned(
+                  left: 10,
+                  child: IgnorePointer(
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 36,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 10,
+                  child: IgnorePointer(
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 36,
+                    ),
+                  ),
+                ),
+              ],
+              // Bottom title overlay removed as per user request to show only images
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatHarga(double value) {
+    final intValue = value.toInt();
+    final formatter = intValue.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+$)'),
+      (match) => '${match[1]}.',
+    );
+    return 'Rp $formatter';
   }
 
   Widget _buildPaymentProofPlaceholder() {
@@ -927,6 +1105,154 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ImageCarousel extends StatefulWidget {
+  final List<Map<String, String>> photos;
+  final Function(int) onImageTap;
+
+  const _ImageCarousel({
+    required this.photos,
+    required this.onImageTap,
+  });
+
+  @override
+  State<_ImageCarousel> createState() => _ImageCarouselState();
+}
+
+class _ImageCarouselState extends State<_ImageCarousel> {
+  int _currentPage = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          height: 220,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              children: [
+                PageView.builder(
+                  itemCount: widget.photos.length,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    final photo = widget.photos[index];
+                    return GestureDetector(
+                      onTap: () => widget.onImageTap(index),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(
+                            photo['url']!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: const Color(0xFFF0F0F0),
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.broken_image_outlined, size: 40, color: Colors.grey),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Gagal memuat gambar',
+                                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Image label overlay removed as per user request to show only images
+                          Positioned(
+                            top: 12,
+                            right: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${index + 1}/${widget.photos.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                if (widget.photos.length > 1) ...[
+                  Positioned(
+                    left: 4,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: Icon(
+                        Icons.chevron_left_rounded,
+                        color: Colors.white.withOpacity(0.6),
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 4,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.white.withOpacity(0.6),
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        if (widget.photos.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(widget.photos.length, (index) {
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: _currentPage == index ? 16 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: _currentPage == index
+                      ? AppColors.primaryBlue
+                      : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
+        ],
+      ],
     );
   }
 }

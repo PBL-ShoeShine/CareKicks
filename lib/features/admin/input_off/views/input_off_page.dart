@@ -188,6 +188,8 @@ class _InputOffPageState extends State<InputOffPage> {
                     controller: _jenisSepatuController,
                     label: '',
                     hint: 'Contoh: Sneakers, Boots, dll',
+                    validator: (v) =>
+                        v!.trim().isEmpty ? 'Jenis sepatu tidak boleh kosong' : null,
                   ),
                   const SizedBox(height: 24),
                   _buildSectionTitle('Detail Sepatu'),
