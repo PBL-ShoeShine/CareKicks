@@ -19,20 +19,31 @@ class AntreanScreen extends StatefulWidget {
 }
 
 class _AntreanScreenState extends State<AntreanScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
   late AntreanController _controller;
   int _currentTab = 0;
+  String _metodeOrder = 'online';
 
-  final _tabs = const [
-    {'label': 'Pesanan Masuk', 'status': 'pesanan_masuk'},
-    {'label': 'Pembayaran', 'status': 'pembayaran'},
-    {'label': 'Pesanan Baru', 'status': 'pesanan_baru'},
-    {'label': 'Pickup', 'status': 'pickup'},
-    {'label': 'Sedang Dicuci', 'status': 'sedang_dicuci'},
-    {'label': 'Siap', 'status': 'siap'},
-    {'label': 'Delivery', 'status': 'delivery'},
-  ];
+  List<Map<String, String>> get _tabs {
+    if (_metodeOrder == 'offline') {
+      return const [
+        {'label': 'Pesanan Baru', 'status': 'pesanan_baru'},
+        {'label': 'Sedang Dicuci', 'status': 'sedang_dicuci'},
+        {'label': 'Siap', 'status': 'siap'},
+      ];
+    } else {
+      return const [
+        {'label': 'Pesanan Masuk', 'status': 'pesanan_masuk'},
+        {'label': 'Pembayaran', 'status': 'pembayaran'},
+        {'label': 'Pesanan Baru', 'status': 'pesanan_baru'},
+        {'label': 'Pickup', 'status': 'pickup'},
+        {'label': 'Sedang Dicuci', 'status': 'sedang_dicuci'},
+        {'label': 'Siap', 'status': 'siap'},
+        {'label': 'Delivery', 'status': 'delivery'},
+      ];
+    }
+  }
 
   @override
   void initState() {
@@ -40,6 +51,11 @@ class _AntreanScreenState extends State<AntreanScreen>
     _controller = AntreanController();
     _controller.setToken(widget.token);
     _controller.setRole(widget.user['jenis_role']); // ← role-based endpoint
+    _initTabController();
+    _loadData();
+  }
+
+  void _initTabController() {
     _tabController = TabController(length: _tabs.length, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -47,11 +63,21 @@ class _AntreanScreenState extends State<AntreanScreen>
         _loadData();
       }
     });
+  }
+
+  void _switchMetodeOrder(String metode) {
+    if (_metodeOrder == metode) return;
+    setState(() {
+      _metodeOrder = metode;
+      _currentTab = 0;
+      _tabController.dispose();
+      _initTabController();
+    });
     _loadData();
   }
 
   Future<void> _loadData() async {
-    await _controller.fetchAntrean(_tabs[_currentTab]['status']!);
+    await _controller.fetchAntrean(_tabs[_currentTab]['status']!, _metodeOrder);
   }
 
   @override
@@ -68,10 +94,11 @@ class _AntreanScreenState extends State<AntreanScreen>
         title: 'Manajemen Antrean',
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        bottom: CustomTabBar(
-          controller: _tabController,
+        bottom: _AntreanHeader(
+          tabController: _tabController,
           labels: _tabs.map((t) => t['label']!).toList(),
-          isScrollable: true,
+          selectedMetode: _metodeOrder,
+          onMetodeChanged: _switchMetodeOrder,
         ),
       ),
       // ← _buildTitleCard() dihapus dari sini
@@ -148,8 +175,8 @@ class _AntreanScreenState extends State<AntreanScreen>
 
   Widget _buildCard(AntreanModel antrean) {
     final detail = antrean.detail;
-    final nextStatus = _nextStatus(antrean.statusOrder);
-    final btnLabel = _btnLabel(antrean.statusOrder);
+    final nextStatus = _nextStatus(antrean.statusOrder, antrean.metodeOrder);
+    final btnLabel = _btnLabel(antrean.statusOrder, antrean.metodeOrder);
     final statusColor = _statusColor(antrean.statusOrder);
     final currentStatus = _tabs[_currentTab]['status'];
     final isTrackingTab = currentStatus == 'pickup' || currentStatus == 'delivery';
@@ -734,54 +761,76 @@ class _AntreanScreenState extends State<AntreanScreen>
     );
   }
 
-  String? _nextStatus(String s) {
-    switch (s) {
-      case 'pending':
-        return 'menunggu_pembayaran';
-      case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
-        return 'menunggu_dijemput';
-      case 'menunggu_dijemput':
-        return 'sedang_dijemput';
-      case 'sedang_dijemput':
-        return 'sudah_dijemput';
-      case 'sudah_dijemput':
-        return 'washing';
-      case 'washing':
-        return 'selesai_cuci';
-      case 'selesai_cuci':
-        return 'sedang_diantar';
-      case 'sedang_diantar':
-        return 'selesai';
-      case 'selesai':
-      case 'dibatalkan':
-        return null;
-      default:
-        return null;
+  String? _nextStatus(String s, String metodeOrder) {
+    if (metodeOrder == 'offline') {
+      switch (s) {
+        case 'dikonfirmasi':
+          return 'washing';
+        case 'washing':
+          return 'selesai';
+        default:
+          return null;
+      }
+    } else {
+      switch (s) {
+        case 'pending':
+          return 'menunggu_pembayaran';
+        case 'menunggu_pembayaran':
+        case 'menunggu_konfirmasi':
+          return 'menunggu_dijemput';
+        case 'menunggu_dijemput':
+          return 'sedang_dijemput';
+        case 'sedang_dijemput':
+          return 'sudah_dijemput';
+        case 'sudah_dijemput':
+          return 'washing';
+        case 'washing':
+          return 'selesai_cuci';
+        case 'selesai_cuci':
+          return 'sedang_diantar';
+        case 'sedang_diantar':
+          return 'selesai';
+        case 'selesai':
+        case 'dibatalkan':
+          return null;
+        default:
+          return null;
+      }
     }
   }
 
-  String _btnLabel(String s) {
-    switch (s) {
-      case 'pending':
-        return 'Setujui Pesanan';
-      case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
-        return 'Cek Pembayaran';
-      case 'menunggu_dijemput':
-        return 'Mulai Jemput';
-      case 'sedang_dijemput':
-        return 'Sepatu Dijemput';
-      case 'sudah_dijemput':
-        return 'Mulai Cuci';
-      case 'washing':
-        return 'Selesai Cuci';
-      case 'selesai_cuci':
-        return 'Mulai Antar';
-      case 'sedang_diantar':
-        return 'Selesaikan Order';
-      default:
-        return '';
+  String _btnLabel(String s, String metodeOrder) {
+    if (metodeOrder == 'offline') {
+      switch (s) {
+        case 'dikonfirmasi':
+          return 'Mulai Cuci';
+        case 'washing':
+          return 'Selesai Cuci';
+        default:
+          return '';
+      }
+    } else {
+      switch (s) {
+        case 'pending':
+          return 'Setujui Pesanan';
+        case 'menunggu_pembayaran':
+        case 'menunggu_konfirmasi':
+          return 'Cek Pembayaran';
+        case 'menunggu_dijemput':
+          return 'Mulai Jemput';
+        case 'sedang_dijemput':
+          return 'Sepatu Dijemput';
+        case 'sudah_dijemput':
+          return 'Mulai Cuci';
+        case 'washing':
+          return 'Selesai Cuci';
+        case 'selesai_cuci':
+          return 'Mulai Antar';
+        case 'sedang_diantar':
+          return 'Selesaikan Order';
+        default:
+          return '';
+      }
     }
   }
 
@@ -822,5 +871,90 @@ class _AntreanScreenState extends State<AntreanScreen>
     } catch (_) {
       return tgl;
     }
+  }
+}
+
+class _AntreanHeader extends StatelessWidget implements PreferredSizeWidget {
+  final TabController tabController;
+  final List<String> labels;
+  final String selectedMetode;
+  final ValueChanged<String> onMetodeChanged;
+
+  const _AntreanHeader({
+    required this.tabController,
+    required this.labels,
+    required this.selectedMetode,
+    required this.onMetodeChanged,
+  });
+
+  @override
+  Size get preferredSize => const Size.fromHeight(100.0);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  _buildSelectorBtn('online', 'Online'),
+                  _buildSelectorBtn('offline', 'Offline'),
+                ],
+              ),
+            ),
+          ),
+          CustomTabBar(
+            controller: tabController,
+            labels: labels,
+            isScrollable: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectorBtn(String value, String label) {
+    final isSelected = selectedMetode == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onMetodeChanged(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 34,
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? AppColors.primaryBlue : const Color(0xFF64748B),
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
