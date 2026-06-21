@@ -108,7 +108,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
   String _formatDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '-';
     try {
-      final date = DateTime.parse(dateStr);
+      final date = DateTimeUtils.parseToWib(dateStr);
       const months = [
         'Jan',
         'Feb',
@@ -132,7 +132,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
   String _formatDateTime(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '-';
     try {
-      final date = DateTime.parse(dateStr).toLocal();
+      final date = DateTimeUtils.parseToWib(dateStr);
       const months = [
         'Jan',
         'Feb',
@@ -1091,9 +1091,11 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                                   children: [
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
-                                      child: item['foto_sebelum'] != null
+                                      child: item['foto_sebelum'] != null && item['foto_sebelum'].toString().trim().isNotEmpty
                                           ? Image.network(
-                                              item['foto_sebelum'],
+                                              item['foto_sebelum'].toString().contains(',')
+                                                  ? item['foto_sebelum'].toString().split(',').first.trim()
+                                                  : item['foto_sebelum'].toString().trim(),
                                               width: 70,
                                               height: 70,
                                               fit: BoxFit.cover,
