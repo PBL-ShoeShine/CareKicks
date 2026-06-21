@@ -5,6 +5,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import 'package:carekicks/core/network/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'package:carekicks/features/admin/profile/views/profile_page.dart';
+import '../../../../core/utils/location_utils.dart';
 
 const _scanLine = Color(0xFF7CE7F1);
 const _textColor = Color(0xFF334155);
@@ -273,20 +274,6 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
                   ),
                 ],
               ),
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.notifications_none_rounded,
-                color: _textColor,
-                size: 20,
-              ),
-              onPressed: () {},
             ),
           ),
         ],
@@ -1336,7 +1323,9 @@ class _DeliveryBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   isDelivery
-                      ? (alamat ?? 'Alamat tidak ditemukan / Belum diisi')
+                      ? (LocationUtils.cleanAddress(alamat).isNotEmpty
+                            ? LocationUtils.cleanAddress(alamat)
+                            : 'Alamat tidak ditemukan / Belum diisi')
                       : 'Ambil di Toko',
                   style: TextStyle(
                     fontSize: 12,

@@ -12,6 +12,7 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/widgets/custom_appbar.dart';
 import '../../../../core/widgets/custom_scaffold.dart';
 import '../controllers/tracking_detail_controller.dart';
+import '../../../../core/utils/date_utils.dart';
 
 class TrackingDetailPage extends StatefulWidget {
   final String token;
@@ -137,7 +138,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
   String _formatDateTime(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '-';
     try {
-      final date = DateTime.parse(dateStr);
+      final date = DateTimeUtils.parseToWib(dateStr);
       final day = date.day.toString().padLeft(2, '0');
       final month = date.month.toString().padLeft(2, '0');
       final year = date.year.toString();

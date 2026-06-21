@@ -9,12 +9,14 @@ class TulisUlasanPage extends StatefulWidget {
   final String token;
   final int? idShops;
   final int? idOrders;
+  final int? idServices;
 
   const TulisUlasanPage({
     super.key,
     required this.token,
     this.idShops,
     this.idOrders,
+    this.idServices,
   });
 
   @override
@@ -99,6 +101,7 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
       ulasan: _ulasanTextController.text,
       idShops: finalIdShops,
       idOrders: finalIdOrders,
+      idServices: widget.idServices,
       fotoUlasan: _selectedImages,
     );
 

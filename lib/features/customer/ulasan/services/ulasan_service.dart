@@ -37,6 +37,7 @@ class UlasanService {
     required String ulasan,
     int? idShops,
     int? idOrders,
+    int? idServices,
     List<File>? fotoUlasan,
   }) async {
     try {
@@ -46,6 +47,7 @@ class UlasanService {
         ulasan: ulasan,
         idShops: idShops,
         idOrders: idOrders,
+        idServices: idServices,
         fotoUlasan: fotoUlasan,
       );
 

@@ -22,6 +22,7 @@ import 'package:carekicks/features/admin/toko/views/jam_operasional_page.dart';
 import 'package:carekicks/features/admin/toko/views/profil_toko_page.dart';
 import 'package:carekicks/features/auth/controllers/auth_controller.dart';
 import 'package:carekicks/features/auth/views/login_page.dart';
+import 'package:carekicks/features/admin/metode_pembayaran/views/metode_pembayaran_view.dart';
 
 class ProfilePage extends StatefulWidget {
   final String token;
@@ -557,6 +558,21 @@ class _ProfilePageState extends State<ProfilePage> {
                               MaterialPageRoute(
                                 builder: (_) =>
                                     ManajemenStaffScreen(token: widget.token),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildMenuCard(
+                          icon: Icons.account_balance_wallet_outlined,
+                          title: 'Metode Pembayaran',
+                          subtitle: 'Atur rekening bank dan QRIS',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    MetodePembayaranView(token: widget.token),
                               ),
                             );
                           },

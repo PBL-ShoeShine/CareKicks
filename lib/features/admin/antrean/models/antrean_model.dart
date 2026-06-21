@@ -31,13 +31,29 @@ class DetailOrder {
       serviceName = json['services']['nama_layanan'];
     }
 
+    String? fotoSebelum = json['foto_sebelum']?.toString().trim();
+    if (fotoSebelum != null && fotoSebelum.contains(',')) {
+      fotoSebelum = fotoSebelum.split(',').first.trim();
+    }
+    if (fotoSebelum != null && fotoSebelum.isEmpty) {
+      fotoSebelum = null;
+    }
+
+    String? fotoSesudah = json['foto_sesudah']?.toString().trim();
+    if (fotoSesudah != null && fotoSesudah.contains(',')) {
+      fotoSesudah = fotoSesudah.split(',').first.trim();
+    }
+    if (fotoSesudah != null && fotoSesudah.isEmpty) {
+      fotoSesudah = null;
+    }
+
     return DetailOrder(
       idDetailOrders: json['id_detail_orders'],
       merk: json['merk'] ?? '',
       jenisSepatu: json['jenis_sepatu'] ?? '',
       warna: json['warna'] ?? '',
-      fotoSebelum: json['foto_sebelum'],
-      fotoSesudah: json['foto_sesudah'],
+      fotoSebelum: fotoSebelum,
+      fotoSesudah: fotoSesudah,
       idServices: serviceId,
       totalHarga: (json['total_harga'] ?? 0).toDouble(),
       namaLayanan: serviceName,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:vibration/vibration.dart';
 import 'package:carekicks/core/network/api_service.dart';
+import '../../../../core/utils/location_utils.dart';
 
 const _brand = Color(0xFF1FB6C1);
 const _brandDark = Color(0xFF0E8A93);
@@ -90,7 +91,7 @@ class _PemindaiViewState extends State<PemindaiView> {
               ),
             ],
           ),
-          const Spacer(),
+          const Spacer(), // Ikon lonceng sudah dipastikan bersih dari sini
         ],
       ),
     );
@@ -196,7 +197,7 @@ class _PemindaiViewState extends State<PemindaiView> {
               ),
             ),
 
-            Center(child: const _ScannerFrame()),
+            const Center(child: _ScannerFrame()),
 
             Positioned(
               bottom: 80,
@@ -1155,7 +1156,9 @@ class _DeliveryBanner extends StatelessWidget {
                 ),
                 Text(
                   isDelivery
-                      ? (alamat ?? 'Alamat tidak ditemukan / Belum diisi')
+                      ? (LocationUtils.cleanAddress(alamat).isNotEmpty
+                            ? LocationUtils.cleanAddress(alamat)
+                            : 'Alamat tidak ditemukan / Belum diisi')
                       : 'Ambil di Toko',
                   style: TextStyle(
                     fontSize: 12,
