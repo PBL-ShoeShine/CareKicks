@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../controllers/detail_order_controller.dart';
 import '../../payment/views/payment_page.dart';
+import '../../../../core/utils/location_utils.dart';
 
 class DetailOrderPage extends StatefulWidget {
   final String token;
@@ -744,6 +745,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     final total = biayaLayanan + ongkir;
     final catatanPengiriman = _controller.order?['catatan_pengiriman']
         ?.toString();
+    final cleanAddress = LocationUtils.cleanAddress(_controller.address);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -766,7 +768,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
             'Metode',
             _isOnline ? 'Online (Antar Jemput)' : 'Offline (Ke Toko)',
           ),
-          if (_isOnline) _buildDetailRow('Alamat', _controller.address ?? '-'),
+          if (_isOnline) _buildDetailRow('Alamat', cleanAddress.isNotEmpty ? cleanAddress : '-'),
 
           if (catatanPengiriman != null && catatanPengiriman.isNotEmpty) ...[
             const SizedBox(height: 8),

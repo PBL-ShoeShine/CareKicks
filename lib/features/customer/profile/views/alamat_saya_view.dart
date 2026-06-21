@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:carekicks/core/constants/app_colors.dart';
 import '../controllers/customer_profile_controller.dart';
 import 'tambah_alamat_view.dart';
+import '../../../../core/utils/location_utils.dart';
 
 class AlamatSayaView extends StatefulWidget {
   final String token;
@@ -290,7 +291,8 @@ class _AlamatSayaViewState extends State<AlamatSayaView> {
     final phone = a['phone_number']?.toString() ?? '';
     final label = a['address_label']?.toString() ?? '';
 
-    final lines = fullAddress
+    final cleanAddr = LocationUtils.cleanAddress(fullAddress);
+    final lines = cleanAddr
         .split('\n')
         .where((l) => l.trim().isNotEmpty)
         .toList();
