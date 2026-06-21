@@ -50,6 +50,7 @@ class UlasanController extends ChangeNotifier {
     required String ulasan,
     int? idShops,
     int? idOrders,
+    int? idServices,
     List<File>? fotoUlasan,
   }) async {
     _isSubmitting = true;
@@ -63,6 +64,7 @@ class UlasanController extends ChangeNotifier {
         ulasan: ulasan,
         idShops: idShops,
         idOrders: idOrders,
+        idServices: idServices,
         fotoUlasan: fotoUlasan,
       );
 

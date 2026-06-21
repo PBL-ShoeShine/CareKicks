@@ -21,7 +21,7 @@ class _InputOffPageState extends State<InputOffPage> {
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _merkController = TextEditingController();
-  final TextEditingController _jenisSepatuController = TextEditingController(text: 'Sneakers');
+  final TextEditingController _jenisSepatuController = TextEditingController();
   final TextEditingController _warnaController = TextEditingController();
   final TextEditingController _catatanController = TextEditingController();
 
@@ -287,6 +287,7 @@ class _InputOffPageState extends State<InputOffPage> {
     TextInputType? keyboardType,
     int maxLines = 1,
     String? Function(String?)? validator,
+    bool readOnly = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,11 +305,17 @@ class _InputOffPageState extends State<InputOffPage> {
           keyboardType: keyboardType,
           maxLines: maxLines,
           validator: validator,
+          readOnly: readOnly,
+          style: TextStyle(
+            color: readOnly
+                ? Colors.grey.shade600
+                : Colors.black, // <--- UBAH WARNA TEKS JIKA READONLY
+          ),
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: icon != null ? Icon(icon, size: 20) : null,
             filled: true,
-            fillColor: Colors.white,
+            fillColor: readOnly ? Colors.grey.shade100 : Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
