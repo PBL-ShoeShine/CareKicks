@@ -17,9 +17,17 @@ class InventoryItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isLowStock = item.stokSaatIni <= item.stokMinimum;
-    final double progress = item.stokMinimum > 0 
-        ? (item.stokSaatIni / item.stokMinimum).clamp(0.0, 1.0) 
-        : 1.0;
+    final double maxStok = item.stokMinimum > 0 ? item.stokMinimum : 10.0;
+    final double barValue = item.stokSaatIni == 0
+        ? 1.0
+        : (item.stokSaatIni / maxStok).clamp(0.0, 1.0);
+    final Color barColor = item.stokSaatIni == 0
+        ? Colors.white
+        : (item.stokSaatIni <= 0.03 * maxStok
+            ? const Color(0xFFBA1A1A)
+            : (item.stokSaatIni >= maxStok
+                ? const Color(0xFF2AA952)
+                : const Color(0xFF3B82F6)));
 
     return Column(
       children: [
@@ -38,7 +46,16 @@ class InventoryItemTile extends StatelessWidget {
                     ),
                     child: Center(
                       child: item.fotoInven != null && item.fotoInven!.isNotEmpty
-                          ? Image.network(item.fotoInven!, width: 24, height: 24, errorBuilder: (c, e, s) => _buildIcon())
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.network(
+                                item.fotoInven!,
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                errorBuilder: (c, e, s) => _buildIcon(),
+                              ),
+                            )
                           : _buildIcon(),
                     ),
                   ),
@@ -133,12 +150,10 @@ class InventoryItemTile extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
-            value: progress,
+            value: barValue,
             minHeight: 8,
             backgroundColor: const Color(0xFFE1E3E3),
-            valueColor: AlwaysStoppedAnimation<Color>(
-              isLowStock ? const Color(0xFFBA1A1A) : const Color(0xFFD1E5F3),
-            ),
+            valueColor: AlwaysStoppedAnimation<Color>(barColor),
           ),
         ),
       ],
