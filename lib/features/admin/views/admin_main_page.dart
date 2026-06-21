@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/custom_scaffold.dart';
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
 import '../dashboard/views/dashboard_page.dart';
-import '../tracking/views/tracking_page.dart';
 import '../inventaris/views/inventory_page.dart';
 import '../scanner/views/scanner_page.dart';
 
@@ -48,7 +47,6 @@ class _AdminMainPageState extends State<AdminMainPage> {
       AntreanScreen(token: widget.token, user: widget.user),
       ScannerPage(token: widget.token, user: widget.user),
       if (_showInventory) InventoryPage(token: widget.token, user: widget.user),
-      TrackingPage(token: widget.token, user: widget.user),
     ];
 
     if (_currentIndex >= pages.length) {

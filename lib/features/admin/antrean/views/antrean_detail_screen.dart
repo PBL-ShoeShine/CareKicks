@@ -102,47 +102,69 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
   }
 
   // Bawa fungsi utilitas dari layar sebelumnya
-  String? _nextStatus(String s) {
-    switch (s) {
-      case 'pending':
-        return 'menunggu_pembayaran';
-      case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
-        return 'menunggu_dijemput';
-      case 'menunggu_dijemput':
-        return 'sedang_dijemput';
-      case 'sedang_dijemput':
-        return 'sudah_dijemput';
-      case 'sudah_dijemput':
-        return 'washing';
-      case 'washing':
-        return 'selesai_cuci';
-      case 'selesai_cuci':
-        return 'selesai';
-      default:
-        return null;
+  String? _nextStatus(String s, String metodeOrder) {
+    if (metodeOrder == 'offline') {
+      switch (s) {
+        case 'dikonfirmasi':
+          return 'washing';
+        case 'washing':
+          return 'selesai';
+        default:
+          return null;
+      }
+    } else {
+      switch (s) {
+        case 'pending':
+          return 'menunggu_pembayaran';
+        case 'menunggu_pembayaran':
+        case 'menunggu_konfirmasi':
+          return 'menunggu_dijemput';
+        case 'menunggu_dijemput':
+          return 'sedang_dijemput';
+        case 'sedang_dijemput':
+          return 'sudah_dijemput';
+        case 'sudah_dijemput':
+          return 'washing';
+        case 'washing':
+          return 'selesai_cuci';
+        case 'selesai_cuci':
+          return 'selesai';
+        default:
+          return null;
+      }
     }
   }
 
-  String _btnLabel(String s) {
-    switch (s) {
-      case 'pending':
-        return 'Setujui Pesanan';
-      case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
-        return 'Cek Pembayaran';
-      case 'menunggu_dijemput':
-        return 'Mulai Jemput';
-      case 'sedang_dijemput':
-        return 'Sepatu Dijemput';
-      case 'sudah_dijemput':
-        return 'Mulai Cuci';
-      case 'washing':
-        return 'Selesai Cuci';
-      case 'selesai_cuci':
-        return 'Selesaikan Order';
-      default:
-        return '';
+  String _btnLabel(String s, String metodeOrder) {
+    if (metodeOrder == 'offline') {
+      switch (s) {
+        case 'dikonfirmasi':
+          return 'Mulai Cuci';
+        case 'washing':
+          return 'Selesai Cuci';
+        default:
+          return '';
+      }
+    } else {
+      switch (s) {
+        case 'pending':
+          return 'Setujui Pesanan';
+        case 'menunggu_pembayaran':
+        case 'menunggu_konfirmasi':
+          return 'Cek Pembayaran';
+        case 'menunggu_dijemput':
+          return 'Mulai Jemput';
+        case 'sedang_dijemput':
+          return 'Sepatu Dijemput';
+        case 'sudah_dijemput':
+          return 'Mulai Cuci';
+        case 'washing':
+          return 'Selesai Cuci';
+        case 'selesai_cuci':
+          return 'Selesaikan Order';
+        default:
+          return '';
+      }
     }
   }
 
@@ -422,7 +444,8 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nextStatus = _nextStatus(_currentStatus);
+    final detail = widget.antrean.detail;
+    final nextStatus = _nextStatus(_currentStatus, widget.antrean.metodeOrder);
     final statusColor = _statusColor(_currentStatus);
     final paymentProofUrl = _paymentProofUrl;
 
@@ -679,7 +702,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildInfoItem(
-                        'Status Pembayaran1',
+                        'Status Pembayaran',
                         widget.antrean.statusPembayaran.isEmpty
                             ? '-'
                             : widget.antrean.statusPembayaran,
@@ -843,7 +866,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
           children: [
             Flexible(
               child: Text(
-                _btnLabel(_currentStatus),
+                _btnLabel(_currentStatus, widget.antrean.metodeOrder),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,

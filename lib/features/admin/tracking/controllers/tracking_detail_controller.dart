@@ -264,7 +264,7 @@ class TrackingDetailController extends ChangeNotifier {
       final result = await TrackingService.updateTrackingStatus(
         token: token,
         orderId: orderId,
-        status: 'diterima_toko',
+        status: 'sudah_dijemput',
         keterangan: 'Pesanan telah diterima di toko',
         isValidation: true,
         latitude: position.latitude != 0 ? position.latitude : null,
@@ -566,6 +566,44 @@ class TrackingDetailController extends ChangeNotifier {
       }
 
       _errorMessage = result['message'] ?? 'Gagal mengirim foto validasi';
+      _isUpdating = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = 'Terjadi kesalahan: $e';
+      _isUpdating = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateStatus({
+    required String token,
+    required int orderId,
+    required String status,
+    String? keterangan,
+    int? idStaff,
+  }) async {
+    _isUpdating = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await TrackingService.updateTrackingStatus(
+        token: token,
+        orderId: orderId,
+        status: status,
+        keterangan: keterangan,
+        idStaff: idStaff,
+      );
+
+      if (result['success'] == true) {
+        _isUpdating = false;
+        notifyListeners();
+        return true;
+      }
+
+      _errorMessage = result['message'] ?? 'Gagal memperbarui status';
       _isUpdating = false;
       notifyListeners();
       return false;

@@ -90,6 +90,7 @@ class AntreanModel {
   final String? linkQr;
   final List<DetailOrder> detailOrders;
   final CustomerInfo? customer;
+  final String metodeOrder;
 
   AntreanModel({
     required this.idOrders,
@@ -104,6 +105,7 @@ class AntreanModel {
     this.linkQr,
     required this.detailOrders,
     this.customer,
+    required this.metodeOrder,
   });
 
   factory AntreanModel.fromJson(Map<String, dynamic> json) {
@@ -129,6 +131,7 @@ class AntreanModel {
       linkQr: json['link_qr']?.toString(),
       detailOrders: details,
       customer: cust,
+      metodeOrder: json['metode_order'] ?? 'online',
     );
   }
 

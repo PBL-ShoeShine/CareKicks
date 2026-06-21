@@ -163,10 +163,12 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     final normalized = status?.toLowerCase() ?? '';
     switch (normalized) {
       case 'menunggu_jemput':
+      case 'menunggu_dijemput':
         return 'Menunggu Penjemputan';
       case 'sedang_dijemput':
         return 'Sedang Menjemput';
       case 'diterima_toko':
+      case 'sudah_dijemput':
         return 'Penjemputan Selesai';
       case 'siap_diantar':
         return 'Siap Diantar';
@@ -184,10 +186,12 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     final normalized = status?.toLowerCase() ?? '';
     switch (normalized) {
       case 'menunggu_jemput':
+      case 'menunggu_dijemput':
         return 'Kurir menunggu mulai penjemputan';
       case 'sedang_dijemput':
         return 'Pantau lokasi Anda menuju pelanggan';
       case 'diterima_toko':
+      case 'sudah_dijemput':
         return 'Pesanan telah diterima di toko';
       case 'siap_diantar':
         return 'Pesanan siap diantar ke pelanggan';
@@ -560,6 +564,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     switch (normalized) {
       case 'selesai':
       case 'diterima_toko':
+      case 'sudah_dijemput':
         color = AppColors.success;
         break;
       case 'sedang_dijemput':
@@ -568,6 +573,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
         color = AppColors.primaryBlue;
         break;
       case 'menunggu_jemput':
+      case 'menunggu_dijemput':
       case 'siap_diantar':
       case 'pending':
         color = AppColors.warning;
@@ -1042,18 +1048,25 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
           final nextDistanceMeters = _controller.nextDistanceMeters;
 
           final status = order['status_order']?.toString().toLowerCase();
-          final isPickupWaiting = status == 'menunggu_jemput';
+          final isPickupWaiting =
+              status == 'menunggu_jemput' || status == 'menunggu_dijemput';
           final isPickupActive = status == 'sedang_dijemput';
+          final isPickupReceived =
+              status == 'diterima_toko' || status == 'sudah_dijemput';
           final isPickupPhase =
-              isPickupWaiting || isPickupActive || status == 'diterima_toko';
+              isPickupWaiting || isPickupActive || isPickupReceived;
           final isDeliveryReady = status == 'siap_diantar';
           final isDeliveryActive =
               status == 'sedang_diantar' || status == 'diantar';
           final isDeliveryPhase =
               isDeliveryReady || isDeliveryActive || status == 'selesai';
+          final shouldShowPreview =
+              (isPickupPhase && isPickupReceived) ||
+              (isDeliveryPhase && status == 'selesai');
           final showControls =
               isPickupWaiting ||
               isPickupActive ||
+              isPickupReceived ||
               isDeliveryReady ||
               isDeliveryActive;
           final statusTitle = _statusTitle(status);
@@ -1080,6 +1093,41 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                             orderId: widget.orderId,
                             idStaff: parsedIdStaff,
                           );
+                        },
+                ),
+              ),
+            );
+          } else if (isPickupReceived) {
+            actionButtons.add(
+              Expanded(
+                child: _actionButton(
+                  label: 'Cuci Sekarang',
+                  icon: Icons.local_laundry_service,
+                  color: AppColors.primaryBlue,
+                  onPressed: _controller.isUpdating
+                      ? null
+                      : () async {
+                          final ok = await _controller.updateStatus(
+                            token: widget.token,
+                            orderId: widget.orderId,
+                            status: 'washing',
+                            keterangan: 'Sepatu mulai dicuci',
+                            idStaff: parsedIdStaff,
+                          );
+                          if (ok && mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Status berhasil diubah ke Washing',
+                                ),
+                                backgroundColor: AppColors.success,
+                              ),
+                            );
+                            _controller.fetchTrackingDetail(
+                              token: widget.token,
+                              orderId: widget.orderId,
+                            );
+                          }
                         },
                 ),
               ),
@@ -1186,7 +1234,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                 ),
                 const SizedBox(height: 16),
 
-                if (showControls)
+                if (showControls && !isPickupReceived)
                   _instructionCard(
                     nextInstruction,
                     nextDistanceMeters,
@@ -1231,7 +1279,36 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                                   _submitDelivery(image, parsedIdStaff),
                             ),
                     ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 10),
+                ],
+
+                if (shouldShowPreview &&
+                    order['foto_validasi'] != null &&
+                    order['foto_validasi'].toString().isNotEmpty) ...[
+                  const Text(
+                    'Foto Bukti',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      order['foto_validasi'].toString(),
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 200,
+                          color: Colors.grey.shade200,
+                          child: const Center(
+                            child: Icon(Icons.broken_image, color: Colors.grey),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                 ],
 
                 _deliveryDetailCard(detailTitle, order, lastLog),

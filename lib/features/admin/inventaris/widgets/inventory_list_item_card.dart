@@ -18,11 +18,17 @@ class InventoryListItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isLowStock = item.stokSaatIni <= item.stokMinimum;
     final bool isVeryLowStock = item.stokSaatIni <= (item.stokMinimum / 2);
-    // You requested to show 500/250 (current/minimum). 
-    // The progress bar can be tricky if current > minimum. Let's make it 1.0 if it's over minimum.
-    final double progress = item.stokMinimum > 0 
-        ? (item.stokSaatIni / item.stokMinimum).clamp(0.0, 1.0) 
-        : 1.0;
+    final double maxStok = item.stokMinimum > 0 ? item.stokMinimum : 10.0;
+    final double barValue = item.stokSaatIni == 0
+        ? 1.0
+        : (item.stokSaatIni / maxStok).clamp(0.0, 1.0);
+    final Color barColor = item.stokSaatIni == 0
+        ? Colors.white
+        : (item.stokSaatIni <= 0.03 * maxStok
+            ? const Color(0xFFBA1A1A)
+            : (item.stokSaatIni >= maxStok
+                ? const Color(0xFF2AA952)
+                : const Color(0xFF3B82F6)));
 
     return GestureDetector(
       onTap: onTap,
@@ -51,7 +57,16 @@ class InventoryListItemCard extends StatelessWidget {
                         ),
                         child: Center(
                           child: item.fotoInven != null && item.fotoInven!.isNotEmpty
-                              ? Image.network(item.fotoInven!, width: 18, height: 20, errorBuilder: (c, e, s) => _buildIcon())
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    item.fotoInven!,
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (c, e, s) => _buildIcon(),
+                                  ),
+                                )
                               : _buildIcon(),
                         ),
                       ),
@@ -115,12 +130,10 @@ class InventoryListItemCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: LinearProgressIndicator(
-                value: progress,
+                value: barValue,
                 minHeight: 10,
-                backgroundColor: Colors.blue,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  isLowStock ? const Color(0xFFBA1A1A) : Colors.blue.shade400,
-                ),
+                backgroundColor: const Color(0xFFE5E7EB),
+                valueColor: AlwaysStoppedAnimation<Color>(barColor),
               ),
             ),
             if (isVeryLowStock)

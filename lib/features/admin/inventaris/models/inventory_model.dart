@@ -25,6 +25,12 @@ class InventoryItem {
     this.updatedAt,
   });
 
+  static String? _resolveFotoUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return 'https://xedmzxaytjnfcnhnxumj.supabase.co/storage/v1/object/public/services/$path';
+  }
+
   factory InventoryItem.fromJson(Map<String, dynamic> json) {
     return InventoryItem(
       idInventory: json['id_inventory'],
@@ -35,7 +41,7 @@ class InventoryItem {
       stokMaksimum: (json['stok_maksimum'] as num).toDouble(),
       stokMinimum: (json['stok_minimum'] as num).toDouble(),
       satuan: json['satuan'],
-      fotoInven: json['foto_inven'],
+      fotoInven: _resolveFotoUrl(json['foto_inven']),
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
     );
