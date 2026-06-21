@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/riwayat_controller.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../detail_order/views/detail_order_page.dart';
+import '../../../../core/utils/date_utils.dart';
 
 class RiwayatPage extends StatefulWidget {
   final String token;
@@ -105,10 +106,14 @@ class _RiwayatPageState extends State<RiwayatPage> {
     return 'Rp $formatted';
   }
 
+  DateTime _parseToWib(String dateStr) {
+    return DateTimeUtils.parseToWib(dateStr);
+  }
+
   String _formatDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '-';
     try {
-      final date = DateTime.parse(dateStr);
+      final date = _parseToWib(dateStr);
       return '${date.day.toString().padLeft(2, '0')}/'
           '${date.month.toString().padLeft(2, '0')}/'
           '${date.year}';

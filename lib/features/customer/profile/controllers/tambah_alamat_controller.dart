@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/tambah_alamat_service.dart';
+import '../../../../core/utils/location_utils.dart';
 
 class TambahAlamatController extends ChangeNotifier {
   // ===========================================================================
@@ -52,7 +53,8 @@ class TambahAlamatController extends ChangeNotifier {
     selectedLabel = e['address_label'];
     isDefault = e['is_default'] ?? false;
 
-    final parts = (e['full_address'] ?? '').split('\n');
+    final cleanAddr = LocationUtils.cleanAddress(e['full_address'] ?? '');
+    final parts = cleanAddr.split('\n');
     streetCtrl.text = parts.isNotEmpty ? parts[0] : '';
     detailCtrl.text = parts.length > 1 ? parts.sublist(1).join('\n') : '';
     _streetAutoFilled = streetCtrl.text.isNotEmpty;
@@ -62,7 +64,7 @@ class TambahAlamatController extends ChangeNotifier {
 
     if (lat != null && lng != null) {
       pinLocation = LatLng(lat, lng);
-      resolvedAddress = e['full_address'] ?? '';
+      resolvedAddress = cleanAddr;
     }
 
     notifyListeners();
@@ -241,7 +243,8 @@ class TambahAlamatController extends ChangeNotifier {
       components.add(wilayahText);
     }
 
-    return components.join('\n');
+    final rawAddress = components.join('\n');
+    return LocationUtils.cleanAddress(rawAddress);
   }
 
   String _formatPhone(String raw) {

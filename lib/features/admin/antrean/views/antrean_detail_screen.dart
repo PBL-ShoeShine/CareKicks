@@ -8,6 +8,7 @@ import '../../../../core/widgets/custom_appbar.dart';
 import '../../../../core/widgets/custom_scaffold.dart';
 import '../models/antrean_model.dart';
 import '../controllers/antrean_controller.dart';
+import '../../../../core/utils/date_utils.dart';
 
 class AntreanDetailScreen extends StatefulWidget {
   final String token;
@@ -51,20 +52,46 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
           _currentStatus = nextStatus;
           _isStatusUpdated = true;
         });
+      }
+    } catch (e) {
+      if (mounted) {}
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handlePaymentConfirmation(
+    String action, {
+    String? reason,
+  }) async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await _controller.processPayment(
+        idOrders: widget.antrean.idOrders,
+        action: action,
+        reason: reason,
+      );
+      if (result['success'] == true && mounted) {
+        setState(() {
+          _currentStatus = action == 'approve'
+              ? 'menunggu_dijemput'
+              : 'menunggu_pembayaran';
+          _isStatusUpdated = true;
+        });
+      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Status berhasil diubah ke $nextStatus'),
-            backgroundColor: AppColors.successGreen,
+            content: Text(result['message'] ?? 'Gagal memproses'),
+            backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengubah status: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -145,7 +172,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
 
   String _formatTgl(String tgl) {
     try {
-      final dt = DateTime.parse(tgl).toLocal();
+      final dt = DateTimeUtils.parseToWib(tgl);
       return '${dt.day}/${dt.month}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return tgl;
@@ -169,7 +196,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
   Future<void> _rejectPayment() async {
     final reason = await _showRejectReasonDialog();
     if (reason == null || reason.trim().isEmpty) return;
-    await _updateStatus('menunggu_pembayaran', keterangan: reason);
+    await _handlePaymentConfirmation('reject', reason: reason);
   }
 
   Future<String?> _showRejectReasonDialog() async {
@@ -290,15 +317,15 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                           child: ElevatedButton(
                             onPressed: canSubmit
                                 ? () => Navigator.pop(
-                                      context,
-                                      reasonController.text.trim(),
-                                    )
+                                    context,
+                                    reasonController.text.trim(),
+                                  )
                                 : null,
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size.fromHeight(48),
                               backgroundColor: AppColors.errorRed,
-                              disabledBackgroundColor:
-                                  AppColors.errorRed.withOpacity(0.32),
+                              disabledBackgroundColor: AppColors.errorRed
+                                  .withOpacity(0.32),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -398,7 +425,6 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     final detail = widget.antrean.detail;
     final nextStatus = _nextStatus(_currentStatus);
     final statusColor = _statusColor(_currentStatus);
-    final qrImageUrl = _qrImageUrl;
     final paymentProofUrl = _paymentProofUrl;
 
     return WillPopScope(
@@ -573,10 +599,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                       padding: EdgeInsets.symmetric(vertical: 16),
                       child: Divider(height: 1, color: Color(0xFFEEEEEE)),
                     ),
-                    _buildInfoItem(
-                      'Jenis Layanan',
-                      detail?.namaLayanan ?? '-',
-                    ),
+                    _buildInfoItem('Jenis Layanan', detail?.namaLayanan ?? '-'),
                   ],
                 ),
               ),
@@ -610,7 +633,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildInfoItem(
-                        'Status Pembayaran',
+                        'Status Pembayaran1',
                         widget.antrean.statusPembayaran.isEmpty
                             ? '-'
                             : widget.antrean.statusPembayaran,
@@ -695,7 +718,60 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: _buildPrimaryBottomButton(nextStatus),
+            child: SizedBox(
+              height: 54,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.successGreen,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Setujui Pembayaran'),
+                      content: Text(
+                        'Apakah Anda yakin ingin menyetujui pembayaran untuk pesanan #${widget.antrean.kodeOrder}?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Batal'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Ya, Setujui'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await _handlePaymentConfirmation('approve');
+                  }
+                },
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Setujui',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Icon(Icons.check, color: Colors.white, size: 20),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       );

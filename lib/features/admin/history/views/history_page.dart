@@ -6,6 +6,7 @@ import '../../../../core/widgets/custom_appbar.dart';
 import '../../../../core/widgets/custom_filter_bar.dart';
 import '../../../../core/widgets/custom_search_field.dart';
 import '../controllers/history_controller.dart';
+import '../../../../core/utils/date_utils.dart';
 
 class HistoryPage extends StatefulWidget {
   final String token;
@@ -68,7 +69,7 @@ class _HistoryPageState extends State<HistoryPage> {
     if (dateStr == null || dateStr.isEmpty) return '-';
 
     try {
-      final date = DateTime.parse(dateStr);
+      final date = DateTimeUtils.parseToWib(dateStr);
       return '${date.day}/${date.month}/${date.year}';
     } catch (e) {
       return dateStr;

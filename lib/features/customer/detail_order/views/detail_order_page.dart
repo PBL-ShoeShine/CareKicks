@@ -4,6 +4,8 @@ import 'package:latlong2/latlong.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../controllers/detail_order_controller.dart';
 import '../../payment/views/payment_page.dart';
+import '../../../../core/utils/location_utils.dart';
+import '../../../../core/utils/date_utils.dart';
 import '../../ulasan/views/tulis_ulasan_page.dart';
 
 class DetailOrderPage extends StatefulWidget {
@@ -108,7 +110,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
   String _formatDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '-';
     try {
-      final date = DateTime.parse(dateStr);
+      final date = DateTimeUtils.parseToWib(dateStr);
       const months = [
         'Jan',
         'Feb',
@@ -132,7 +134,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
   String _formatDateTime(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '-';
     try {
-      final date = DateTime.parse(dateStr).toLocal();
+      final date = DateTimeUtils.parseToWib(dateStr);
       const months = [
         'Jan',
         'Feb',
@@ -746,6 +748,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     final total = biayaLayanan + ongkir;
     final catatanPengiriman = _controller.order?['catatan_pengiriman']
         ?.toString();
+    final cleanAddress = LocationUtils.cleanAddress(_controller.address);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -768,7 +771,11 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
             'Metode',
             _isOnline ? 'Online (Antar Jemput)' : 'Offline (Ke Toko)',
           ),
-          if (_isOnline) _buildDetailRow('Alamat', _controller.address ?? '-'),
+          if (_isOnline)
+            _buildDetailRow(
+              'Alamat',
+              cleanAddress.isNotEmpty ? cleanAddress : '-',
+            ),
 
           if (catatanPengiriman != null && catatanPengiriman.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -1170,9 +1177,11 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                                   children: [
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
-                                      child: item['foto_sebelum'] != null
+                                      child: item['foto_sebelum'] != null && item['foto_sebelum'].toString().trim().isNotEmpty
                                           ? Image.network(
-                                              item['foto_sebelum'],
+                                              item['foto_sebelum'].toString().contains(',')
+                                                  ? item['foto_sebelum'].toString().split(',').first.trim()
+                                                  : item['foto_sebelum'].toString().trim(),
                                               width: 70,
                                               height: 70,
                                               fit: BoxFit.cover,

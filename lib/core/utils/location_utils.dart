@@ -38,4 +38,57 @@ class LocationUtils {
     // Biasanya distance * 5000.
     return (distanceKm * 5000).round();
   }
+
+  /// Deduplicate and clean up repeating parts of an address
+  static String cleanAddress(String? address) {
+    if (address == null || address.trim().isEmpty) return '';
+
+    // Split by newlines, trim, and remove empty lines
+    final List<String> lines = address
+        .split('\n')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    final List<String> cleanLines = [];
+
+    for (final line in lines) {
+      bool isSubset = false;
+      for (final other in lines) {
+        if (identical(line, other)) continue;
+        if (other.toLowerCase().contains(line.toLowerCase())) {
+          if (other.toLowerCase() == line.toLowerCase()) {
+            if (lines.indexOf(line) > lines.indexOf(other)) {
+              isSubset = true;
+              break;
+            }
+          } else {
+            isSubset = true;
+            break;
+          }
+        }
+      }
+
+      if (!isSubset) {
+        bool alreadyAdded = false;
+        for (int i = 0; i < cleanLines.length; i++) {
+          final existing = cleanLines[i];
+          if (existing.toLowerCase().contains(line.toLowerCase())) {
+            alreadyAdded = true;
+            break;
+          }
+          if (line.toLowerCase().contains(existing.toLowerCase())) {
+            cleanLines[i] = line;
+            alreadyAdded = true;
+            break;
+          }
+        }
+        if (!alreadyAdded) {
+          cleanLines.add(line);
+        }
+      }
+    }
+
+    return cleanLines.join('\n');
+  }
 }
