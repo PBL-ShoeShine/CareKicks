@@ -6,7 +6,6 @@ import '../../../../core/widgets/custom_tab_bar.dart';
 import '../controllers/antrean_controller.dart';
 import '../models/antrean_model.dart';
 import '../views/antrean_detail_screen.dart';
-import '../../../../core/utils/date_utils.dart';
 
 class AntreanScreen extends StatefulWidget {
   final String token;
@@ -71,7 +70,6 @@ class _AntreanScreenState extends State<AntreanScreen>
           isScrollable: true,
         ),
       ),
-      // ← _buildTitleCard() dihapus dari sini
       body: _buildList(),
     );
   }
@@ -223,7 +221,10 @@ class _AntreanScreenState extends State<AntreanScreen>
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                antrean.statusOrder.toUpperCase(),
+                                // --- PERBAIKAN: MENGHILANGKAN UNDERSCORE DI SINI ---
+                                antrean.statusOrder
+                                    .replaceAll('_', ' ')
+                                    .toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.bold,
@@ -369,9 +370,8 @@ class _AntreanScreenState extends State<AntreanScreen>
       );
     }
 
-    // 2. Tab Pembayaran (menunggu_pembayaran atau menunggu_konfirmasi)
-    if (antrean.statusOrder == 'menunggu_pembayaran' ||
-        antrean.statusOrder == 'menunggu_konfirmasi') {
+    // 2. Tab Pembayaran (menunggu_pembayaran)
+    if (antrean.statusOrder == 'menunggu_pembayaran') {
       return Row(
         children: [
           Expanded(
@@ -473,7 +473,20 @@ class _AntreanScreenState extends State<AntreanScreen>
     if (mounted) {
       if (result['success'] == true) {
         _loadData();
-      } else {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Berhasil diproses'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Gagal memproses'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
     }
   }
 
@@ -502,7 +515,9 @@ class _AntreanScreenState extends State<AntreanScreen>
           _loadData();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Status diubah ke $nextStatus'),
+              content: Text(
+                'Status diubah ke ${nextStatus.replaceAll('_', ' ')}',
+              ),
               backgroundColor: AppColors.successGreen,
             ),
           );
@@ -682,21 +697,13 @@ class _AntreanScreenState extends State<AntreanScreen>
       case 'pending':
         return 'menunggu_pembayaran';
       case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
-        return 'menunggu_dijemput';
-      case 'menunggu_dijemput':
-        return 'sedang_dijemput';
-      case 'sedang_dijemput':
-        return 'sudah_dijemput';
-      case 'sudah_dijemput':
+        return 'pesanan_baru';
+      case 'pesanan_baru':
         return 'washing';
       case 'washing':
         return 'selesai_cuci';
       case 'selesai_cuci':
         return 'selesai';
-      case 'selesai':
-      case 'dibatalkan':
-        return null;
       default:
         return null;
     }
@@ -707,13 +714,8 @@ class _AntreanScreenState extends State<AntreanScreen>
       case 'pending':
         return 'Setujui Pesanan';
       case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
         return 'Cek Pembayaran';
-      case 'menunggu_dijemput':
-        return 'Mulai Jemput';
-      case 'sedang_dijemput':
-        return 'Sepatu Dijemput';
-      case 'sudah_dijemput':
+      case 'pesanan_baru':
         return 'Mulai Cuci';
       case 'washing':
         return 'Selesai Cuci';
@@ -729,14 +731,9 @@ class _AntreanScreenState extends State<AntreanScreen>
       case 'pending':
         return AppColors.primaryBlue;
       case 'menunggu_pembayaran':
-      case 'menunggu_konfirmasi':
         return Colors.amber.shade700;
-      case 'menunggu_dijemput':
+      case 'pesanan_baru':
         return AppColors.successGreen;
-      case 'sedang_dijemput':
-        return Colors.orange;
-      case 'sudah_dijemput':
-        return Colors.orange.shade700;
       case 'washing':
         return Colors.purple;
       case 'selesai_cuci':
@@ -752,7 +749,7 @@ class _AntreanScreenState extends State<AntreanScreen>
 
   String _formatTgl(String tgl) {
     try {
-      final dt = DateTimeUtils.parseToWib(tgl);
+      final dt = DateTime.parse(tgl).toLocal();
       return '${dt.day}/${dt.month}/${dt.year} '
           '${dt.hour.toString().padLeft(2, '0')}:'
           '${dt.minute.toString().padLeft(2, '0')}';

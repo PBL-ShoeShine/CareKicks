@@ -276,20 +276,6 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
               ),
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.notifications_none_rounded,
-                color: _textColor,
-                size: 20,
-              ),
-              onPressed: () {},
-            ),
-          ),
         ],
       ),
     );
@@ -1338,8 +1324,8 @@ class _DeliveryBanner extends StatelessWidget {
                 Text(
                   isDelivery
                       ? (LocationUtils.cleanAddress(alamat).isNotEmpty
-                          ? LocationUtils.cleanAddress(alamat)
-                          : 'Alamat tidak ditemukan / Belum diisi')
+                            ? LocationUtils.cleanAddress(alamat)
+                            : 'Alamat tidak ditemukan / Belum diisi')
                       : 'Ambil di Toko',
                   style: TextStyle(
                     fontSize: 12,

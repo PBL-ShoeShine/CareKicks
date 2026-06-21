@@ -91,7 +91,7 @@ class _PemindaiViewState extends State<PemindaiView> {
               ),
             ],
           ),
-          const Spacer(),
+          const Spacer(), // Ikon lonceng sudah dipastikan bersih dari sini
         ],
       ),
     );
@@ -197,7 +197,7 @@ class _PemindaiViewState extends State<PemindaiView> {
               ),
             ),
 
-            Center(child: const _ScannerFrame()),
+            const Center(child: _ScannerFrame()),
 
             Positioned(
               bottom: 80,
@@ -1157,8 +1157,8 @@ class _DeliveryBanner extends StatelessWidget {
                 Text(
                   isDelivery
                       ? (LocationUtils.cleanAddress(alamat).isNotEmpty
-                          ? LocationUtils.cleanAddress(alamat)
-                          : 'Alamat tidak ditemukan / Belum diisi')
+                            ? LocationUtils.cleanAddress(alamat)
+                            : 'Alamat tidak ditemukan / Belum diisi')
                       : 'Ambil di Toko',
                   style: TextStyle(
                     fontSize: 12,

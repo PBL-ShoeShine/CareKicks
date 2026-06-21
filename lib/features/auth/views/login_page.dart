@@ -8,6 +8,10 @@ import '../../admin/views/admin_main_page.dart';
 import '../../customer/view/customer_main_page.dart';
 import 'suspended_shop_page.dart';
 
+// --- TAMBAHAN IMPORT HALAMAN LUPA PASSWORD ---
+import 'lupa_password_view.dart';
+// ---------------------------------------------
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -231,7 +235,43 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
 
-                      const SizedBox(height: 50),
+                      // --- TAMBAHAN: TOMBOL LUPA PASSWORD ---
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _authController.isLoading
+                              ? null
+                              : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      // Ganti nama class ini jika berbeda di file lupa_password_view.dart milikmu
+                                      builder: (_) => const LupaPasswordView(),
+                                    ),
+                                  );
+                                },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.only(
+                              top: 8,
+                              bottom: 8,
+                              right: 4,
+                            ),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            "Lupa Password?",
+                            style: TextStyle(
+                              color: AppColors.primaryBlue,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // --------------------------------------
+                      const SizedBox(height: 30),
 
                       // BUTTON
                       SizedBox(

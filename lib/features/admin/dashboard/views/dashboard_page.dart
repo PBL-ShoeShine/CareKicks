@@ -612,8 +612,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
+                                        // --- PERBAIKAN: MENGHILANGKAN UNDERSCORE DI SINI ---
                                         activity['status_order']
                                                 ?.toString()
+                                                .replaceAll('_', ' ')
                                                 .toUpperCase() ??
                                             'PENDING',
                                         style: TextStyle(

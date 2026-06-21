@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // ---> TAMBAHAN IMPORT UNTUK VALIDASI ANGKA
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/custom_scaffold.dart';
 import '../controllers/auth_controller.dart';
@@ -54,8 +55,18 @@ class _RegisterPageState extends State<RegisterPage> {
     }
 
     if (!email.contains('@')) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Format email tidak valid')));
+      return;
+    }
+
+    // Validasi tambahan untuk No HP (Minimal digit)
+    if (noHp.length < 9) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Format email tidak valid')),
+        const SnackBar(
+          content: Text('Nomor handphone tidak valid (minimal 9 angka)'),
+        ),
       );
       return;
     }
@@ -76,7 +87,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Register berhasil!')),
+        const SnackBar(
+          content: Text('Register berhasil!'),
+          backgroundColor: AppColors.successGreen,
+        ),
       );
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
@@ -88,8 +102,19 @@ class _RegisterPageState extends State<RegisterPage> {
         (route) => false,
       );
     } else if (mounted) {
+      // --- PERBAIKAN: Menerjemahkan bahasa sistem database (Error Duplicate) ---
+      String errorMsg = _authController.errorMessage ?? 'Register gagal';
+      final lowerError = errorMsg.toLowerCase();
+
+      if (lowerError.contains('duplicate') ||
+          lowerError.contains('unique') ||
+          lowerError.contains('already exists')) {
+        errorMsg =
+            'Email ini sudah terdaftar. Silakan gunakan email lain atau langsung Login.';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_authController.errorMessage ?? 'Register gagal')),
+        SnackBar(content: Text(errorMsg), backgroundColor: AppColors.errorRed),
       );
     }
   }
@@ -111,7 +136,9 @@ class _RegisterPageState extends State<RegisterPage> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: AppColors.primaryBlue,
-                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(40),
+                    ),
                   ),
                   child: const Center(
                     child: Text(
@@ -139,12 +166,20 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       const SizedBox(height: 20),
 
-                      // NOMOR HANDPHONE
+                      // NOMOR HANDPHONE (Diperbarui dengan Validasi Angka & Max Length)
                       TextField(
                         controller: _noHpController,
                         enabled: !_authController.isLoading,
                         keyboardType: TextInputType.phone,
-                        decoration: _inputStyle("Nomer handphone"),
+                        maxLength: 15, // Batas maksimal digit nomor Indonesia
+                        inputFormatters: [
+                          FilteringTextInputFormatter
+                              .digitsOnly, // Hanya membolehkan angka (0-9)
+                        ],
+                        decoration: _inputStyle("Nomer handphone").copyWith(
+                          counterText:
+                              "", // Menyembunyikan teks 0/15 di bawah kolom
+                        ),
                       ),
                       const SizedBox(height: 20),
 
@@ -165,7 +200,9 @@ class _RegisterPageState extends State<RegisterPage> {
                         decoration: _inputStyle("Password").copyWith(
                           suffixIcon: IconButton(
                             icon: Icon(
-                              isHidden ? Icons.visibility_off : Icons.visibility,
+                              isHidden
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                             ),
                             onPressed: () {
                               setState(() {
@@ -178,7 +215,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                       const SizedBox(height: 50),
 
-                      // SIGN IN BUTTON
+                      // SIGN UP BUTTON
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -189,13 +226,17 @@ class _RegisterPageState extends State<RegisterPage> {
                               borderRadius: BorderRadius.circular(30),
                             ),
                           ),
-                          onPressed: _authController.isLoading ? null : _handleRegister,
+                          onPressed: _authController.isLoading
+                              ? null
+                              : _handleRegister,
                           child: _authController.isLoading
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
                                   child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                     strokeWidth: 2,
                                   ),
                                 )
