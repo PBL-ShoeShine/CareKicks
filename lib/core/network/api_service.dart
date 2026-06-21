@@ -1082,7 +1082,7 @@ class ApiService {
   }) async {
     try {
       final uri = Uri.parse(
-        '$baseUrl/customer/payments/bank-accounts',
+        '$baseUrl/customer/payment/bank-accounts',
       ).replace(queryParameters: {'order_id': orderId});
 
       final response = await http.get(
@@ -1116,7 +1116,7 @@ class ApiService {
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/customer/payments/confirm'),
+        Uri.parse('$baseUrl/customer/payment/confirm'),
       );
 
       request.headers['Authorization'] = 'Bearer $token';
@@ -2209,6 +2209,7 @@ class ApiService {
     required String ulasan,
     int? idShops,
     int? idOrders,
+    int? idServices, // <--- 1. TAMBAHKAN INI
     List<File>? fotoUlasan,
   }) async {
     try {
@@ -2223,8 +2224,9 @@ class ApiService {
       request.fields['rating'] = rating.toString();
       request.fields['ulasan'] = ulasan;
       if (idShops != null) request.fields['id_shops'] = idShops.toString();
-      if (idOrders != null) {
-        request.fields['id_orders'] = idOrders.toString();
+      if (idOrders != null) request.fields['id_orders'] = idOrders.toString();
+      if (idServices != null) {
+        request.fields['id_services'] = idServices.toString();
       }
 
       if (fotoUlasan != null && fotoUlasan.isNotEmpty) {

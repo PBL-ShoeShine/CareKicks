@@ -1466,7 +1466,7 @@ class _OrderSuccessDialogState extends State<_OrderSuccessDialog>
                       const Divider(height: 14),
                       _row('Total', _fmt(widget.totalHarga)),
                       const Divider(height: 14),
-                      _row('Status', 'Menunggu Pembayaran'),
+                      _row('Status', 'Menunggu Verifikasi'),
                     ],
                   ),
                 ),

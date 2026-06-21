@@ -6,6 +6,7 @@ import '../controllers/detail_order_controller.dart';
 import '../../payment/views/payment_page.dart';
 import '../../../../core/utils/location_utils.dart';
 import '../../../../core/utils/date_utils.dart';
+import '../../ulasan/views/tulis_ulasan_page.dart';
 
 class DetailOrderPage extends StatefulWidget {
   final String token;
@@ -23,6 +24,7 @@ class DetailOrderPage extends StatefulWidget {
 
 class _DetailOrderPageState extends State<DetailOrderPage> {
   late DetailOrderController _controller;
+  bool _hasReviewedLocal = false;
 
   @override
   void initState() {
@@ -886,6 +888,90 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     final orderStatus = _controller.status;
     final paymentStatus = _controller.paymentStatus;
 
+    // Cek apakah pesanan sudah diulas (dari backend atau state lokal setelah submit)
+    // Asumsi backend mengirimkan flag 'is_reviewed', jika tidak ada, cukup andalkan _hasReviewedLocal
+    final bool isReviewedBackend =
+        _controller.order?['is_reviewed'] == true ||
+        _controller.order?['is_reviewed'] == 1;
+    final bool isReviewed = isReviewedBackend || _hasReviewedLocal;
+
+    int? firstIdServices;
+    if (_controller.items.isNotEmpty) {
+      firstIdServices = int.tryParse(
+        _controller.items.first['id_services']?.toString() ?? '',
+      );
+    }
+
+    if (orderStatus == 'selesai') {
+      if (isReviewed) {
+        // --- TOMBOL JIKA SUDAH DIULAS ---
+        return ElevatedButton.icon(
+          onPressed: null, // Tombol dikunci (disabled)
+          icon: const Icon(Icons.check_circle, color: AppColors.successGreen),
+          label: const Text(
+            'Ulasan Terkirim',
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            disabledBackgroundColor: Colors.green.shade50,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.green.shade300),
+            ),
+          ),
+        );
+      }
+
+      // --- TOMBOL JIKA BELUM DIULAS ---
+      return ElevatedButton.icon(
+        onPressed: () async {
+          // Tunggu hasil dari halaman ulasan
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TulisUlasanPage(
+                token: widget.token,
+                idOrders: int.tryParse(widget.orderId),
+                idServices: firstIdServices,
+              ),
+            ),
+          );
+
+          // Jika result == true (berhasil kirim ulasan), update state agar tombol terkunci
+          if (result == true) {
+            setState(() {
+              _hasReviewedLocal = true;
+            });
+          }
+        },
+        icon: const Icon(Icons.star_rate_rounded, color: Colors.white),
+        label: const Text(
+          'Beri Ulasan Layanan',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              AppColors.primaryBlue, // <--- WARNA SUDAH DISESUAIKAN
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 2,
+        ),
+      );
+    }
+
+    // 2. Daftar status di mana pembayaran sudah dianggap lunas/sedang diproses
+    //    (TAPI pesanan BELUM SELESAI)
     final sudahDiproses = [
       'dikonfirmasi',
       'menunggu_dijemput',
@@ -894,7 +980,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
       'washing',
       'selesai_cuci',
       'sedang_diantar',
-      'selesai',
     ].contains(orderStatus);
 
     if (orderStatus == 'pending') {
@@ -974,9 +1059,10 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
       );
     }
 
+    // 3. Jika sudah diproses (tapi belum selesai), tampilkan tombol Pembayaran Lunas
     if (sudahDiproses) {
       return ElevatedButton(
-        onPressed: null,
+        onPressed: null, // Disabled karena hanya sekadar info
         style: ElevatedButton.styleFrom(
           disabledBackgroundColor: Colors.green.shade50,
           padding: const EdgeInsets.symmetric(vertical: 16),
