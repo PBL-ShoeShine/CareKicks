@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../controllers/detail_layanan_controller.dart';
 import 'semua_ulasan_page.dart';
 import '../../order/screens/kirim_pesanan_page.dart';
 import '../../shop/views/shop_profile_page.dart';
+import '../../cart/controllers/cart_controller.dart';
 
 class DetailLayananPage extends StatefulWidget {
   final String token;
@@ -23,17 +26,20 @@ class DetailLayananPage extends StatefulWidget {
 
 class _DetailLayananPageState extends State<DetailLayananPage> {
   late DetailLayananController _controller;
+  late CartController _cartController;
 
   @override
   void initState() {
     super.initState();
     _controller = DetailLayananController();
+    _cartController = CartController();
     _controller.fetchDetail(token: widget.token, serviceId: widget.serviceId);
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _cartController.dispose();
     super.dispose();
   }
 
@@ -348,13 +354,13 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                 ),
               ),
               
-              // Bottom Fixed Button
+              // Bottom Fixed Buttons
               Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     boxShadow: [
@@ -365,52 +371,84 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                       ),
                     ],
                   ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: !isOpen ? null : () {
-                        final idShops = toko['id_shops'];
-                        if (idShops == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Data toko tidak ditemukan'),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: OutlinedButton(
+                            onPressed: !isOpen ? null : () => _showAddToCartSheet(data, toko),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: isOpen ? AppColors.primaryBlue : Colors.grey.shade300,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
                             ),
-                          );
-                          return;
-                        }
-
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => KirimPesananPage(
-                              token: widget.token,
-                              idShops: idShops is int
-                                  ? idShops
-                                  : int.parse(idShops.toString()),
-                              prefillNama: widget.user['nama'],
-                              prefillNoHp: widget.user['no_hp'],
-                              prefillServiceId: widget.serviceId,
+                            child: Text(
+                              isOpen ? '+ Keranjang' : 'Toko Tutup',
+                              style: TextStyle(
+                                color: isOpen ? AppColors.primaryBlue : Colors.grey.shade400,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isOpen ? AppColors.primaryBlue : Colors.grey,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        isOpen ? 'Pesan Jasa' : 'Toko Sedang Tutup',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: !isOpen ? null : () {
+                              final idShops = toko['id_shops'];
+                              if (idShops == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Data toko tidak ditemukan'),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => KirimPesananPage(
+                                    token: widget.token,
+                                    idShops: idShops is int
+                                        ? idShops
+                                        : int.parse(idShops.toString()),
+                                    prefillNama: widget.user['nama'],
+                                    prefillNoHp: widget.user['no_hp'],
+                                    prefillServiceId: widget.serviceId,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isOpen ? AppColors.primaryBlue : Colors.grey,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              isOpen ? 'Pesan Langsung' : 'Toko Sedang Tutup',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -575,6 +613,321 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
       height: 250,
       color: Colors.grey.shade100,
       child: Icon(Icons.image_outlined, size: 64, color: Colors.grey.shade400),
+    );
+  }
+
+  void _showAddToCartSheet(Map<String, dynamic> data, Map<String, dynamic> toko) {
+    final merkCtrl = TextEditingController();
+    final jenisCtrl = TextEditingController();
+    final warnaCtrl = TextEditingController();
+    final catatanCtrl = TextEditingController();
+    final selectedImages = List<XFile?>.filled(5, null);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final hasAny = selectedImages.any((img) => img != null);
+            final filledCount = selectedImages.where((img) => img != null).length;
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                20 + MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Detail Kondisi Sepatu',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF223263),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Isi detail sepatu dan upload 5 foto kondisi sepatu',
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: merkCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Merk Sepatu *',
+                        hintText: 'Contoh: Nike, Adidas, Vans',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: jenisCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Jenis Sepatu *',
+                        hintText: 'Contoh: Sneakers, Canvas, Leather',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: warnaCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Warna Sepatu *',
+                        hintText: 'Contoh: Putih, Hitam, Abu-abu',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: catatanCtrl,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: 'Catatan (opsional)',
+                        hintText: 'Misal: Tolong sikat bagian bawah perlahan',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Text(
+                          'Foto Kondisi Sepatu',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF223263),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$filledCount/5',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: hasAny ? AppColors.primaryBlue : Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 5,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        childAspectRatio: 1,
+                      ),
+                      itemCount: 5,
+                      itemBuilder: (ctx, index) {
+                        final image = selectedImages[index];
+                        return GestureDetector(
+                          onTap: () async {
+                            final picker = ImagePicker();
+                            final picked = await picker.pickImage(
+                              source: ImageSource.gallery,
+                              imageQuality: 80,
+                            );
+                            if (picked != null) {
+                              setSheetState(() => selectedImages[index] = picked);
+                            }
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: image != null ? null : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: image != null
+                                    ? AppColors.primaryBlue
+                                    : Colors.grey.shade300,
+                              ),
+                              image: image != null
+                                  ? DecorationImage(
+                                      image: FileImage(File(image.path)),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: image == null
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.camera_alt_outlined,
+                                        color: Colors.grey.shade400,
+                                        size: 22,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${index + 1}',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade400,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Stack(
+                                    children: [
+                                      Positioned(
+                                        top: 2,
+                                        right: 2,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setSheetState(() => selectedImages[index] = null);
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withOpacity(0.6),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final merk = merkCtrl.text.trim();
+                          final jenis = jenisCtrl.text.trim();
+                          final warna = warnaCtrl.text.trim();
+
+                          if (merk.isEmpty || jenis.isEmpty || warna.isEmpty) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(content: Text('Merk, jenis, dan warna sepatu wajib diisi')),
+                            );
+                            return;
+                          }
+
+                          if (!hasAny) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(content: Text('Upload minimal 1 foto kondisi sepatu')),
+                            );
+                            return;
+                          }
+
+                          final files = <File>[];
+                          for (final img in selectedImages) {
+                            if (img != null) {
+                              final file = File(img.path);
+                              if (await file.exists()) {
+                                files.add(file);
+                              }
+                            }
+                          }
+
+                          if (files.isEmpty) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(content: Text('Gagal membaca file foto, coba pilih ulang')),
+                            );
+                            return;
+                          }
+
+                          final idShops = toko['id_shops'];
+                          if (idShops == null) return;
+
+                          final success = await _cartController.addToCart(
+                            token: widget.token,
+                            idShops: idShops.toString(),
+                            idServices: widget.serviceId.toString(),
+                            hargaLayanan: data['harga'].toString(),
+                            catatan: catatanCtrl.text.trim().isEmpty
+                                ? null
+                                : catatanCtrl.text.trim(),
+                            merk: merk,
+                            jenisSepatu: jenis,
+                            warna: warna,
+                            fotoSebelumList: files,
+                          );
+
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                          }
+
+                          if (success && mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Berhasil ditambahkan ke keranjang'),
+                                backgroundColor: AppColors.successGreen,
+                              ),
+                            );
+                          } else if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  _cartController.errorMessage ?? 'Gagal menambahkan ke keranjang',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryBlue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Simpan ke Keranjang',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
