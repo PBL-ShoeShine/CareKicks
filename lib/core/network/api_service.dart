@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://172.16.160.223:5000/api/v1';
+  static const String baseUrl = 'http://192.168.10.237:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -2291,6 +2291,27 @@ class ApiService {
       debugPrint('Error OSRM: ${response.statusCode}');
     } catch (e) {
       debugPrint('Gagal menghubungi OSRM: $e');
+    }
+    return null;
+  }
+
+  // ─── Customer: Shop Profile ──────────────────────────────────────────────
+  static Future<Map<String, dynamic>?> getCustomerShopProfile({
+    required String token,
+    required int idShops,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/customer/shops/$idShops');
+      final response = await http.get(
+        uri,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if ([200, 400, 401, 404, 500].contains(response.statusCode)) {
+        return await _decodeJsonResponse(response);
+      }
+    } catch (e) {
+      debugPrint('getCustomerShopProfile error: $e');
     }
     return null;
   }
