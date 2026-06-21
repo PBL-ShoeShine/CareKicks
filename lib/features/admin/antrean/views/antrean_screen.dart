@@ -339,7 +339,8 @@ class _AntreanScreenState extends State<AntreanScreen>
                 'Tolak',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
-              onPressed: () => _handleConfirmation(antrean, 'reject', isPayment: false),
+              onPressed: () =>
+                  _handleConfirmation(antrean, 'reject', isPayment: false),
             ),
           ),
           const SizedBox(width: 10),
@@ -347,15 +348,21 @@ class _AntreanScreenState extends State<AntreanScreen>
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryBlue,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               icon: const Icon(Icons.check, color: Colors.white, size: 18),
               label: const Text(
                 'Setujui',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              onPressed: () => _handleConfirmation(antrean, 'approve', isPayment: false),
+              onPressed: () =>
+                  _handleConfirmation(antrean, 'approve', isPayment: false),
             ),
           ),
         ],
@@ -363,7 +370,8 @@ class _AntreanScreenState extends State<AntreanScreen>
     }
 
     // 2. Tab Pembayaran (menunggu_pembayaran atau menunggu_konfirmasi)
-    if (antrean.statusOrder == 'menunggu_pembayaran' || antrean.statusOrder == 'menunggu_konfirmasi') {
+    if (antrean.statusOrder == 'menunggu_pembayaran' ||
+        antrean.statusOrder == 'menunggu_konfirmasi') {
       return Row(
         children: [
           Expanded(
@@ -381,7 +389,8 @@ class _AntreanScreenState extends State<AntreanScreen>
                 'Tolak',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
-              onPressed: () => _handleConfirmation(antrean, 'reject', isPayment: true),
+              onPressed: () =>
+                  _handleConfirmation(antrean, 'reject', isPayment: true),
             ),
           ),
           const SizedBox(width: 10),
@@ -389,15 +398,21 @@ class _AntreanScreenState extends State<AntreanScreen>
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.successGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               icon: const Icon(Icons.check, color: Colors.white, size: 18),
               label: const Text(
                 'Setujui',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              onPressed: () => _handleConfirmation(antrean, 'approve', isPayment: true),
+              onPressed: () =>
+                  _handleConfirmation(antrean, 'approve', isPayment: true),
             ),
           ),
         ],
@@ -411,7 +426,11 @@ class _AntreanScreenState extends State<AntreanScreen>
     );
   }
 
-  Future<void> _handleConfirmation(AntreanModel antrean, String action, {required bool isPayment}) async {
+  Future<void> _handleConfirmation(
+    AntreanModel antrean,
+    String action, {
+    required bool isPayment,
+  }) async {
     String? reason;
     if (action == 'reject') {
       reason = await _showRejectReasonDialog();
@@ -421,37 +440,40 @@ class _AntreanScreenState extends State<AntreanScreen>
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(isPayment ? 'Setujui Pembayaran' : 'Setujui Pesanan'),
-          content: Text('Apakah Anda yakin ingin menyetujui pesanan #${antrean.kodeOrder}?'),
+          content: Text(
+            'Apakah Anda yakin ingin menyetujui pesanan #${antrean.kodeOrder}?',
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Ya, Setujui')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Ya, Setujui'),
+            ),
           ],
         ),
       );
       if (confirm != true) return;
     }
 
-    final result = isPayment 
-      ? await _controller.processPayment(idOrders: antrean.idOrders, action: action, reason: reason)
-      : await _controller.processOrder(idOrders: antrean.idOrders, action: action, reason: reason);
+    final result = isPayment
+        ? await _controller.processPayment(
+            idOrders: antrean.idOrders,
+            action: action,
+            reason: reason,
+          )
+        : await _controller.processOrder(
+            idOrders: antrean.idOrders,
+            action: action,
+            reason: reason,
+          );
 
     if (mounted) {
       if (result['success'] == true) {
         _loadData();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Berhasil diproses'),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Gagal memproses'),
-            backgroundColor: AppColors.errorRed,
-          ),
-        );
-      }
+      } else {}
     }
   }
 
@@ -561,7 +583,8 @@ class _AntreanScreenState extends State<AntreanScreen>
                       textInputAction: TextInputAction.newline,
                       onChanged: (_) => setDialogState(() {}),
                       decoration: InputDecoration(
-                        hintText: 'Contoh: Bukti transfer tidak valid / Stok habis',
+                        hintText:
+                            'Contoh: Bukti transfer tidak valid / Stok habis',
                         filled: true,
                         fillColor: const Color(0xFFF9FAFB),
                         counterStyle: const TextStyle(
@@ -607,15 +630,15 @@ class _AntreanScreenState extends State<AntreanScreen>
                           child: ElevatedButton(
                             onPressed: canSubmit
                                 ? () => Navigator.pop(
-                                      context,
-                                      reasonController.text.trim(),
-                                    )
+                                    context,
+                                    reasonController.text.trim(),
+                                  )
                                 : null,
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size.fromHeight(48),
                               backgroundColor: AppColors.errorRed,
-                              disabledBackgroundColor:
-                                  AppColors.errorRed.withOpacity(0.32),
+                              disabledBackgroundColor: AppColors.errorRed
+                                  .withOpacity(0.32),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),

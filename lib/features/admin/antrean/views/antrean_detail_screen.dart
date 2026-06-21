@@ -52,22 +52,9 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
           _currentStatus = nextStatus;
           _isStatusUpdated = true;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Status berhasil diubah ke $nextStatus'),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengubah status: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) {}
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -75,7 +62,10 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     }
   }
 
-  Future<void> _handlePaymentConfirmation(String action, {String? reason}) async {
+  Future<void> _handlePaymentConfirmation(
+    String action, {
+    String? reason,
+  }) async {
     setState(() => _isLoading = true);
     try {
       final result = await _controller.processPayment(
@@ -85,15 +75,11 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
       );
       if (result['success'] == true && mounted) {
         setState(() {
-          _currentStatus = action == 'approve' ? 'menunggu_dijemput' : 'menunggu_pembayaran';
+          _currentStatus = action == 'approve'
+              ? 'menunggu_dijemput'
+              : 'menunggu_pembayaran';
           _isStatusUpdated = true;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Berhasil diproses'),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -105,10 +91,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -750,10 +733,18 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                     context: context,
                     builder: (ctx) => AlertDialog(
                       title: const Text('Setujui Pembayaran'),
-                      content: Text('Apakah Anda yakin ingin menyetujui pembayaran untuk pesanan #${widget.antrean.kodeOrder}?'),
+                      content: Text(
+                        'Apakah Anda yakin ingin menyetujui pembayaran untuk pesanan #${widget.antrean.kodeOrder}?',
+                      ),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Ya, Setujui')),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Batal'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Ya, Setujui'),
+                        ),
                       ],
                     ),
                   );
@@ -776,11 +767,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                       ),
                     ),
                     SizedBox(width: 8),
-                    Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                    Icon(Icons.check, color: Colors.white, size: 20),
                   ],
                 ),
               ),
