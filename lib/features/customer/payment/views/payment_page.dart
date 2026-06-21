@@ -211,7 +211,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // GRADIENT CARD TOTAL TAGIHAN (Teks Menunggu Pembayaran dihapus)
+                      // GRADIENT CARD TOTAL TAGIHAN
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -303,6 +303,9 @@ class _PaymentPageState extends State<PaymentPage> {
                         )
                       else
                         ..._controller.bankAccounts.map((bank) {
+                          // REVISI: Ambil URL foto QRIS
+                          final String pathQris = bank['path_qris'] ?? '';
+
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(16),
@@ -369,18 +372,21 @@ class _PaymentPageState extends State<PaymentPage> {
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        bank['no_rek'] ?? '-',
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 1.5,
-                                          color: Colors.black87,
+                                      Expanded(
+                                        child: Text(
+                                          bank['no_rek'] ?? '-',
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.5,
+                                            color: Colors.black87,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
+                                      const SizedBox(width: 12),
                                       GestureDetector(
                                         onTap: () {
                                           Clipboard.setData(
@@ -392,9 +398,7 @@ class _PaymentPageState extends State<PaymentPage> {
                                             context,
                                           ).showSnackBar(
                                             const SnackBar(
-                                              content: Text(
-                                                'Nomor rekening disalin',
-                                              ),
+                                              content: Text('Nomor disalin'),
                                               duration: Duration(seconds: 1),
                                             ),
                                           );
@@ -423,6 +427,20 @@ class _PaymentPageState extends State<PaymentPage> {
                                     ],
                                   ),
                                 ),
+                                // 👇 KODE REVISI: Tampilkan Foto QRIS Jika Ada
+                                if (pathQris.isNotEmpty) ...[
+                                  const SizedBox(height: 16),
+                                  Center(
+                                    child: Image.network(
+                                      pathQris,
+                                      width: 200,
+                                      height: 200,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (_, __, ___) =>
+                                          const Text('Gagal memuat QRIS'),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           );
@@ -516,7 +534,6 @@ class _PaymentPageState extends State<PaymentPage> {
                                       style: TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 14,
-                                        color: Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -524,14 +541,6 @@ class _PaymentPageState extends State<PaymentPage> {
                                       'Tap untuk pilih dari kamera atau galeri',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    const Text(
-                                      'Format JPG, PNG (Maks. 5MB)',
-                                      style: TextStyle(
-                                        fontSize: 11,
                                         color: Colors.grey,
                                       ),
                                     ),

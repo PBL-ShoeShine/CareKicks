@@ -23,6 +23,7 @@ import 'package:carekicks/features/admin/toko/views/profil_toko_page.dart';
 import 'package:carekicks/features/auth/controllers/auth_controller.dart';
 import 'package:carekicks/features/auth/views/login_page.dart';
 import 'package:carekicks/features/admin/metode_pembayaran/views/metode_pembayaran_view.dart';
+import 'package:carekicks/features/admin/ongkir/views/manajemen_ongkir_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final String token;
@@ -573,6 +574,21 @@ class _ProfilePageState extends State<ProfilePage> {
                               MaterialPageRoute(
                                 builder: (context) =>
                                     MetodePembayaranView(token: widget.token),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildMenuCard(
+                          icon: Icons.local_shipping_outlined,
+                          title: 'Manajemen Ongkir',
+                          subtitle: 'Atur tarif antar-jemput toko',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ManajemenOngkirPage(token: widget.token),
                               ),
                             );
                           },

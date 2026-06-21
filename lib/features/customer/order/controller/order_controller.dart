@@ -16,6 +16,12 @@ class OrderController extends ChangeNotifier {
   double? _latToko;
   double? _longToko;
 
+  // ─── State: Tarif Ongkir Toko (dinamis per toko) ───────────────────────────
+  double _jarakGratisKm = 2.0;
+  double _tarifPerKm = 5000;
+  double _jarakMaksimalKm = double.infinity;
+  double _tarifPerKmLuarRadius = 5000;
+
   // ─── State: Form Fields ───────────────────────────────────────────────────
   final List<File> _fotoSepatuList = [];
   double? _currentLat;
@@ -39,7 +45,10 @@ class OrderController extends ChangeNotifier {
 
   /// Hitung jarak (KM) antara toko dan lokasi customer saat ini
   double get distanceKm {
-    if (_latToko == null || _longToko == null || _currentLat == null || _currentLong == null) {
+    if (_latToko == null ||
+        _longToko == null ||
+        _currentLat == null ||
+        _currentLong == null) {
       return 0.0;
     }
     return LocationUtils.calculateDistanceKm(
@@ -50,8 +59,14 @@ class OrderController extends ChangeNotifier {
     );
   }
 
-  /// Hitung ongkos kirim berdasarkan jarak
-  int get totalOngkir => LocationUtils.calculateOngkir(distanceKm);
+  /// Hitung ongkos kirim berdasarkan jarak & tarif milik toko
+  int get totalOngkir => LocationUtils.calculateOngkir(
+    distanceKm,
+    jarakGratisKm: _jarakGratisKm,
+    tarifPerKm: _tarifPerKm,
+    jarakMaksimalKm: _jarakMaksimalKm,
+    tarifPerKmLuarRadius: _tarifPerKmLuarRadius,
+  );
 
   /// Hitung total harga dari layanan yang dipilih + ongkir
   int get totalHargaLayanan {
@@ -126,11 +141,25 @@ class OrderController extends ChangeNotifier {
       _nmToko = data['nm_toko']?.toString() ?? '';
       _latToko = double.tryParse(data['lat_toko']?.toString() ?? '');
       _longToko = double.tryParse(data['long_toko']?.toString() ?? '');
-      
+
+      // FIX: isi tarif ongkir dinamis dari data toko
+      _jarakGratisKm =
+          double.tryParse(data['jarak_gratis_km']?.toString() ?? '') ?? 2.0;
+      _tarifPerKm =
+          double.tryParse(data['tarif_per_km']?.toString() ?? '') ?? 5000;
+      _jarakMaksimalKm =
+          double.tryParse(data['jarak_maksimal_km']?.toString() ?? '') ??
+          double.infinity;
+      _tarifPerKmLuarRadius =
+          double.tryParse(data['tarif_per_km_luar_radius']?.toString() ?? '') ??
+          5000;
+
       // Auto-select layanan jika diberikan
       if (prefillServiceId != null) {
         // Cek apakah layanan tersebut benar-benar ada di toko ini
-        final exists = _services.any((svc) => svc['id_services'] == prefillServiceId);
+        final exists = _services.any(
+          (svc) => svc['id_services'] == prefillServiceId,
+        );
         if (exists) {
           _selectedServiceIds.add(prefillServiceId);
         }
@@ -162,7 +191,7 @@ class OrderController extends ChangeNotifier {
       notifyListeners();
       return null;
     }
-    
+
     if (_fotoSepatuList.isEmpty) {
       _errorMessage = 'Minimal 1 foto sepatu harus diunggah';
       notifyListeners();

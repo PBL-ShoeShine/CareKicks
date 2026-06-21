@@ -9,34 +9,57 @@ class LocationUtils {
     double lon2,
   ) {
     const earthRadiusKm = 6371.0;
-    
+
     final dLat = _degToRad(lat2 - lat1);
     final dLon = _degToRad(lon2 - lon1);
-    
+
     final rLat1 = _degToRad(lat1);
     final rLat2 = _degToRad(lat2);
 
     final a = (math.sin(dLat / 2) * math.sin(dLat / 2)) +
-              (math.cos(rLat1) * math.cos(rLat2) * 
+              (math.cos(rLat1) * math.cos(rLat2) *
                math.sin(dLon / 2) * math.sin(dLon / 2));
-    
+
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return earthRadiusKm * c;
   }
 
   static double _degToRad(double deg) => deg * (math.pi / 180.0);
 
-  /// Hitung ongkir berdasarkan jarak:
-  /// - Gratis jika jarak <= 2 KM
-  /// - 5000 per KM jika jarak > 2 KM
-  static int calculateOngkir(double distanceKm) {
-    if (distanceKm <= 2.0) return 0;
-    
-    // Perhitungan biaya dilakukan ketika lebih dari 2km
-    // Tiap 1 km itu 5 rb.
-    // Kita bulatkan ke atas atau gunakan desimal? 
-    // Biasanya distance * 5000.
-    return (distanceKm * 5000).round();
+  /// Hitung ongkir berdasarkan jarak & tarif milik toko (dinamis per toko).
+  ///
+  /// Skema:
+  /// - 0 .. jarakGratisKm               -> gratis (Rp 0)
+  /// - jarakGratisKm .. jarakMaksimalKm -> (jarak - jarakGratisKm) * tarifPerKm
+  /// - > jarakMaksimalKm                -> ongkir di batas radius normal
+  ///                                        + (jarak - jarakMaksimalKm) * tarifPerKmLuarRadius
+  ///
+  /// Parameter default disamakan dengan rumus lama (gratis 2km, lalu Rp5.000/km)
+  /// supaya pemanggilan lama yang belum diupdate tetap berjalan sama seperti sebelumnya.
+  static int calculateOngkir(
+    double distanceKm, {
+    double jarakGratisKm = 2.0,
+    double tarifPerKm = 5000,
+    double? jarakMaksimalKm,
+    double? tarifPerKmLuarRadius,
+  }) {
+    // Fallback: kalau jarakMaksimalKm tidak diisi, anggap tidak ada batas radius
+    // (semua jarak dihitung pakai tarifPerKm biasa, sama seperti rumus lama)
+    final maksimal = jarakMaksimalKm ?? double.infinity;
+    final tarifLuar = tarifPerKmLuarRadius ?? tarifPerKm;
+
+    if (distanceKm <= jarakGratisKm) {
+      return 0;
+    }
+
+    if (distanceKm <= maksimal) {
+      return ((distanceKm - jarakGratisKm) * tarifPerKm).round();
+    }
+
+    // Melebihi radius maksimal toko
+    final ongkirDalamRadius = (maksimal - jarakGratisKm) * tarifPerKm;
+    final ongkirLuarRadius = (distanceKm - maksimal) * tarifLuar;
+    return (ongkirDalamRadius + ongkirLuarRadius).round();
   }
 
   /// Deduplicate and clean up repeating parts of an address
