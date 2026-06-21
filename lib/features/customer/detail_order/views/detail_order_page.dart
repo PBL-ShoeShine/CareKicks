@@ -768,7 +768,11 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
             'Metode',
             _isOnline ? 'Online (Antar Jemput)' : 'Offline (Ke Toko)',
           ),
-          if (_isOnline) _buildDetailRow('Alamat', cleanAddress.isNotEmpty ? cleanAddress : '-'),
+          if (_isOnline)
+            _buildDetailRow(
+              'Alamat',
+              cleanAddress.isNotEmpty ? cleanAddress : '-',
+            ),
 
           if (catatanPengiriman != null && catatanPengiriman.isNotEmpty) ...[
             const SizedBox(height: 8),

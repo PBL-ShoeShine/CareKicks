@@ -6,6 +6,7 @@ import '../../../../core/widgets/custom_tab_bar.dart';
 import '../controllers/antrean_controller.dart';
 import '../models/antrean_model.dart';
 import '../views/antrean_detail_screen.dart';
+import '../../../../core/utils/date_utils.dart';
 
 class AntreanScreen extends StatefulWidget {
   final String token;
@@ -728,7 +729,7 @@ class _AntreanScreenState extends State<AntreanScreen>
 
   String _formatTgl(String tgl) {
     try {
-      final dt = DateTime.parse(tgl).toLocal();
+      final dt = DateTimeUtils.parseToWib(tgl);
       return '${dt.day}/${dt.month}/${dt.year} '
           '${dt.hour.toString().padLeft(2, '0')}:'
           '${dt.minute.toString().padLeft(2, '0')}';

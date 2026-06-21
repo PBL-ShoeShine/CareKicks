@@ -8,6 +8,7 @@ import '../../../../core/widgets/custom_filter_chip.dart';
 import '../../../../core/widgets/custom_search_field.dart';
 import '../controllers/tracking_list_controller.dart';
 import 'tracking_detail_page.dart';
+import '../../../../core/utils/date_utils.dart';
 
 enum TrackingMode { pickup, delivery }
 
@@ -83,7 +84,7 @@ class _TrackingPageState extends State<TrackingPage> {
     if (dateStr == null || dateStr.isEmpty) return '-';
 
     try {
-      final date = DateTime.parse(dateStr);
+      final date = DateTimeUtils.parseToWib(dateStr);
       return '${date.day}/${date.month}/${date.year}';
     } catch (_) {
       return dateStr;

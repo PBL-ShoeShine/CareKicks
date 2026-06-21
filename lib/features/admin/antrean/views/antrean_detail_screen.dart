@@ -8,6 +8,7 @@ import '../../../../core/widgets/custom_appbar.dart';
 import '../../../../core/widgets/custom_scaffold.dart';
 import '../models/antrean_model.dart';
 import '../controllers/antrean_controller.dart';
+import '../../../../core/utils/date_utils.dart';
 
 class AntreanDetailScreen extends StatefulWidget {
   final String token;
@@ -145,7 +146,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
 
   String _formatTgl(String tgl) {
     try {
-      final dt = DateTime.parse(tgl).toLocal();
+      final dt = DateTimeUtils.parseToWib(tgl);
       return '${dt.day}/${dt.month}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return tgl;
