@@ -169,6 +169,7 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
                       value: _selectedStatus,
                       isExpanded: true,
                       items: const [
+                        // ✅ FIX: hanya Aktif dan Cuti
                         DropdownMenuItem(
                           value: StaffStatus.aktif,
                           child: Text('Aktif'),
@@ -176,14 +177,6 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
                         DropdownMenuItem(
                           value: StaffStatus.cuti,
                           child: Text('Cuti'),
-                        ),
-                        DropdownMenuItem(
-                          value: StaffStatus.sedang_tugas,
-                          child: Text('Sedang Tugas'),
-                        ),
-                        DropdownMenuItem(
-                          value: StaffStatus.non_aktif,
-                          child: Text('Non Aktif / Resign'),
                         ),
                       ],
                       onChanged: (val) {
@@ -215,8 +208,9 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
               _label('No. HP'),
               _buildField(
                 controller: _noHpController,
-                hint: '08xxxxxxxxxx',
+                hint: '0812....',
                 keyboardType: TextInputType.phone,
+                maxLength: 13,
                 validator: (v) => (v == null || v.trim().isEmpty)
                     ? 'No HP wajib diisi'
                     : null,
@@ -311,12 +305,14 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
     Widget? suffixIcon,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    int? maxLength,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
       validator: validator,
+      maxLength: maxLength,
       style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A2E)),
       decoration: InputDecoration(
         hintText: hint,

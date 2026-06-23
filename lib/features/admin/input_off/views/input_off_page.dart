@@ -30,6 +30,18 @@ class _InputOffPageState extends State<InputOffPage> {
 
   final List<String> _metodeBayarList = ['tunai', 'qris'];
 
+  String _formatRupiah(int amount) {
+    String result = amount.toString();
+    String formatted = '';
+    int count = 0;
+    for (int i = result.length - 1; i >= 0; i--) {
+      if (count > 0 && count % 3 == 0) formatted = '.$formatted';
+      formatted = result[i] + formatted;
+      count++;
+    }
+    return 'Rp $formatted';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -51,9 +63,7 @@ class _InputOffPageState extends State<InputOffPage> {
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
-
     final pickedFile = await picker.pickImage(source: source, imageQuality: 80);
-
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
@@ -178,6 +188,7 @@ class _InputOffPageState extends State<InputOffPage> {
                     label: 'NOMOR TELEPON',
                     hint: '0812...',
                     keyboardType: TextInputType.phone,
+                    maxLength: 15,
                     validator: (v) =>
                         v!.isEmpty ? 'Nomor telepon tidak boleh kosong' : null,
                   ),
@@ -188,8 +199,9 @@ class _InputOffPageState extends State<InputOffPage> {
                     controller: _jenisSepatuController,
                     label: '',
                     hint: 'Contoh: Sneakers, Boots, dll',
-                    validator: (v) =>
-                        v!.trim().isEmpty ? 'Jenis sepatu tidak boleh kosong' : null,
+                    validator: (v) => v!.trim().isEmpty
+                        ? 'Jenis sepatu tidak boleh kosong'
+                        : null,
                   ),
                   const SizedBox(height: 24),
                   _buildSectionTitle('Detail Sepatu'),
@@ -288,6 +300,7 @@ class _InputOffPageState extends State<InputOffPage> {
     IconData? icon,
     TextInputType? keyboardType,
     int maxLines = 1,
+    int? maxLength,
     String? Function(String?)? validator,
     bool readOnly = false,
   }) {
@@ -306,12 +319,11 @@ class _InputOffPageState extends State<InputOffPage> {
           controller: controller,
           keyboardType: keyboardType,
           maxLines: maxLines,
+          maxLength: maxLength,
           validator: validator,
           readOnly: readOnly,
           style: TextStyle(
-            color: readOnly
-                ? Colors.grey.shade600
-                : Colors.black, // <--- UBAH WARNA TEKS JIKA READONLY
+            color: readOnly ? Colors.grey.shade600 : Colors.black,
           ),
           decoration: InputDecoration(
             hintText: hint,
@@ -451,7 +463,7 @@ class _InputOffPageState extends State<InputOffPage> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: _controller.services.length,
-        separatorBuilder: (_, _) =>
+        separatorBuilder: (_, __) =>
             const Divider(height: 1, color: Color(0xFFF1F5F9)),
         itemBuilder: (context, index) {
           final service = _controller.services[index];
@@ -471,7 +483,8 @@ class _InputOffPageState extends State<InputOffPage> {
                 ),
               ),
               subtitle: Text(
-                'Rp ${service['harga']}',
+                // ✅ FIX: format titik ribuan
+                _formatRupiah(service['harga']),
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.primaryBlue,
@@ -509,7 +522,8 @@ class _InputOffPageState extends State<InputOffPage> {
             ),
           ),
           Text(
-            'Rp${_controller.totalHarga.toInt()}',
+            // ✅ FIX: format titik ribuan
+            _formatRupiah(_controller.totalHarga.toInt()),
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,

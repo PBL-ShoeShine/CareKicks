@@ -57,7 +57,7 @@ class ManajemenStaffController {
       );
       final data = jsonDecode(response.body);
 
-      if (response.statusCode != 201) {
+      if (response.statusCode != 200) {
         throw Exception(data['message'] ?? 'Gagal membuat staff');
       }
     } catch (e) {

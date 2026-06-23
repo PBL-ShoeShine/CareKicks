@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum StaffStatus { aktif, sedang_tugas, cuti, non_aktif }
+enum StaffStatus { aktif, cuti } // ✅ FIX: hapus sedang_tugas & non_aktif
 
 class ManajemenStaffModel {
   final String id;
@@ -35,16 +35,10 @@ class ManajemenStaffModel {
   static StaffStatus _parseStatus(String? s) {
     if (s == null) return StaffStatus.aktif;
     switch (s.toUpperCase()) {
-      case 'SEDANG TUGAS':
-      case 'SEDANG_TUGAS':
-        return StaffStatus.sedang_tugas;
       case 'CUTI':
         return StaffStatus.cuti;
-      case 'NON AKTIF':
-      case 'NON_AKTIF':
-        return StaffStatus.non_aktif;
       default:
-        return StaffStatus.aktif;
+        return StaffStatus.aktif; // ✅ semua selain CUTI → aktif
     }
   }
 
@@ -52,12 +46,8 @@ class ManajemenStaffModel {
     switch (status) {
       case StaffStatus.aktif:
         return 'AKTIF';
-      case StaffStatus.sedang_tugas:
-        return 'SEDANG TUGAS';
       case StaffStatus.cuti:
         return 'CUTI';
-      case StaffStatus.non_aktif:
-        return 'NON AKTIF';
     }
   }
 
@@ -65,12 +55,8 @@ class ManajemenStaffModel {
     switch (status) {
       case StaffStatus.aktif:
         return const Color(0xFF2ECC71);
-      case StaffStatus.sedang_tugas:
-        return const Color(0xFFFF9F43);
       case StaffStatus.cuti:
         return const Color(0xFF95A5A6);
-      case StaffStatus.non_aktif:
-        return const Color(0xFFE74C3C);
     }
   }
 }

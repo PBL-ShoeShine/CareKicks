@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../../../core/network/api_service.dart';
 import '../models/manajemen_staff_model.dart';
+import 'package:flutter/foundation.dart';
 
 class ManajemenStaffService {
   static final String _base = '${ApiService.baseUrl}/admin/manajemen_staff';
@@ -36,7 +37,7 @@ class ManajemenStaffService {
     }
   }
 
-  // 2. Tambah staff baru (Role dihapus)
+  // 2. Tambah staff baru
   static Future<void> createStaff({
     required String token,
     required String nama,
@@ -55,9 +56,11 @@ class ManajemenStaffService {
           'password': password,
         }),
       );
-      final data = jsonDecode(response.body);
+      debugPrint('STATUS: ${response.statusCode}');
+      debugPrint('BODY: ${response.body}');
 
-      if (response.statusCode != 201) {
+      final data = jsonDecode(response.body);
+      if (response.statusCode != 200) {
         throw Exception(data['message'] ?? 'Gagal membuat staff');
       }
     } catch (e) {
