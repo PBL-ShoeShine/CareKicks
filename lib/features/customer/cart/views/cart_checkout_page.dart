@@ -45,11 +45,17 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
       double.tryParse(_selectedAlamat?['longitude']?.toString() ?? '');
 
   double get _distanceKm {
-    if (_shopLat == null || _shopLng == null || _effectiveLat == null || _effectiveLng == null) {
+    if (_shopLat == null ||
+        _shopLng == null ||
+        _effectiveLat == null ||
+        _effectiveLng == null) {
       return 0.0;
     }
     return LocationUtils.calculateDistanceKm(
-      _shopLat!, _shopLng!, _effectiveLat!, _effectiveLng!,
+      _shopLat!,
+      _shopLng!,
+      _effectiveLat!,
+      _effectiveLng!,
     );
   }
 
@@ -59,7 +65,8 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
   void initState() {
     super.initState();
     final nama = widget.user['nama']?.toString() ?? '';
-    final noHp = (widget.user['no_hp'] ?? widget.user['nomor_hp'] ?? '').toString();
+    final noHp = (widget.user['no_hp'] ?? widget.user['nomor_hp'] ?? '')
+        .toString();
     _namaCtrl.text = nama;
     _noHpCtrl.text = noHp;
     _extractShopCoords();
@@ -76,7 +83,9 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
 
   void _extractShopCoords() {
     if (widget.controller.cartData.isNotEmpty) {
-      final shop = (widget.controller.cartData.first as Map<String, dynamic>)['shop'] as Map<String, dynamic>?;
+      final shop =
+          (widget.controller.cartData.first as Map<String, dynamic>)['shop']
+              as Map<String, dynamic>?;
       if (shop != null) {
         _shopLat = double.tryParse(shop['lat_toko']?.toString() ?? '');
         _shopLng = double.tryParse(shop['long_toko']?.toString() ?? '');
@@ -124,7 +133,9 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                       const Text(
                         'Pilih Alamat',
                         style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF223263),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF223263),
                         ),
                       ),
                       IconButton(
@@ -146,7 +157,8 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                     )
                   else
                     ...addresses.map((addr) {
-                      final isSelected = _selectedAlamat != null &&
+                      final isSelected =
+                          _selectedAlamat != null &&
                           _selectedAlamat!['id_address'] == addr['id_address'];
                       return ListTile(
                         leading: Radio<bool>(
@@ -157,17 +169,30 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                         ),
                         title: Text(
                           addr['recipient_name'] ?? '-',
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (addr['phone_number'] != null)
-                              Text(addr['phone_number'], style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                              Text(
+                                addr['phone_number'],
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
                             Text(
                               addr['full_address'] ?? '',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                              maxLines: 2, overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -195,17 +220,24 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                           final updated = _profileCtrl.alamatList;
                           if (updated.isNotEmpty) {
                             setState(() {
-                              _selectedAlamat = Map<String, dynamic>.from(updated.last);
+                              _selectedAlamat = Map<String, dynamic>.from(
+                                updated.last,
+                              );
                             });
                           }
                         }
                       },
-                      icon: const Icon(Icons.add_location_alt_outlined, size: 18),
+                      icon: const Icon(
+                        Icons.add_location_alt_outlined,
+                        size: 18,
+                      ),
                       label: const Text('Tambah Alamat Baru'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: _blue,
                         side: BorderSide(color: _blue.withOpacity(0.5)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -313,7 +345,11 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            color: Colors.black87,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -393,7 +429,11 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                     ),
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.grey.shade400,
+                  size: 20,
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -408,19 +448,29 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                   Expanded(
                     child: Text(
                       _selectedAlamat!['recipient_name'] ?? '',
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                   if (_selectedAlamat!['address_label'] != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: _blue.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         _selectedAlamat!['address_label'],
-                        style: const TextStyle(fontSize: 11, color: _blue, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: _blue,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                 ],
@@ -438,7 +488,11 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
             ] else
               Text(
                 'Tap untuk pilih alamat pengantaran',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade400, fontStyle: FontStyle.italic),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade400,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
           ],
         ),
@@ -494,7 +548,10 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: _blue),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -502,6 +559,7 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
             controller: _noHpCtrl,
             style: const TextStyle(fontSize: 14),
             keyboardType: TextInputType.phone,
+            maxLength: 13,
             decoration: InputDecoration(
               labelText: 'No HP',
               labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
@@ -517,7 +575,10 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: _blue),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
             ),
           ),
         ],
@@ -562,17 +623,29 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                     child: service['foto_layanan'] != null
                         ? Image.network(
                             service['foto_layanan'],
-                            width: 48, height: 48, fit: BoxFit.cover,
+                            width: 48,
+                            height: 48,
+                            fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
-                              width: 48, height: 48,
+                              width: 48,
+                              height: 48,
                               color: Colors.grey.shade100,
-                              child: const Icon(Icons.image_outlined, color: Colors.grey, size: 20),
+                              child: const Icon(
+                                Icons.image_outlined,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
                             ),
                           )
                         : Container(
-                            width: 48, height: 48,
+                            width: 48,
+                            height: 48,
                             color: Colors.grey.shade100,
-                            child: const Icon(Icons.image_outlined, color: Colors.grey, size: 20),
+                            child: const Icon(
+                              Icons.image_outlined,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
                           ),
                   ),
                   const SizedBox(width: 12),
@@ -582,12 +655,18 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                       children: [
                         Text(
                           service['nama_layanan'] ?? 'Layanan',
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
                         ),
                         if (item['merk'] != null)
                           Text(
                             '${item['merk']} ${item['warna'] != null ? '• ${item['warna']}' : ''}',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
                           ),
                       ],
                     ),
@@ -595,7 +674,9 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
                   Text(
                     _formatCurrency(item['harga_layanan']),
                     style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primaryBlue,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppColors.primaryBlue,
                     ),
                   ),
                 ],
@@ -612,10 +693,18 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
               ),
               Text(
                 _formatCurrency(
-                  items.fold<int>(0, (s, i) => s + (int.tryParse(i['harga_layanan']?.toString() ?? '0') ?? 0)),
+                  items.fold<int>(
+                    0,
+                    (s, i) =>
+                        s +
+                        (int.tryParse(i['harga_layanan']?.toString() ?? '0') ??
+                            0),
+                  ),
                 ),
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF223263),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: Color(0xFF223263),
                 ),
               ),
             ],
@@ -672,7 +761,11 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 'Pilih alamat pengantaran untuk menghitung ongkos kirim',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade400, fontStyle: FontStyle.italic),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade400,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
         ],
@@ -692,15 +785,27 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Subtotal Layanan', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
-              Text(_formatCurrency(subtotal), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              Text(
+                'Subtotal Layanan',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+              Text(
+                _formatCurrency(subtotal),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Ongkos Kirim', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+              Text(
+                'Ongkos Kirim',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
               Text(
                 _ongkir == 0 ? 'Gratis' : _formatCurrency(_ongkir),
                 style: TextStyle(
@@ -717,12 +822,18 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
             children: [
               const Text(
                 'Total',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF223263)),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Color(0xFF223263),
+                ),
               ),
               Text(
                 _formatCurrency(grandTotal),
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primaryBlue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: AppColors.primaryBlue,
                 ),
               ),
             ],

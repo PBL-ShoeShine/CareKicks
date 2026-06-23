@@ -274,10 +274,7 @@ class _ProfilTokoPageState extends State<ProfilTokoPage> {
   @override
   Widget build(BuildContext context) {
     return CustomScaffold(
-      appBar: const CustomAppBar(
-        title: 'Profil Toko',
-        showBackButton: true,
-      ),
+      appBar: const CustomAppBar(title: 'Profil Toko', showBackButton: true),
       backgroundColor: Colors.white,
       body: ListenableBuilder(
         listenable: _controller,
@@ -418,6 +415,7 @@ class _ProfilTokoPageState extends State<ProfilTokoPage> {
                     controller: _waController,
                     hint: '08xxxxxxxxxx',
                     keyboardType: TextInputType.phone,
+                    maxLength: 13,
                     enabled: false,
                     prefixIcon: const Icon(Icons.phone_outlined),
                   ),
@@ -503,6 +501,7 @@ class _ProfilTokoPageState extends State<ProfilTokoPage> {
     required TextEditingController controller,
     required String hint,
     int maxLines = 1,
+    int? maxLength,
     TextInputType? keyboardType,
     bool readOnly = false,
     bool enabled = true,
@@ -513,6 +512,7 @@ class _ProfilTokoPageState extends State<ProfilTokoPage> {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
+      maxLength: maxLength,
       keyboardType: keyboardType,
       readOnly: readOnly,
       enabled: enabled,
