@@ -18,6 +18,8 @@ class BerandaController extends ChangeNotifier {
   int _page = 1;
   int _limit = 10;
 
+  bool _isSortActive = false;
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<dynamic> get services => _services;
@@ -31,6 +33,7 @@ class BerandaController extends ChangeNotifier {
   double? get minRating => _minRating;
   String get sortBy => _sortBy;
   String get sortOrder => _sortOrder;
+  bool get isSortActive => _isSortActive;
 
   void setSearch(String query) {
     _searchQuery = query;
@@ -56,6 +59,7 @@ class BerandaController extends ChangeNotifier {
   void setSorting(String sortBy, String sortOrder) {
     _sortBy = sortBy;
     _sortOrder = sortOrder;
+    _isSortActive = true;
     notifyListeners();
   }
 
