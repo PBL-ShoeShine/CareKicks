@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import '../../../../core/network/api_service.dart';
 
 class EditProfileService {
-  static const String baseUrl =
-      'http://192.168.10.218:5000/api/v1/admin/profile';
+  static String get baseUrl => '${ApiService.baseUrl}/api/v1/admin/profile';
 
   // =========================================================================
   // 1. UPDATE DATA PROFIL & REQUEST EMAIL
@@ -56,7 +56,6 @@ class EditProfileService {
     required File imageFile,
   }) async {
     try {
-      // ✅ FIX: POST bukan PUT
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('$baseUrl/picture'),
@@ -71,7 +70,6 @@ class EditProfileService {
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
-      // ✅ Debug log — hapus setelah fitur berjalan normal
       debugPrint('Upload status: ${response.statusCode}');
       debugPrint('Upload response: ${response.body}');
 
