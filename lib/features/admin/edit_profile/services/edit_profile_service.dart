@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:carekicks/core/network/api_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import 'package:carekicks/core/network/api_service.dart';
 
 class EditProfileService {
   static const String baseUrl = '${ApiService.baseUrl}/admin/profile';
