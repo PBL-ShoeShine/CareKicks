@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -356,29 +355,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
       }
     }
 
-    Color getStatusColor(String? status) {
-      switch (status) {
-        case 'selesai':
-          return Colors.green;
-        case 'dibatalkan':
-          return Colors.red;
-        case 'washing':
-        case 'selesai_cuci':
-          return Colors.purple;
-        case 'sedang_dijemput':
-        case 'sudah_dijemput':
-        case 'menunggu_dijemput':
-        case 'sedang_diantar':
-          return AppColors.primaryBlue;
-        case 'dikonfirmasi':
-          return Colors.green;
-        case 'menunggu_konfirmasi':
-          return Colors.orange;
-        default:
-          return Colors.grey;
-      }
-    }
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -405,7 +381,9 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                         item['staff']?['name'] ??
                         item['user']?['name'])
                     ?.toString();
-            final color = getStatusColor(status);
+            final color = isLast
+                ? (status == 'dibatalkan' ? Colors.red : Colors.green)
+                : Colors.grey.shade400;
 
             return IntrinsicHeight(
               child: Row(

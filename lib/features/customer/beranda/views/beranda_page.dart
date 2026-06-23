@@ -258,142 +258,163 @@ class _BerandaPageState extends State<BerandaPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        titleSpacing: 16,
-        title: Container(
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: TextField(
-            controller: _searchController,
-            textInputAction: TextInputAction.search,
-            decoration: const InputDecoration(
-              hintText: 'Search Product',
-              hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-              prefixIcon: Icon(Icons.search, color: AppColors.primaryBlue, size: 20),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(vertical: 10),
-            ),
-            onSubmitted: (value) {
-              _controller.setSearch(value);
-              _controller.fetchBeranda(widget.token, isRefresh: true);
-            },
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: _showSortSheet,
-            icon: const Icon(Icons.swap_vert, color: Colors.grey),
-            constraints: const BoxConstraints(),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-          ),
-          IconButton(
-            onPressed: _showFilterSheet,
-            icon: const Icon(Icons.filter_alt_outlined, color: AppColors.primaryBlue),
-            constraints: const BoxConstraints(),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-          ),
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CartPage(
-                                token: widget.token,
-                                user: widget.user,
-                              ),
-                            ),
-                          ).then((_) => _loadCartCount());
-                        },
-                        icon: const Icon(Icons.shopping_cart_outlined, color: Colors.grey),
-                        padding: const EdgeInsets.only(right: 16, left: 4),
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        final isFilterActive = _controller.selectedSpesialisasi != null || _controller.minRating != null;
+        final isSortActive = _controller.isSortActive;
+
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            titleSpacing: 16,
+            title: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      textInputAction: TextInputAction.search,
+                      decoration: const InputDecoration(
+                        hintText: 'Search Product',
+                        hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                        prefixIcon: Icon(Icons.search, color: AppColors.primaryBlue, size: 20),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 10),
                       ),
-                      if (_cartItemCount > 0)
-                        Positioned(
-                          right: 8,
-                          top: 2,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                            child: Text(
-                              _cartItemCount > 99 ? '99+' : '$_cartItemCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
+                      onSubmitted: (value) {
+                        _controller.setSearch(value);
+                        _controller.fetchBeranda(widget.token, isRefresh: true);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: _showSortSheet,
+                  icon: Icon(
+                    Icons.swap_vert,
+                    color: isSortActive ? AppColors.primaryBlue : Colors.grey,
+                  ),
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+                IconButton(
+                  onPressed: _showFilterSheet,
+                  icon: Icon(
+                    Icons.filter_alt_outlined,
+                    color: isFilterActive ? AppColors.primaryBlue : Colors.grey,
+                  ),
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CartPage(
+                              token: widget.token,
+                              user: widget.user,
                             ),
                           ),
+                        ).then((_) => _loadCartCount());
+                      },
+                      icon: const Icon(Icons.shopping_cart_outlined, color: Colors.grey),
+                      padding: const EdgeInsets.only(right: 16, left: 4),
+                    ),
+                    if (_cartItemCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Text(
+                            _cartItemCount > 99 ? '99+' : '$_cartItemCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          body: Builder(
+            builder: (context) {
+              if (_controller.isLoading && _controller.services.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (_controller.errorMessage != null && _controller.services.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text(_controller.errorMessage!),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => _controller.fetchBeranda(widget.token, isRefresh: true),
+                        child: const Text('Coba Lagi'),
+                      ),
                     ],
                   ),
-        ],
-      ),
-      body: ListenableBuilder(
-        listenable: _controller,
-        builder: (context, _) {
-          if (_controller.isLoading && _controller.services.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
+                );
+              }
 
-          if (_controller.errorMessage != null && _controller.services.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(_controller.errorMessage!),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => _controller.fetchBeranda(widget.token, isRefresh: true),
-                    child: const Text('Coba Lagi'),
+              if (_controller.services.isEmpty) {
+                return const Center(
+                  child: Text('Tidak ada layanan yang ditemukan'),
+                );
+              }
+
+              return RefreshIndicator(
+                onRefresh: () => _controller.fetchBeranda(widget.token, isRefresh: true),
+                child: GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.7,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
                   ),
-                ],
-              ),
-            );
-          }
-
-          if (_controller.services.isEmpty) {
-            return const Center(
-              child: Text('Tidak ada layanan yang ditemukan'),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () => _controller.fetchBeranda(widget.token, isRefresh: true),
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.7,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: _controller.services.length,
-              itemBuilder: (context, index) {
-                final service = _controller.services[index];
-                return _buildServiceCard(service);
-              },
-            ),
-          );
-        },
-      ),
+                  itemCount: _controller.services.length,
+                  itemBuilder: (context, index) {
+                    final service = _controller.services[index];
+                    return _buildServiceCard(service);
+                  },
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
