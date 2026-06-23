@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:carekicks/core/network/api_service.dart';
 import '../models/antrean_model.dart';
 import '../../../../core/network/api_service.dart';
 
 class AntreanService {
-  static String get _baseUrl => '${ApiService.baseUrl}/api/v1';
+  static const String _baseUrl = ApiService.baseUrl;
 
   static Future<List<AntreanModel>> fetchAntrean(
     String token,

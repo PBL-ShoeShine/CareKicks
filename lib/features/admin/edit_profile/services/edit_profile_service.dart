@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import '../../../../core/network/api_service.dart';
+import 'package:carekicks/core/network/api_service.dart';
 
 class EditProfileService {
-  static String get baseUrl => '${ApiService.baseUrl}/api/v1/admin/profile';
+  static const String baseUrl = '${ApiService.baseUrl}/admin/profile';
 
   // =========================================================================
   // 1. UPDATE DATA PROFIL & REQUEST EMAIL
