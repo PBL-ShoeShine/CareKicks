@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://172.16.162.23:5000/api/v1';
+  static const String baseUrl = 'http://172.16.162.126:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -2499,7 +2499,8 @@ class ApiService {
       request.fields['id_shops'] = idShops;
       request.fields['id_services'] = idServices;
       request.fields['harga_layanan'] = hargaLayanan;
-      if (catatan != null && catatan.isNotEmpty) request.fields['catatan'] = catatan;
+      if (catatan != null && catatan.isNotEmpty)
+        request.fields['catatan'] = catatan;
       request.fields['merk'] = merk;
       request.fields['jenis_sepatu'] = jenisSepatu;
       request.fields['warna'] = warna;
@@ -2531,7 +2532,10 @@ class ApiService {
       return {'success': false, 'message': 'Response kosong dari server'};
     } catch (e) {
       debugPrint('Gagal menghubungi backend (addToCart): $e');
-      return {'success': false, 'message': 'Gagal menambahkan ke keranjang: $e'};
+      return {
+        'success': false,
+        'message': 'Gagal menambahkan ke keranjang: $e',
+      };
     }
   }
 
