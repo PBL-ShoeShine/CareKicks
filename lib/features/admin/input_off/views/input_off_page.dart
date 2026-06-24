@@ -2,6 +2,9 @@ import 'package:carekicks/core/widgets/custom_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_appbar.dart';
 import '../controllers/input_off_controller.dart';
@@ -30,6 +33,20 @@ class _InputOffPageState extends State<InputOffPage> {
 
   final List<String> _metodeBayarList = ['tunai', 'qris'];
 
+  bool _isDownloadingQr = false;
+
+  String _formatRupiah(int amount) {
+    String result = amount.toString();
+    String formatted = '';
+    int count = 0;
+    for (int i = result.length - 1; i >= 0; i--) {
+      if (count > 0 && count % 3 == 0) formatted = '.$formatted';
+      formatted = result[i] + formatted;
+      count++;
+    }
+    return 'Rp $formatted';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -51,9 +68,7 @@ class _InputOffPageState extends State<InputOffPage> {
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
-
     final pickedFile = await picker.pickImage(source: source, imageQuality: 80);
-
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
@@ -78,7 +93,7 @@ class _InputOffPageState extends State<InputOffPage> {
       return;
     }
 
-    final success = await _controller.createOrder(
+    final result = await _controller.createOrder(
       token: widget.token,
       namaCustomer: _namaController.text,
       nomorTelepon: _phoneController.text,
@@ -90,11 +105,8 @@ class _InputOffPageState extends State<InputOffPage> {
       fotoSebelum: _selectedImage!,
     );
 
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pesanan offline berhasil dibuat')),
-      );
-      Navigator.pop(context);
+    if (result != null && mounted) {
+      _showSuccessDialog(result);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -102,6 +114,22 @@ class _InputOffPageState extends State<InputOffPage> {
         ),
       );
     }
+  }
+
+  void _showSuccessDialog(Map<String, dynamic> data) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _OfflineOrderSuccessDialog(
+        kodeOrder: data['kode_order']?.toString() ?? '-',
+        totalHarga: data['total_harga']?.toString() ?? '0',
+        qrCodeUrl: data['qr_code']?.toString(),
+        onKembali: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
+        },
+      ),
+    );
   }
 
   void _showImagePickerOption() {
@@ -178,6 +206,7 @@ class _InputOffPageState extends State<InputOffPage> {
                     label: 'NOMOR TELEPON',
                     hint: '0812...',
                     keyboardType: TextInputType.phone,
+                    maxLength: 15,
                     validator: (v) =>
                         v!.isEmpty ? 'Nomor telepon tidak boleh kosong' : null,
                   ),
@@ -188,8 +217,9 @@ class _InputOffPageState extends State<InputOffPage> {
                     controller: _jenisSepatuController,
                     label: '',
                     hint: 'Contoh: Sneakers, Boots, dll',
-                    validator: (v) =>
-                        v!.trim().isEmpty ? 'Jenis sepatu tidak boleh kosong' : null,
+                    validator: (v) => v!.trim().isEmpty
+                        ? 'Jenis sepatu tidak boleh kosong'
+                        : null,
                   ),
                   const SizedBox(height: 24),
                   _buildSectionTitle('Detail Sepatu'),
@@ -288,6 +318,7 @@ class _InputOffPageState extends State<InputOffPage> {
     IconData? icon,
     TextInputType? keyboardType,
     int maxLines = 1,
+    int? maxLength,
     String? Function(String?)? validator,
     bool readOnly = false,
   }) {
@@ -306,12 +337,11 @@ class _InputOffPageState extends State<InputOffPage> {
           controller: controller,
           keyboardType: keyboardType,
           maxLines: maxLines,
+          maxLength: maxLength,
           validator: validator,
           readOnly: readOnly,
           style: TextStyle(
-            color: readOnly
-                ? Colors.grey.shade600
-                : Colors.black, // <--- UBAH WARNA TEKS JIKA READONLY
+            color: readOnly ? Colors.grey.shade600 : Colors.black,
           ),
           decoration: InputDecoration(
             hintText: hint,
@@ -451,7 +481,7 @@ class _InputOffPageState extends State<InputOffPage> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: _controller.services.length,
-        separatorBuilder: (_, _) =>
+        separatorBuilder: (_, __) =>
             const Divider(height: 1, color: Color(0xFFF1F5F9)),
         itemBuilder: (context, index) {
           final service = _controller.services[index];
@@ -471,7 +501,8 @@ class _InputOffPageState extends State<InputOffPage> {
                 ),
               ),
               subtitle: Text(
-                'Rp ${service['harga']}',
+                // ✅ FIX: format titik ribuan
+                _formatRupiah(service['harga']),
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.primaryBlue,
@@ -509,7 +540,8 @@ class _InputOffPageState extends State<InputOffPage> {
             ),
           ),
           Text(
-            'Rp${_controller.totalHarga.toInt()}',
+            // ✅ FIX: format titik ribuan
+            _formatRupiah(_controller.totalHarga.toInt()),
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -517,6 +549,280 @@ class _InputOffPageState extends State<InputOffPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SUCCESS DIALOG WITH QR CODE
+// ════════════════════════════════════════════════════════════════════════════
+
+class _OfflineOrderSuccessDialog extends StatefulWidget {
+  final String kodeOrder;
+  final String totalHarga;
+  final String? qrCodeUrl;
+  final VoidCallback onKembali;
+
+  const _OfflineOrderSuccessDialog({
+    required this.kodeOrder,
+    required this.totalHarga,
+    this.qrCodeUrl,
+    required this.onKembali,
+  });
+
+  @override
+  State<_OfflineOrderSuccessDialog> createState() =>
+      _OfflineOrderSuccessDialogState();
+}
+
+class _OfflineOrderSuccessDialogState
+    extends State<_OfflineOrderSuccessDialog>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+  bool _isDownloadingQr = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 500));
+    _scale = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _downloadQr() async {
+    final qrUrl = widget.qrCodeUrl;
+    if (qrUrl == null || qrUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('QR belum tersedia'),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isDownloadingQr = true);
+    try {
+      final response = await http.get(Uri.parse(qrUrl));
+      if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+        throw Exception('Gagal mengunduh gambar QR');
+      }
+
+      final imageBytes = Uint8List.fromList(response.bodyBytes);
+      final result = await ImageGallerySaverPlus.saveImage(
+        imageBytes,
+        quality: 100,
+        name: 'qr_order_${widget.kodeOrder}',
+      );
+
+      final isSuccess = result is Map
+          ? result['isSuccess'] == true
+          : result != null;
+
+      if (!isSuccess) {
+        throw Exception('Gagal menyimpan QR ke gallery');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('QR berhasil disimpan ke gallery'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengunduh QR: $e'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isDownloadingQr = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      child: ScaleTransition(
+        scale: _scale,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8))
+            ],
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                        colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check_rounded,
+                      color: Colors.white, size: 36),
+                ),
+                const SizedBox(height: 16),
+                const Text('Pesanan Berhasil!',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        color: Color(0xFF1E293B))),
+                const SizedBox(height: 6),
+                Text(
+                  'QR Code untuk pesanan #${widget.kodeOrder}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+
+                // QR Code display
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    children: [
+                      if (widget.qrCodeUrl != null &&
+                          widget.qrCodeUrl!.isNotEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            widget.qrCodeUrl!,
+                            width: 200,
+                            height: 200,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: 200,
+                              height: 200,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.qr_code_2_rounded,
+                                size: 80,
+                                color: Color(0xFFCBD5E1),
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          width: 200,
+                          height: 200,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.qr_code_2_rounded,
+                            size: 80,
+                            color: Color(0xFFCBD5E1),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '#${widget.kodeOrder}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Download QR button
+                if (widget.qrCodeUrl != null &&
+                    widget.qrCodeUrl!.isNotEmpty)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _isDownloadingQr ? null : _downloadQr,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryBlue,
+                        side: const BorderSide(color: AppColors.primaryBlue),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: _isDownloadingQr
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primaryBlue,
+                              ),
+                            )
+                          : const Icon(Icons.download_rounded, size: 20),
+                      label: Text(
+                        _isDownloadingQr
+                            ? 'Mengunduh...'
+                            : 'Simpan QR ke Galeri',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: widget.onKembali,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Selesai',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

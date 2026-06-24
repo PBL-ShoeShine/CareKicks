@@ -265,7 +265,7 @@ class TrackingDetailController extends ChangeNotifier {
         token: token,
         orderId: orderId,
         status: 'sudah_dijemput',
-        keterangan: 'Pesanan telah diterima di toko',
+        keterangan: 'Barang telah diterima oleh kurir',
         isValidation: true,
         latitude: position.latitude != 0 ? position.latitude : null,
         longitude: position.longitude != 0 ? position.longitude : null,

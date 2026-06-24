@@ -549,6 +549,7 @@ class _DetailDialogState extends State<_DetailDialog> {
   late final String kodeOrder;
   late final String namaCustomer;
   late final String namaStaff;
+  late final String metodeOrder;
   late final bool isDelivery;
   late final bool isOnline;
   late final String? alamat;
@@ -563,6 +564,7 @@ class _DetailDialogState extends State<_DetailDialog> {
     kodeOrder = d['kode_order']?.toString().trim() ?? '-';
     currentStatus = d['status_order']?.toString().trim() ?? 'antrean';
     namaCustomer = d['customers']?['nama']?.toString() ?? 'Pelanggan';
+    metodeOrder = d['metode_order']?.toString().toLowerCase().trim() ?? 'online';
 
     namaStaff =
         widget.user['nama'] ?? widget.user['username'] ?? 'Staff / Admin';
@@ -610,6 +612,7 @@ class _DetailDialogState extends State<_DetailDialog> {
 
   int _stepIndex(String status) {
     final s = status.toLowerCase();
+<<<<<<< HEAD
     if ([
       'pending',
       'menunggu_pembayaran',
@@ -622,7 +625,17 @@ class _DetailDialogState extends State<_DetailDialog> {
       return 0;
     if (s == 'washing' || s == 'dicuci') return 1;
     return 2;
+=======
+    if (s == 'menunggu_dijemput' || s == 'sedang_dijemput' || s == 'sudah_dijemput') return 0;
+    if (s == 'dikonfirmasi') return 0;
+    if (s == 'washing') return 1;
+    if (s == 'selesai_cuci' || s == 'sedang_diantar') return 2;
+    if (s == 'selesai') return 3;
+    return 0;
+>>>>>>> 61e4ab876732fd9460befccd3e79c2901b269ff5
   }
+
+  bool get _isOffline => metodeOrder == 'offline';
 
   ({
     String label,
@@ -693,6 +706,31 @@ class _DetailDialogState extends State<_DetailDialog> {
           label: 'Menunggu Sepatu Tiba',
           nextStatus: null,
           icon: Icons.lock_clock,
+    // Offline flow
+    if (_isOffline) {
+      if (s == 'dikonfirmasi') {
+        return (
+          label: 'Mulai Cuci',
+          nextStatus: 'washing',
+          icon: Icons.cleaning_services_rounded,
+          confirmTitle: 'Mulai Proses Cuci Sepatu?',
+          confirmMsg: 'Status pesanan akan diubah menjadi Dicuci. Lanjutkan?',
+          enabled: true,
+        );
+      } else if (s == 'washing') {
+        return (
+          label: 'Selesai Cuci',
+          nextStatus: 'selesai',
+          icon: Icons.task_alt_rounded,
+          confirmTitle: 'Selesaikan Proses Cuci?',
+          confirmMsg: 'Pastikan sepatu sudah bersih, kering, dan siap dikemas.',
+          enabled: true,
+        );
+      } else {
+        return (
+          label: 'Pesanan Selesai Di-scan',
+          nextStatus: null,
+          icon: Icons.verified_rounded,
           confirmTitle: '',
           confirmMsg: '',
           enabled: false,
@@ -728,6 +766,74 @@ class _DetailDialogState extends State<_DetailDialog> {
         confirmMsg: '',
         enabled: false,
       );
+      }
+    }
+
+    // Online flow
+    switch (s) {
+      case 'menunggu_dijemput':
+        return (
+          label: 'Mulai Jemput',
+          nextStatus: 'sedang_dijemput',
+          icon: Icons.delivery_dining_rounded,
+          confirmTitle: 'Mulai Penjemputan?',
+          confirmMsg: 'Staff akan diarahkan untuk menjemput sepatu ke alamat pelanggan.',
+          enabled: true,
+        );
+      case 'sedang_dijemput':
+        return (
+          label: 'Sepatu Dijemput',
+          nextStatus: 'sudah_dijemput',
+          icon: Icons.inventory_2_rounded,
+          confirmTitle: 'Konfirmasi Penjemputan?',
+          confirmMsg: 'Pastikan sepatu sudah diterima staff.',
+          enabled: true,
+        );
+      case 'sudah_dijemput':
+        return (
+          label: 'Mulai Cuci',
+          nextStatus: 'washing',
+          icon: Icons.cleaning_services_rounded,
+          confirmTitle: 'Mulai Proses Cuci Sepatu?',
+          confirmMsg: 'Status pesanan akan diubah menjadi Dicuci. Lanjutkan?',
+          enabled: true,
+        );
+      case 'washing':
+        return (
+          label: 'Selesai Cuci',
+          nextStatus: 'selesai_cuci',
+          icon: Icons.task_alt_rounded,
+          confirmTitle: 'Selesaikan Proses Cuci?',
+          confirmMsg: 'Pastikan sepatu sudah bersih, kering, dan siap dikemas sebelum melanjutkan.',
+          enabled: true,
+        );
+      case 'selesai_cuci':
+        return (
+          label: 'Mulai Antar',
+          nextStatus: 'sedang_diantar',
+          icon: Icons.local_shipping_rounded,
+          confirmTitle: 'Mulai Pengantaran?',
+          confirmMsg: 'Staff akan diarahkan untuk mengantar sepatu ke pelanggan.',
+          enabled: true,
+        );
+      case 'sedang_diantar':
+        return (
+          label: 'Selesaikan Order',
+          nextStatus: 'selesai',
+          icon: Icons.verified_rounded,
+          confirmTitle: 'Selesaikan Pesanan?',
+          confirmMsg: 'Pastikan sepatu sudah diterima oleh pelanggan.',
+          enabled: true,
+        );
+      default:
+        return (
+          label: 'Pesanan Selesai Di-scan',
+          nextStatus: null,
+          icon: Icons.verified_rounded,
+          confirmTitle: '',
+          confirmMsg: '',
+          enabled: false,
+        );
     }
   }
 
@@ -825,7 +931,7 @@ class _DetailDialogState extends State<_DetailDialog> {
   @override
   Widget build(BuildContext context) {
     final act = _action;
-    final stepLabels = ['Antrean', 'Dicuci', 'Selesai'];
+    final stepLabels = ['Pengambilan', 'Cuci', 'Pengantaran', 'Selesai'];
     final activeStep = _stepIndex(currentStatus);
 
     final namaLayanan =
@@ -953,14 +1059,17 @@ class _DetailDialogState extends State<_DetailDialog> {
                       Expanded(
                         child: Text(
                           '#$kodeOrder',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
                             fontFamily: 'monospace',
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
+                      const SizedBox(width: 6),
                       _StatusChip(status: currentStatus, light: true),
                     ],
                   ),
@@ -988,83 +1097,82 @@ class _DetailDialogState extends State<_DetailDialog> {
                         ],
                       ),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(stepLabels.length, (i) {
                           final passed = i <= activeStep;
                           final current = i == activeStep;
-                          final last = i == stepLabels.length - 1;
 
-                          return Expanded(
-                            flex: last ? 0 : 1,
-                            child: Row(
-                              children: [
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 22,
-                                      height: 22,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (i > 0)
+                                Container(
+                                  width: 28,
+                                  height: 2,
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  decoration: BoxDecoration(
+                                    color: i <= activeStep
+                                        ? AppColors.primaryBlue
+                                        : Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(1),
+                                  ),
+                                ),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: passed
+                                          ? AppColors.primaryBlue
+                                          : Colors.white,
+                                      border: Border.all(
                                         color: passed
                                             ? AppColors.primaryBlue
-                                            : Colors.white,
-                                        border: Border.all(
-                                          color: passed
-                                              ? AppColors.primaryBlue
-                                              : Colors.grey.shade300,
-                                          width: current ? 3.5 : 1.5,
-                                        ),
+                                            : Colors.grey.shade300,
+                                        width: current ? 3.5 : 1.5,
                                       ),
-                                      child: Center(
-                                        child: passed
-                                            ? const Icon(
-                                                Icons.check,
-                                                size: 12,
-                                                color: Colors.white,
-                                              )
-                                            : Container(
-                                                width: 4,
-                                                height: 4,
-                                                decoration: const BoxDecoration(
-                                                  color: Colors.grey,
-                                                  shape: BoxShape.circle,
-                                                ),
+                                    ),
+                                    child: Center(
+                                      child: passed
+                                          ? const Icon(
+                                              Icons.check,
+                                              size: 13,
+                                              color: Colors.white,
+                                            )
+                                          : Container(
+                                              width: 4,
+                                              height: 4,
+                                              decoration: const BoxDecoration(
+                                                color: Colors.grey,
+                                                shape: BoxShape.circle,
                                               ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      stepLabels[i],
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: current
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                        color: current
-                                            ? AppColors.primaryBlue
-                                            : (passed
-                                                  ? _textColor
-                                                  : Colors.grey),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (!last)
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 14,
-                                      ),
-                                      child: Container(
-                                        height: 3,
-                                        color: i < activeStep
-                                            ? AppColors.primaryBlue
-                                            : Colors.grey.shade200,
-                                      ),
+                                            ),
                                     ),
                                   ),
-                              ],
-                            ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    stepLabels[i],
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: current
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: current
+                                          ? AppColors.primaryBlue
+                                          : (passed
+                                                ? _textColor
+                                                : Colors.grey),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           );
                         }),
                       ),
@@ -1380,6 +1488,34 @@ class _StatusChip extends StatelessWidget {
       bg = Colors.red.shade50;
       fg = Colors.red.shade700;
       icon = Icons.cancel_rounded;
+    if (s == 'menunggu_dijemput') {
+      bg = Colors.blue.shade50;
+      fg = AppColors.primaryBlue;
+      icon = Icons.hourglass_top_rounded;
+    } else if (s == 'sedang_dijemput') {
+      bg = Colors.orange.shade50;
+      fg = Colors.orange.shade800;
+      icon = Icons.delivery_dining_rounded;
+    } else if (s == 'sudah_dijemput' || s == 'dikonfirmasi') {
+      bg = Colors.indigo.shade50;
+      fg = Colors.indigo.shade700;
+      icon = Icons.inventory_2_rounded;
+    } else if (s == 'washing') {
+      bg = Colors.orange.shade50;
+      fg = Colors.orange.shade800;
+      icon = Icons.cleaning_services_rounded;
+    } else if (s == 'selesai_cuci') {
+      bg = Colors.teal.shade50;
+      fg = Colors.teal.shade700;
+      icon = Icons.check_circle_outline;
+    } else if (s == 'sedang_diantar') {
+      bg = Colors.purple.shade50;
+      fg = Colors.purple.shade700;
+      icon = Icons.local_shipping_rounded;
+    } else if (s == 'selesai') {
+      bg = Colors.green.shade50;
+      fg = Colors.green.shade700;
+      icon = Icons.task_alt_rounded;
     }
 
     if (light) {

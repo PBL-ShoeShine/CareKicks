@@ -67,7 +67,7 @@ class InputOffController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> createOrder({
+  Future<Map<String, dynamic>?> createOrder({
     required String token,
     required String namaCustomer,
     required String nomorTelepon,
@@ -109,11 +109,11 @@ class InputOffController extends ChangeNotifier {
     if (result['success'] == true) {
       reset();
       notifyListeners();
-      return true;
+      return result['data'] as Map<String, dynamic>?;
     } else {
       _errorMessage = result['message'] ?? 'Gagal membuat pesanan';
       notifyListeners();
-      return false;
+      return null;
     }
   }
 

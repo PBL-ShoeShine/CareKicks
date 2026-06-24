@@ -200,7 +200,11 @@ class _AntreanScreenState extends State<AntreanScreen>
             context,
             MaterialPageRoute(
               builder: (context) =>
-                  AntreanDetailScreen(token: widget.token, antrean: antrean),
+                  AntreanDetailScreen(
+                    token: widget.token,
+                    antrean: antrean,
+                    user: widget.user,
+                  ),
             ),
           );
           if (result == true) _loadData();
@@ -288,6 +292,27 @@ class _AntreanScreenState extends State<AntreanScreen>
                                 ),
                               ),
                             ),
+                            if ((antrean.qrImage != null || antrean.linkQr != null) &&
+                                antrean.statusOrder != 'pending' &&
+                                antrean.statusOrder != 'menunggu_pembayaran' &&
+                                antrean.statusOrder != 'menunggu_konfirmasi') ...[
+                              const SizedBox(width: 4),
+                              Tooltip(
+                                message: 'QR Code tersedia',
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryBlue.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Icon(
+                                    Icons.qr_code_2_rounded,
+                                    size: 14,
+                                    color: AppColors.primaryBlue,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -490,8 +515,8 @@ class _AntreanScreenState extends State<AntreanScreen>
       );
     }
 
-    // 2. Tab Pembayaran (menunggu_pembayaran)
-    if (antrean.statusOrder == 'menunggu_pembayaran') {
+    // 2. Tab Pembayaran (menunggu_konfirmasi)
+    if (antrean.statusOrder == 'menunggu_konfirmasi') {
       return Row(
         children: [
           Expanded(

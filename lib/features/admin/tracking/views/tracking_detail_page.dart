@@ -33,13 +33,24 @@ class TrackingDetailPage extends StatefulWidget {
 class _TrackingDetailPageState extends State<TrackingDetailPage> {
   late TrackingDetailController _controller;
   late final MapController _mapController;
+  bool _initialFitDone = false;
+  bool _followMe = false;
 
   @override
   void initState() {
     super.initState();
     _mapController = MapController();
     _controller = TrackingDetailController();
+    _controller.addListener(_onControllerChanged);
     _initTracking();
+  }
+
+  void _onControllerChanged() {
+    if (!mounted) return;
+    setState(() {});
+    if (_followMe && _controller.currentCourierLocation != null) {
+      _mapController.move(_controller.currentCourierLocation!, 16);
+    }
   }
 
   Future<void> _initTracking() async {
@@ -71,6 +82,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
 
   @override
   void dispose() {
+    _controller.removeListener(_onControllerChanged);
     _controller.stopAutoRefresh();
     _controller.stopRealtimeLocation();
     _controller.dispose();
@@ -448,6 +460,8 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
               options: MapOptions(
                 initialCenter: center,
                 initialZoom: 14,
+                minZoom: 11,
+                maxZoom: 18,
                 interactionOptions: const InteractionOptions(
                   flags: InteractiveFlag.all,
                 ),
@@ -456,6 +470,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'carekicks',
+                  maxNativeZoom: 19,
                 ),
                 // POLYLINE LAYER (before markers)
                 if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
@@ -465,15 +480,18 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
             ),
           ),
         ),
-        // Fit map after build
-        if (allMapPoints.length >= 2)
+        // Fit map once on initial load
+        if (allMapPoints.length >= 2 && !_initialFitDone)
           Positioned(
             width: 0,
             height: 0,
             child: Builder(
               builder: (context) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _fitMapToPoints(allMapPoints);
+                  if (!_initialFitDone) {
+                    _initialFitDone = true;
+                    _fitMapToPoints(allMapPoints);
+                  }
                 });
                 return const SizedBox.shrink();
               },
@@ -534,13 +552,47 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
         if (_controller.isRouting)
           const Positioned(
             top: 12,
-            right: 12,
+            right: 52,
             child: SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ),
+        Positioned(
+          bottom: 12,
+          right: 12,
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _followMe = !_followMe;
+                if (_followMe && _controller.currentCourierLocation != null) {
+                  _mapController.move(_controller.currentCourierLocation!, 16);
+                }
+              });
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _followMe ? AppColors.primaryBlue : Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.my_location_rounded,
+                color: _followMe ? Colors.white : AppColors.primaryBlue,
+                size: 22,
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -771,8 +823,12 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
   Widget _deliveryDetailCard(
     String title,
     Map<String, dynamic> order,
-    Map<String, dynamic>? lastLog,
   ) {
+    final items = order['detail_orders'] as List<dynamic>? ?? [];
+    final ongkir = double.tryParse(order['ongkir']?.toString() ?? '0') ?? 0;
+    final subtotal = _totalHarga(items);
+    final total = subtotal + ongkir.toInt();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -800,7 +856,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                 ),
               ),
               Text(
-                'ID: ${order['kode_order'] ?? order['id_orders'] ?? '-'}',
+                '#${order['kode_order'] ?? order['id_orders'] ?? '-'}',
                 style: const TextStyle(fontSize: 11, color: Colors.grey),
               ),
             ],
@@ -821,29 +877,111 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
             label: 'Alamat Tujuan',
             value: order['customers']?['alamat']?.toString() ?? '-',
           ),
-          _detailRow(
-            icon: Icons.inventory_2_outlined,
-            label: 'Item Pesanan',
-            value: _itemsLabel(order['detail_orders']),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Total Pembayaran',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-              Text(
-                _formatCurrency(_totalHarga(order['detail_orders'])),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
-                  fontSize: 16,
+          const SizedBox(height: 8),
+          ...items.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value as Map<String, dynamic>;
+            return Padding(
+              padding: EdgeInsets.only(top: index > 0 ? 12 : 0),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F8FA),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pesanan ${index + 1}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1A1A2E),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInfoColumn(
+                            'Merk',
+                            item['merk']?.toString() ?? '-',
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildInfoColumn(
+                            'Warna',
+                            item['warna']?.toString() ?? '-',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInfoColumn(
+                            'Jenis Layanan',
+                            item['services']?['nama_layanan']?.toString() ?? '-',
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildInfoColumn(
+                            'Harga',
+                            _formatCurrency(
+                              double.tryParse(item['total_harga']?.toString() ?? '0') ?? 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
+            );
+          }),
+          if (items.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            if (ongkir > 0) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Ongkir',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  Text(
+                    _formatCurrency(ongkir),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
             ],
-          ),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Total Pembayaran',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                Text(
+                  _formatCurrency(total.toDouble()),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryBlue,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (order['catatan_pengiriman'] != null) ...[
             const SizedBox(height: 16),
             Container(
@@ -873,17 +1011,25 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
               ),
             ),
           ],
-          const SizedBox(height: 16),
-          Text(
-            'Terakhir update: ${_formatDateTime(lastLog?['waktu']?.toString())}',
-            style: const TextStyle(
-              fontSize: 10,
-              color: Colors.grey,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoColumn(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.grey, fontSize: 11),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+      ],
     );
   }
 
@@ -1173,8 +1319,8 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
               actionButtons.add(
                 Expanded(
                   child: _actionButton(
-                    label: 'Berhenti',
-                    icon: Icons.stop,
+                    label: 'Jeda',
+                    icon: Icons.pause,
                     color: AppColors.warning,
                     onPressed: _controller.stopRealtimeLocation,
                   ),
@@ -1253,14 +1399,14 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                   if (actionButtons.isNotEmpty) const SizedBox(height: 12),
                   if (isPickupActive)
                     _actionButton(
-                      label: 'Diterima Toko',
+                      label: 'Barang Diterima Kurir',
                       icon: Icons.check_circle,
                       color: AppColors.primaryBlue,
                       isFullWidth: true,
                       onPressed: _controller.isUpdating
                           ? null
                           : () => _showImagePickerOption(
-                              title: 'Foto Bukti Penjemputan',
+                              title: 'Foto Barang Diterima',
                               onImagePicked: (image) =>
                                   _submitPickup(image, parsedIdStaff),
                             ),
@@ -1311,7 +1457,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                   const SizedBox(height: 16),
                 ],
 
-                _deliveryDetailCard(detailTitle, order, lastLog),
+                _deliveryDetailCard(detailTitle, order),
                 const SizedBox(height: 24),
               ],
             ),

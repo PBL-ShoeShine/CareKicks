@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import '../../../../core/network/api_service.dart'; // Import ApiService untuk mengambil baseUrl
+import '../../../../core/network/api_service.dart'; 
 
 class OngkirService {
   // GET Data Ongkir
