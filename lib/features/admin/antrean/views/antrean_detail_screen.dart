@@ -202,10 +202,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
         case 'sedang_diantar':
           return 'selesai';
         case 'selesai':
-<<<<<<< HEAD
         case 'dibatalkan':
-=======
->>>>>>> 61e4ab876732fd9460befccd3e79c2901b269ff5
           return null;
         default:
           return null;
@@ -778,101 +775,6 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-<<<<<<< HEAD
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Foto Sepatu - Multi Gambar (Swipeable Carousel)
-                          Builder(
-                            builder: (context) {
-                              List<String> splitUrls(String? path) {
-                                if (path == null || path.isEmpty) return [];
-                                return path
-                                    .split(',')
-                                    .map((u) => u.trim())
-                                    .where((u) => u.isNotEmpty)
-                                    .toList();
-                              }
-
-                              final List<String> sebelumUrls = splitUrls(
-                                item.fotoSebelum,
-                              );
-                              final List<String> sesudahUrls = splitUrls(
-                                item.fotoSesudah,
-                              );
-
-                              final List<Map<String, String>> photos = [
-                                ...sebelumUrls.map(
-                                  (url) => {'url': url, 'label': 'Sebelum'},
-                                ),
-                                ...sesudahUrls.map(
-                                  (url) => {'url': url, 'label': 'Sesudah'},
-                                ),
-                              ];
-
-                              if (photos.isEmpty) {
-                                return _buildPlaceholderImage(
-                                  label:
-                                      'Foto sebelum & sesudah tidak tersedia',
-                                  height: 200,
-                                );
-                              }
-
-                              return _ImageCarousel(
-                                photos: photos,
-                                onImageTap: (initialIndex) {
-                                  _showFullscreenImage(
-                                    context,
-                                    photos,
-                                    initialIndex,
-                                    'Pesanan ${index + 1}',
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          // Info Merek & Warna
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildInfoItem(
-                                  'Merk Sepatu',
-                                  item.merk.isEmpty ? '-' : item.merk,
-                                ),
-                              ),
-                              Expanded(
-                                child: _buildInfoItem(
-                                  'Warna',
-                                  item.warna.isEmpty ? '-' : item.warna,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: Divider(height: 1, color: Color(0xFFEEEEEE)),
-                          ),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildInfoItem(
-                                  'Jenis Layanan',
-                                  item.namaLayanan ?? '-',
-                                ),
-                              ),
-                              Expanded(
-                                child: _buildInfoItem(
-                                  'Harga',
-                                  _formatHarga(item.totalHarga),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-=======
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         icon: _isDownloadingQr
@@ -890,7 +792,6 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                               : 'Simpan QR ke Galeri',
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
->>>>>>> 61e4ab876732fd9460befccd3e79c2901b269ff5
                       ),
                     ),
                   ],
@@ -1214,12 +1115,6 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     );
   }
 
-<<<<<<< HEAD
-  Widget _buildPlaceholderImage({
-    String label = 'Foto tidak tersedia',
-    double height = 140,
-  }) {
-=======
   Widget _buildDetailOrderCard(int index) {
     final item = widget.antrean.detailOrders[index];
     return Column(
@@ -1331,8 +1226,10 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     );
   }
 
-  Widget _buildPlaceholderImage({String label = 'Foto tidak tersedia', double height = 140}) {
->>>>>>> 61e4ab876732fd9460befccd3e79c2901b269ff5
+  Widget _buildPlaceholderImage({
+    String label = 'Foto tidak tersedia',
+    double height = 140,
+  }) {
     return Container(
       width: double.infinity,
       height: height,

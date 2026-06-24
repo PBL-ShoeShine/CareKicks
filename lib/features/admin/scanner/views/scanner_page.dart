@@ -612,27 +612,12 @@ class _DetailDialogState extends State<_DetailDialog> {
 
   int _stepIndex(String status) {
     final s = status.toLowerCase();
-<<<<<<< HEAD
-    if ([
-      'pending',
-      'menunggu_pembayaran',
-      'menunggu_konfirmasi',
-      'dikonfirmasi',
-      'menunggu_dijemput',
-      'sedang_dijemput',
-      'sudah_dijemput',
-    ].contains(s))
-      return 0;
-    if (s == 'washing' || s == 'dicuci') return 1;
-    return 2;
-=======
     if (s == 'menunggu_dijemput' || s == 'sedang_dijemput' || s == 'sudah_dijemput') return 0;
     if (s == 'dikonfirmasi') return 0;
     if (s == 'washing') return 1;
     if (s == 'selesai_cuci' || s == 'sedang_diantar') return 2;
     if (s == 'selesai') return 3;
     return 0;
->>>>>>> 61e4ab876732fd9460befccd3e79c2901b269ff5
   }
 
   bool get _isOffline => metodeOrder == 'offline';
@@ -692,20 +677,8 @@ class _DetailDialogState extends State<_DetailDialog> {
             'Status pesanan akan diubah menjadi SEDANG DICUCI. Lanjutkan?',
         enabled: true,
       );
-    } else if ([
-      'pending',
-      'menunggu_pembayaran',
-      'menunggu_konfirmasi',
-      'dikonfirmasi',
-      'antrean',
-      'menunggu_dijemput',
-      'sedang_dijemput',
-    ].contains(s)) {
-      if (isOnline) {
-        return (
-          label: 'Menunggu Sepatu Tiba',
-          nextStatus: null,
-          icon: Icons.lock_clock,
+    }
+
     // Offline flow
     if (_isOffline) {
       if (s == 'dikonfirmasi') {
@@ -735,37 +708,6 @@ class _DetailDialogState extends State<_DetailDialog> {
           confirmMsg: '',
           enabled: false,
         );
-      } else {
-        if (s == 'dikonfirmasi') {
-          return (
-            label: 'Mulai Cuci',
-            nextStatus: 'washing',
-            icon: Icons.cleaning_services_rounded,
-            confirmTitle: 'Mulai Proses Cuci Sepatu?',
-            confirmMsg:
-                'Status pesanan akan diubah menjadi SEDANG DICUCI. Lanjutkan?',
-            enabled: true,
-          );
-        } else {
-          return (
-            label: 'Menunggu Konfirmasi',
-            nextStatus: null,
-            icon: Icons.lock_clock,
-            confirmTitle: '',
-            confirmMsg: '',
-            enabled: false,
-          );
-        }
-      }
-    } else {
-      return (
-        label: 'Belum Masuk Tahap Cuci',
-        nextStatus: null,
-        icon: Icons.lock_clock,
-        confirmTitle: '',
-        confirmMsg: '',
-        enabled: false,
-      );
       }
     }
 
@@ -1466,41 +1408,19 @@ class _StatusChip extends StatelessWidget {
       bg = Colors.blue.shade50;
       fg = AppColors.primaryBlue;
       icon = Icons.hourglass_top_rounded;
-    } else if (s == 'dikonfirmasi' ||
-        s == 'menunggu_dijemput' ||
-        s == 'sedang_dijemput') {
-      bg = Colors.amber.shade50;
-      fg = Colors.amber.shade800;
-      icon = Icons.directions_run_rounded;
-    } else if (s == 'sudah_dijemput' || s == 'washing' || s == 'dicuci') {
-      bg = Colors.orange.shade50;
-      fg = Colors.orange.shade800;
-      icon = Icons.cleaning_services_rounded;
-    } else if (s == 'selesai_cuci' || s == 'siap_ambil' || s == 'selesai') {
-      bg = Colors.green.shade50;
-      fg = Colors.green.shade700;
-      icon = Icons.task_alt_rounded;
-    } else if (s == 'sedang_diantar' || s == 'diantar' || s == 'delivered') {
-      bg = Colors.purple.shade50;
-      fg = AppColors.primaryBlue;
-      icon = Icons.local_shipping_rounded;
-    } else if (s == 'dibatalkan') {
-      bg = Colors.red.shade50;
-      fg = Colors.red.shade700;
-      icon = Icons.cancel_rounded;
-    if (s == 'menunggu_dijemput') {
+    } else if (s == 'menunggu_dijemput') {
       bg = Colors.blue.shade50;
       fg = AppColors.primaryBlue;
       icon = Icons.hourglass_top_rounded;
-    } else if (s == 'sedang_dijemput') {
-      bg = Colors.orange.shade50;
-      fg = Colors.orange.shade800;
-      icon = Icons.delivery_dining_rounded;
-    } else if (s == 'sudah_dijemput' || s == 'dikonfirmasi') {
+    } else if (s == 'dikonfirmasi' || s == 'sedang_dijemput') {
+      bg = Colors.amber.shade50;
+      fg = Colors.amber.shade800;
+      icon = Icons.directions_run_rounded;
+    } else if (s == 'sudah_dijemput') {
       bg = Colors.indigo.shade50;
       fg = Colors.indigo.shade700;
       icon = Icons.inventory_2_rounded;
-    } else if (s == 'washing') {
+    } else if (s == 'washing' || s == 'dicuci') {
       bg = Colors.orange.shade50;
       fg = Colors.orange.shade800;
       icon = Icons.cleaning_services_rounded;
@@ -1508,14 +1428,18 @@ class _StatusChip extends StatelessWidget {
       bg = Colors.teal.shade50;
       fg = Colors.teal.shade700;
       icon = Icons.check_circle_outline;
-    } else if (s == 'sedang_diantar') {
+    } else if (s == 'sedang_diantar' || s == 'diantar' || s == 'delivered') {
       bg = Colors.purple.shade50;
       fg = Colors.purple.shade700;
       icon = Icons.local_shipping_rounded;
-    } else if (s == 'selesai') {
+    } else if (s == 'selesai' || s == 'siap_ambil') {
       bg = Colors.green.shade50;
       fg = Colors.green.shade700;
       icon = Icons.task_alt_rounded;
+    } else if (s == 'dibatalkan') {
+      bg = Colors.red.shade50;
+      fg = Colors.red.shade700;
+      icon = Icons.cancel_rounded;
     }
 
     if (light) {
@@ -1535,7 +1459,6 @@ class _StatusChip extends StatelessWidget {
           Icon(icon, size: 12, color: fg),
           const SizedBox(width: 4),
           Text(
-            // --- PERBAIKAN: MENGHILANGKAN UNDERSCORE ---
             status.toUpperCase().replaceAll('_', ' '),
             style: TextStyle(
               fontSize: 10,
@@ -1548,6 +1471,7 @@ class _StatusChip extends StatelessWidget {
     );
   }
 }
+
 
 class _DeliveryBanner extends StatelessWidget {
   final bool isDelivery;
