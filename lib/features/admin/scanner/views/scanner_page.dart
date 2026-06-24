@@ -87,7 +87,6 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
     }
   }
 
-  // SINKRONISASI PLAY FEEDBACK (DEFINISI METHOD BERADA DI DALAM_SCANNERPAGESTATE)
   Future<void> _playFeedback() async {
     try {
       final hasVibrator = await Vibration.hasVibrator() ?? false;
@@ -311,7 +310,7 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
                   if (code == null) return;
 
                   setState(() => isScanCompleted = true);
-                  _playFeedback(); // Sekarang aman dan terdefinisi di tempatnya
+                  _playFeedback();
 
                   if (!mounted) return;
 
@@ -325,7 +324,12 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
                     ),
                   );
 
-                  final resultData = await ApiService.cekSepatu(code);
+                  // --- PERBAIKAN: MEMBAWA TOKEN SAAT SCAN QR ---
+                  final resultData = await ApiService.cekSepatu(
+                    widget.token,
+                    code,
+                  );
+
                   if (mounted) Navigator.pop(context);
 
                   if (resultData != null && resultData['success'] == true) {
@@ -439,7 +443,11 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _DetailDialog(data: data),
+      builder: (_) => _DetailDialog(
+        data: data,
+        user: widget.user,
+        token: widget.token, // --- TOKEN DI-PASSING KE DIALOG ---
+      ),
     ).then((_) {
       if (mounted) setState(() => isScanCompleted = false);
     });
@@ -521,7 +529,14 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
 // =============================================================================
 class _DetailDialog extends StatefulWidget {
   final Map<String, dynamic> data;
-  const _DetailDialog({required this.data});
+  final Map<String, dynamic> user;
+  final String token; // --- VARIABEL UNTUK TOKEN ---
+
+  const _DetailDialog({
+    required this.data,
+    required this.user,
+    required this.token,
+  });
 
   @override
   State<_DetailDialog> createState() => _DetailDialogState();
@@ -533,7 +548,9 @@ class _DetailDialogState extends State<_DetailDialog> {
 
   late final String kodeOrder;
   late final String namaCustomer;
+  late final String namaStaff;
   late final bool isDelivery;
+  late final bool isOnline;
   late final String? alamat;
   late final Map<String, dynamic> layananSpesifik;
   late final String catatan;
@@ -546,6 +563,10 @@ class _DetailDialogState extends State<_DetailDialog> {
     kodeOrder = d['kode_order']?.toString().trim() ?? '-';
     currentStatus = d['status_order']?.toString().trim() ?? 'antrean';
     namaCustomer = d['customers']?['nama']?.toString() ?? 'Pelanggan';
+
+    namaStaff =
+        widget.user['nama'] ?? widget.user['username'] ?? 'Staff / Admin';
+    isOnline = d['metode_order']?.toString().toLowerCase().trim() == 'online';
 
     var alamatRaw = d['alamat_pengantaran']?.toString().trim();
     if (alamatRaw == null || alamatRaw.isEmpty || alamatRaw == 'null') {
@@ -589,8 +610,17 @@ class _DetailDialogState extends State<_DetailDialog> {
 
   int _stepIndex(String status) {
     final s = status.toLowerCase();
-    if (s == 'pending' || s == 'antrean') return 0;
-    if (s == 'dicuci' || s == 'washing') return 1;
+    if ([
+      'pending',
+      'menunggu_pembayaran',
+      'menunggu_konfirmasi',
+      'dikonfirmasi',
+      'menunggu_dijemput',
+      'sedang_dijemput',
+      'sudah_dijemput',
+    ].contains(s))
+      return 0;
+    if (s == 'washing' || s == 'dicuci') return 1;
     return 2;
   }
 
@@ -604,30 +634,96 @@ class _DetailDialogState extends State<_DetailDialog> {
   })
   get _action {
     final s = currentStatus.toLowerCase();
-    if (s == 'pending' || s == 'antrean') {
-      return (
-        label: 'Mulai Cuci',
-        nextStatus: 'dicuci',
-        icon: Icons.cleaning_services_rounded,
-        confirmTitle: 'Mulai Proses Cuci Sepatu?',
-        confirmMsg: 'Status pesanan akan diubah menjadi Dicuci. Lanjutkan?',
-        enabled: true,
-      );
-    } else if (s == 'dicuci' || s == 'washing') {
+
+    if (s == 'washing' || s == 'dicuci') {
       return (
         label: 'Selesai Cuci',
-        nextStatus: 'siap_ambil',
+        nextStatus: 'selesai_cuci',
         icon: Icons.task_alt_rounded,
         confirmTitle: 'Selesaikan Proses Cuci?',
         confirmMsg:
-            'Pastikan sepatu sudah bersih, kering, dan siap dikemas sebelum melanjutkan.',
+            'Pastikan sepatu sudah bersih, kering, dan siap dikemas. Lanjutkan?',
         enabled: true,
       );
-    } else {
+    } else if (s == 'selesai_cuci') {
       return (
-        label: 'Pesanan Selesai Di-scan',
+        label: 'Telah Selesai Dicuci',
         nextStatus: null,
         icon: Icons.verified_rounded,
+        confirmTitle: '',
+        confirmMsg: '',
+        enabled: false,
+      );
+    } else if ([
+      'sedang_diantar',
+      'diantar',
+      'delivered',
+      'selesai',
+      'dibatalkan',
+    ].contains(s)) {
+      return (
+        label: 'Pesanan Telah Selesai',
+        nextStatus: null,
+        icon: Icons.check_circle_rounded,
+        confirmTitle: '',
+        confirmMsg: '',
+        enabled: false,
+      );
+    } else if (s == 'sudah_dijemput') {
+      return (
+        label: 'Mulai Cuci',
+        nextStatus: 'washing',
+        icon: Icons.cleaning_services_rounded,
+        confirmTitle: 'Mulai Proses Cuci Sepatu?',
+        confirmMsg:
+            'Status pesanan akan diubah menjadi SEDANG DICUCI. Lanjutkan?',
+        enabled: true,
+      );
+    } else if ([
+      'pending',
+      'menunggu_pembayaran',
+      'menunggu_konfirmasi',
+      'dikonfirmasi',
+      'antrean',
+      'menunggu_dijemput',
+      'sedang_dijemput',
+    ].contains(s)) {
+      if (isOnline) {
+        return (
+          label: 'Menunggu Sepatu Tiba',
+          nextStatus: null,
+          icon: Icons.lock_clock,
+          confirmTitle: '',
+          confirmMsg: '',
+          enabled: false,
+        );
+      } else {
+        if (s == 'dikonfirmasi') {
+          return (
+            label: 'Mulai Cuci',
+            nextStatus: 'washing',
+            icon: Icons.cleaning_services_rounded,
+            confirmTitle: 'Mulai Proses Cuci Sepatu?',
+            confirmMsg:
+                'Status pesanan akan diubah menjadi SEDANG DICUCI. Lanjutkan?',
+            enabled: true,
+          );
+        } else {
+          return (
+            label: 'Menunggu Konfirmasi',
+            nextStatus: null,
+            icon: Icons.lock_clock,
+            confirmTitle: '',
+            confirmMsg: '',
+            enabled: false,
+          );
+        }
+      }
+    } else {
+      return (
+        label: 'Belum Masuk Tahap Cuci',
+        nextStatus: null,
+        icon: Icons.lock_clock,
         confirmTitle: '',
         confirmMsg: '',
         enabled: false,
@@ -709,7 +805,7 @@ class _DetailDialogState extends State<_DetailDialog> {
                       ),
                     ),
                     child: const Text(
-                      'Ya, Lanjutkan',
+                      'Ya',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -729,7 +825,7 @@ class _DetailDialogState extends State<_DetailDialog> {
   @override
   Widget build(BuildContext context) {
     final act = _action;
-    final stepLabels = ['Pending', 'Proses', 'Selesai'];
+    final stepLabels = ['Antrean', 'Dicuci', 'Selesai'];
     final activeStep = _stepIndex(currentStatus);
 
     final namaLayanan =
@@ -805,6 +901,8 @@ class _DetailDialogState extends State<_DetailDialog> {
                     ],
                   ),
                   const SizedBox(height: 10),
+
+                  // NAMA PELANGGAN
                   Row(
                     children: [
                       const Icon(
@@ -812,9 +910,9 @@ class _DetailDialogState extends State<_DetailDialog> {
                         color: Colors.white70,
                         size: 14,
                       ),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 6),
                       Text(
-                        namaCustomer,
+                        'Pelanggan: $namaCustomer',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 13,
@@ -822,7 +920,28 @@ class _DetailDialogState extends State<_DetailDialog> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
+
+                  // NAMA STAFF
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.badge_outlined,
+                        color: Colors.white70,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Diproses oleh: $namaStaff',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       const Icon(
@@ -1114,6 +1233,7 @@ class _DetailDialogState extends State<_DetailDialog> {
                     child: SizedBox(
                       height: 50,
                       child: ElevatedButton.icon(
+                        // --- PERBAIKAN: API DIPANGGIL DENGAN TOKEN ---
                         onPressed: (act.enabled && !isUpdating)
                             ? () async {
                                 final yakin = await _konfirmasi(
@@ -1127,8 +1247,9 @@ class _DetailDialogState extends State<_DetailDialog> {
 
                                 final result =
                                     await ApiService.updateStatusPesanan(
-                                      kodeOrder,
-                                      act.nextStatus!,
+                                      token: widget.token, // KUNCI UTAMA
+                                      kodeOrder: kodeOrder,
+                                      statusBaru: act.nextStatus!,
                                     );
 
                                 if (!mounted) return;
@@ -1137,20 +1258,21 @@ class _DetailDialogState extends State<_DetailDialog> {
                                     result['success'] == true) {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text(
-                                        'Informasi aktivitas pesanan berhasil diperbarui!',
+                                        'Sepatu berhasil ditandai ${act.nextStatus!.replaceAll('_', ' ').toUpperCase()}!',
                                       ),
                                       backgroundColor: Colors.green,
-                                      duration: Duration(seconds: 2),
+                                      duration: const Duration(seconds: 2),
                                     ),
                                   );
                                 } else {
                                   setState(() => isUpdating = false);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text(
-                                        'Gagal memperbarui status order.',
+                                        result?['message'] ??
+                                            'Gagal memperbarui status order.',
                                       ),
                                       backgroundColor: Colors.red,
                                     ),
@@ -1229,26 +1351,35 @@ class _StatusChip extends StatelessWidget {
     Color fg = AppColors.primaryBlue;
     IconData icon = Icons.hourglass_top_rounded;
 
-    if (s == 'pending' || s == 'antrean') {
+    if (s == 'pending' ||
+        s == 'menunggu_pembayaran' ||
+        s == 'menunggu_konfirmasi' ||
+        s == 'antrean') {
       bg = Colors.blue.shade50;
       fg = AppColors.primaryBlue;
       icon = Icons.hourglass_top_rounded;
-    } else if (s == 'dicuci' || s == 'washing') {
+    } else if (s == 'dikonfirmasi' ||
+        s == 'menunggu_dijemput' ||
+        s == 'sedang_dijemput') {
+      bg = Colors.amber.shade50;
+      fg = Colors.amber.shade800;
+      icon = Icons.directions_run_rounded;
+    } else if (s == 'sudah_dijemput' || s == 'washing' || s == 'dicuci') {
       bg = Colors.orange.shade50;
       fg = Colors.orange.shade800;
       icon = Icons.cleaning_services_rounded;
-    } else if (s == 'siap_ambil' || s == 'selesai') {
+    } else if (s == 'selesai_cuci' || s == 'siap_ambil' || s == 'selesai') {
       bg = Colors.green.shade50;
       fg = Colors.green.shade700;
       icon = Icons.task_alt_rounded;
-    } else if (s == 'sedang diantar' || s == 'diantar' || s == 'delivered') {
+    } else if (s == 'sedang_diantar' || s == 'diantar' || s == 'delivered') {
       bg = Colors.purple.shade50;
       fg = AppColors.primaryBlue;
       icon = Icons.local_shipping_rounded;
-    } else if (s == 'selesai diantar' || s == 'diambil') {
-      bg = Colors.teal.shade50;
-      fg = Colors.teal.shade700;
-      icon = Icons.verified_rounded;
+    } else if (s == 'dibatalkan') {
+      bg = Colors.red.shade50;
+      fg = Colors.red.shade700;
+      icon = Icons.cancel_rounded;
     }
 
     if (light) {
@@ -1268,6 +1399,7 @@ class _StatusChip extends StatelessWidget {
           Icon(icon, size: 12, color: fg),
           const SizedBox(width: 4),
           Text(
+            // --- PERBAIKAN: MENGHILANGKAN UNDERSCORE ---
             status.toUpperCase().replaceAll('_', ' '),
             style: TextStyle(
               fontSize: 10,

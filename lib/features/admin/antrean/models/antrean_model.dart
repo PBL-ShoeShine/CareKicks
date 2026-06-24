@@ -25,7 +25,7 @@ class DetailOrder {
     // Handle nested services object from Supabase or dummy data
     int serviceId = json['id_services'] ?? 0;
     String? serviceName;
-    
+
     if (json['services'] != null) {
       serviceId = json['services']['id_services'] ?? serviceId;
       serviceName = json['services']['nama_layanan'];
@@ -91,6 +91,7 @@ class AntreanModel {
   final List<DetailOrder> detailOrders;
   final CustomerInfo? customer;
   final String metodeOrder;
+  final String? namaStaff;
 
   AntreanModel({
     required this.idOrders,
@@ -106,16 +107,24 @@ class AntreanModel {
     required this.detailOrders,
     this.customer,
     required this.metodeOrder,
+    this.namaStaff,
   });
 
   factory AntreanModel.fromJson(Map<String, dynamic> json) {
     final details = (json['detail_orders'] as List<dynamic>? ?? [])
         .map((d) => DetailOrder.fromJson(d))
         .toList();
-    
+
     CustomerInfo? cust;
     if (json['customers'] != null) {
       cust = CustomerInfo.fromJson(json['customers']);
+    }
+
+    String? staffName;
+    if (json['staff'] != null && json['staff']['nama'] != null) {
+      staffName = json['staff']['nama'];
+    } else if (json['users'] != null && json['users']['nama'] != null) {
+      staffName = json['users']['nama'];
     }
 
     return AntreanModel(
@@ -132,8 +141,10 @@ class AntreanModel {
       detailOrders: details,
       customer: cust,
       metodeOrder: json['metode_order'] ?? 'online',
+      namaStaff: staffName,
     );
   }
 
-  DetailOrder? get detail => detailOrders.isNotEmpty ? detailOrders.first : null;
+  DetailOrder? get detail =>
+      detailOrders.isNotEmpty ? detailOrders.first : null;
 }

@@ -128,7 +128,12 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
         case 'washing':
           return 'selesai_cuci';
         case 'selesai_cuci':
+          return 'sedang_diantar';
+        case 'sedang_diantar':
           return 'selesai';
+        case 'selesai':
+        case 'dibatalkan':
+          return null;
         default:
           return null;
       }
@@ -161,6 +166,8 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
         case 'washing':
           return 'Selesai Cuci';
         case 'selesai_cuci':
+          return 'Mulai Antar';
+        case 'sedang_diantar':
           return 'Selesaikan Order';
         default:
           return '';
@@ -170,6 +177,8 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
 
   Color _statusColor(String s) {
     switch (s) {
+      case 'pending':
+        return AppColors.primaryBlue;
       case 'menunggu_pembayaran':
       case 'menunggu_konfirmasi':
         return Colors.amber.shade700;
@@ -183,6 +192,8 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
         return Colors.purple;
       case 'selesai_cuci':
         return Colors.teal;
+      case 'sedang_diantar':
+        return Colors.indigo;
       case 'selesai':
         return AppColors.successGreen;
       case 'dibatalkan':
@@ -523,7 +534,8 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            _currentStatus.toUpperCase(),
+                            // --- PERBAIKAN: MENGHILANGKAN UNDERSCORE DI SINI ---
+                            _currentStatus.replaceAll('_', ' ').toUpperCase(),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -554,6 +566,30 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                         ),
                       ],
                     ),
+
+                    // --- TAMBAHAN MENAMPILKAN NAMA STAFF ---
+                    if (widget.antrean.namaStaff != null &&
+                        widget.antrean.namaStaff!.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.badge_outlined,
+                            size: 16,
+                            color: AppColors.primaryBlue,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Diproses oleh: ${widget.antrean.namaStaff}',
+                            style: const TextStyle(
+                              color: AppColors.primaryBlue,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -597,20 +633,33 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                             builder: (context) {
                               List<String> splitUrls(String? path) {
                                 if (path == null || path.isEmpty) return [];
-                                return path.split(',').map((u) => u.trim()).where((u) => u.isNotEmpty).toList();
+                                return path
+                                    .split(',')
+                                    .map((u) => u.trim())
+                                    .where((u) => u.isNotEmpty)
+                                    .toList();
                               }
 
-                              final List<String> sebelumUrls = splitUrls(item.fotoSebelum);
-                              final List<String> sesudahUrls = splitUrls(item.fotoSesudah);
+                              final List<String> sebelumUrls = splitUrls(
+                                item.fotoSebelum,
+                              );
+                              final List<String> sesudahUrls = splitUrls(
+                                item.fotoSesudah,
+                              );
 
                               final List<Map<String, String>> photos = [
-                                ...sebelumUrls.map((url) => {'url': url, 'label': 'Sebelum'}),
-                                ...sesudahUrls.map((url) => {'url': url, 'label': 'Sesudah'}),
+                                ...sebelumUrls.map(
+                                  (url) => {'url': url, 'label': 'Sebelum'},
+                                ),
+                                ...sesudahUrls.map(
+                                  (url) => {'url': url, 'label': 'Sesudah'},
+                                ),
                               ];
 
                               if (photos.isEmpty) {
                                 return _buildPlaceholderImage(
-                                  label: 'Foto sebelum & sesudah tidak tersedia',
+                                  label:
+                                      'Foto sebelum & sesudah tidak tersedia',
                                   height: 200,
                                 );
                               }
@@ -907,7 +956,10 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     );
   }
 
-  Widget _buildPlaceholderImage({String label = 'Foto tidak tersedia', double height = 140}) {
+  Widget _buildPlaceholderImage({
+    String label = 'Foto tidak tersedia',
+    double height = 140,
+  }) {
     return Container(
       width: double.infinity,
       height: height,
@@ -971,7 +1023,9 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                           loadingBuilder: (context, child, loadingProgress) {
                             if (loadingProgress == null) return child;
                             return const Center(
-                              child: CircularProgressIndicator(color: Colors.white),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
                             );
                           },
                           errorBuilder: (_, __, ___) => Container(
@@ -980,9 +1034,16 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                             child: const Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 48,
+                                  color: Colors.grey,
+                                ),
                                 SizedBox(height: 8),
-                                Text('Gagal memuat gambar', style: TextStyle(color: Colors.black)),
+                                Text(
+                                  'Gagal memuat gambar',
+                                  style: TextStyle(color: Colors.black),
+                                ),
                               ],
                             ),
                           ),
@@ -1113,10 +1174,7 @@ class _ImageCarousel extends StatefulWidget {
   final List<Map<String, String>> photos;
   final Function(int) onImageTap;
 
-  const _ImageCarousel({
-    required this.photos,
-    required this.onImageTap,
-  });
+  const _ImageCarousel({required this.photos, required this.onImageTap});
 
   @override
   State<_ImageCarousel> createState() => _ImageCarouselState();
@@ -1168,11 +1226,18 @@ class _ImageCarouselState extends State<_ImageCarousel> {
                               child: const Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.broken_image_outlined, size: 40, color: Colors.grey),
+                                  Icon(
+                                    Icons.broken_image_outlined,
+                                    size: 40,
+                                    color: Colors.grey,
+                                  ),
                                   SizedBox(height: 8),
                                   Text(
                                     'Gagal memuat gambar',
-                                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1183,7 +1248,10 @@ class _ImageCarouselState extends State<_ImageCarousel> {
                             top: 12,
                             right: 12,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.5),
                                 borderRadius: BorderRadius.circular(12),

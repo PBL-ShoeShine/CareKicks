@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 
 class EditProfileService {
   static const String baseUrl =
-      'http://192.168.10.218:5000/api/v1/admin/profile';
+      'http://172.16.160.90:3000/api/v1/admin/profile';
 
   // =========================================================================
   // 1. UPDATE DATA PROFIL & REQUEST EMAIL

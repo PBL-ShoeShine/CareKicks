@@ -28,6 +28,7 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
   final TextEditingController _ulasanTextController = TextEditingController();
   final TextEditingController _shopIdController = TextEditingController();
   int _rating = 0;
+
   final List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
 
@@ -48,19 +49,30 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    if (_selectedImages.length >= 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maksimal 5 foto')),
-      );
-      return;
-    }
+  // --- FUNGSI BATCH PICKING (BANYAK GAMBAR SEKALIGUS) ---
+  Future<void> _pickMultipleImages() async {
+    try {
+      final List<XFile> images = await _picker.pickMultiImage();
 
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        _selectedImages.add(File(image.path));
-      });
+      if (images.isNotEmpty) {
+        setState(() {
+          for (var img in images) {
+            if (_selectedImages.length < 5) {
+              _selectedImages.add(File(img.path));
+            }
+          }
+        });
+
+        if (_selectedImages.length >= 5) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Batas maksimal 5 foto telah tercapai'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Gagal memilih gambar: $e");
     }
   }
 
@@ -71,12 +83,13 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
   }
 
   Future<void> _submit() async {
-    final int? finalIdShops = widget.idShops ?? int.tryParse(_shopIdController.text);
+    final int? finalIdShops =
+        widget.idShops ?? int.tryParse(_shopIdController.text);
     final int? finalIdOrders = widget.idOrders;
 
     if (finalIdShops == null && finalIdOrders == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ID Toko atau ID Pesanan wajib ada. Silakan isi ID Toko.')),
+        const SnackBar(content: Text('ID Toko atau ID Pesanan wajib ada.')),
       );
       return;
     }
@@ -95,6 +108,7 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
       return;
     }
 
+    // Mengirim ulasan tanpa parameter video
     final success = await _controller.submitUlasan(
       token: widget.token,
       rating: _rating,
@@ -106,20 +120,23 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
     );
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ulasan berhasil dikirim')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Ulasan berhasil dikirim')));
       Navigator.pop(context, true);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_controller.errorMessage ?? 'Gagal mengirim ulasan')),
+        SnackBar(
+          content: Text(_controller.errorMessage ?? 'Gagal mengirim ulasan'),
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool showShopIdInput = widget.idShops == null && widget.idOrders == null;
+    final bool showShopIdInput =
+        widget.idShops == null && widget.idOrders == null;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -127,7 +144,11 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black54, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            color: Colors.black54,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -193,7 +214,9 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
                             child: Icon(
                               Icons.star,
                               size: 40,
-                              color: index < _rating ? Colors.amber : Colors.grey.shade200,
+                              color: index < _rating
+                                  ? Colors.amber
+                                  : Colors.grey.shade200,
                             ),
                           ),
                         );
@@ -236,30 +259,44 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.primaryBlue),
+                      borderSide: const BorderSide(
+                        color: AppColors.primaryBlue,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 32),
-                const Text(
-                  'Add Photo',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
+
+                // --- BAGIAN UNGGAH MEDIA (HANYA FOTO) ---
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Tambahkan Media',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    Text(
+                      '${_selectedImages.length}/5 Foto',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
                   children: [
+                    // Render Foto Terpilih
                     ...List.generate(_selectedImages.length, (index) {
                       return Stack(
                         children: [
                           Container(
-                            width: 100,
-                            height: 100,
+                            width: 80,
+                            height: 80,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                               image: DecorationImage(
@@ -269,41 +306,49 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
                             ),
                           ),
                           Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () => _removeImage(index),
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
+                            top: -4,
+                            right: -4,
+                            child: IconButton(
+                              icon: const Icon(Icons.cancel, color: Colors.red),
+                              onPressed: () => _removeImage(index),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             ),
                           ),
                         ],
                       );
                     }),
+
+                    // Tombol Tambah Foto
                     if (_selectedImages.length < 5)
                       GestureDetector(
-                        onTap: _pickImage,
+                        onTap: _pickMultipleImages,
                         child: Container(
-                          width: 100,
-                          height: 100,
+                          width: 80,
+                          height: 80,
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade200),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              style: BorderStyle.solid,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(
-                            Icons.add,
-                            size: 32,
-                            color: Colors.grey.shade300,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.add_photo_alternate,
+                                size: 28,
+                                color: Colors.grey.shade400,
+                              ),
+                              const Text(
+                                'Foto',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -313,7 +358,7 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
                 SizedBox(
                   width: double.infinity,
                   child: CustomButton(
-                    label: 'Kirim',
+                    label: 'Kirim Ulasan',
                     isLoading: _controller.isSubmitting,
                     onPressed: _submit,
                   ),

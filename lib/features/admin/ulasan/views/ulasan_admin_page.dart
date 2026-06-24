@@ -39,6 +39,109 @@ class _UlasanAdminPageState extends State<UlasanAdminPage> {
     }
   }
 
+  // --- FUNGSI BARU: Menampilkan Foto Fullscreen & Slider untuk Admin ---
+  void _showFullscreenImage(
+    BuildContext context,
+    List<String> photos,
+    int initialPage,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PageView.builder(
+                itemCount: photos.length,
+                controller: PageController(initialPage: initialPage),
+                itemBuilder: (context, index) {
+                  return InteractiveViewer(
+                    panEnabled: true,
+                    boundaryMargin: const EdgeInsets.all(20),
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          photos[index],
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            );
+                          },
+                          errorBuilder: (_, __, ___) => Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.all(20),
+                            child: const Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 48,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Gagal memuat gambar',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: CircleAvatar(
+                  backgroundColor: Colors.black.withOpacity(0.5),
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+              if (photos.length > 1) ...[
+                Positioned(
+                  left: 10,
+                  child: IgnorePointer(
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 36,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 10,
+                  child: IgnorePointer(
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 36,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -232,13 +335,21 @@ class _UlasanAdminPageState extends State<UlasanAdminPage> {
                 itemCount: fotoUlasan.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (context, i) {
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      fotoUlasan[i].toString(),
-                      width: 70,
-                      height: 70,
-                      fit: BoxFit.cover,
+                  // --- PERBAIKAN: Mengkonversi list dan membungkus dengan GestureDetector ---
+                  final List<String> allPhotos = fotoUlasan
+                      .map((e) => e.toString())
+                      .toList();
+
+                  return GestureDetector(
+                    onTap: () => _showFullscreenImage(context, allPhotos, i),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        fotoUlasan[i].toString(),
+                        width: 70,
+                        height: 70,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   );
                 },
