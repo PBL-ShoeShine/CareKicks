@@ -5,7 +5,7 @@ import '../controllers/cart_controller.dart';
 import '../../profile/services/customer_profile_service.dart';
 import '../../profile/controllers/customer_profile_controller.dart';
 import '../../profile/views/tambah_alamat_view.dart';
-import '../../payment/views/payment_page.dart';
+import '../../order/screens/order_success_page.dart';
 
 class CartCheckoutPage extends StatefulWidget {
   final String token;
@@ -302,21 +302,23 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
     if (result != null && result['success'] == true) {
       final orderData = result['data'] as Map<String, dynamic>? ?? {};
       final orderId = orderData['id_orders'] as int?;
+      final kodeOrder = orderData['kode_order']?.toString() ?? '-';
       final totalHarga = orderData['total_harga'] as int? ?? 0;
 
       if (!mounted) return;
 
-      final deadlineStr = DateTime.now()
-          .add(const Duration(hours: 24))
-          .toIso8601String();
-
+      // Pesanan berhasil dibuat → arahkan ke halaman sukses.
+      // Customer BELUM perlu bayar, harus menunggu konfirmasi admin dulu.
+      // Admin akan mengonfirmasi dari tab "Pesanan Masuk" di halaman antrean.
+      // Setelah dikonfirmasi, status berubah ke "menunggu_pembayaran" dan
+      // tombol bayar akan muncul di halaman Detail Order.
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => PaymentPage(
+          builder: (_) => OrderSuccessPage(
             token: widget.token,
             orderId: (orderId ?? 0).toString(),
-            totalAmount: totalHarga,
-            paymentDeadline: deadlineStr,
+            kodeOrder: kodeOrder,
+            totalHarga: totalHarga,
           ),
         ),
         (route) => route.isFirst,
