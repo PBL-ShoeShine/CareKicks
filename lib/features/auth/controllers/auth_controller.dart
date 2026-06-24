@@ -183,7 +183,7 @@ class AuthController extends ChangeNotifier {
     final role = user?['jenis_role'];
     final shop = user?['shop'];
 
-    if (role != 'shops_admin' || shop is! Map) return false;
+    if ((role != 'shops_admin' && role != 'staff') || shop is! Map) return false;
 
     return shop['status_verifikasi'] == 'suspended';
   }
