@@ -71,6 +71,22 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (role == 'shops_admin' || role == 'staff') {
+        final shop = user['shop'];
+        debugPrint('DEBUG LOGIN: role=$role, shop=$shop, shop_type=${shop?.runtimeType}');
+        if (shop is Map && shop['status_verifikasi'] == 'suspended') {
+          debugPrint('DEBUG LOGIN: Redirecting to SuspendedShopPage because shop is suspended');
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => SuspendedShopPage(
+                shop: Map<String, dynamic>.from(shop),
+              ),
+            ),
+            (route) => false,
+          );
+          return;
+        }
+
+
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Login berhasil!')));
