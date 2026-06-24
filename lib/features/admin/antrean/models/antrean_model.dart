@@ -32,17 +32,11 @@ class DetailOrder {
     }
 
     String? fotoSebelum = json['foto_sebelum']?.toString().trim();
-    if (fotoSebelum != null && fotoSebelum.contains(',')) {
-      fotoSebelum = fotoSebelum.split(',').first.trim();
-    }
     if (fotoSebelum != null && fotoSebelum.isEmpty) {
       fotoSebelum = null;
     }
 
     String? fotoSesudah = json['foto_sesudah']?.toString().trim();
-    if (fotoSesudah != null && fotoSesudah.contains(',')) {
-      fotoSesudah = fotoSesudah.split(',').first.trim();
-    }
     if (fotoSesudah != null && fotoSesudah.isEmpty) {
       fotoSesudah = null;
     }

@@ -9,15 +9,18 @@ import '../../../../core/widgets/custom_scaffold.dart';
 import '../models/antrean_model.dart';
 import '../controllers/antrean_controller.dart';
 import '../../../../core/utils/date_utils.dart';
+import '../../tracking/views/tracking_detail_page.dart';
 
 class AntreanDetailScreen extends StatefulWidget {
   final String token;
   final AntreanModel antrean;
+  final Map<String, dynamic>? user;
 
   const AntreanDetailScreen({
     super.key,
     required this.token,
     required this.antrean,
+    this.user,
   });
 
   @override
@@ -29,7 +32,8 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
   bool _isLoading = false;
   bool _isDownloadingQr = false;
   late String _currentStatus;
-  bool _isStatusUpdated = false; // Penanda jika ada perubahan status
+  bool _isStatusUpdated = false;
+  int _currentDetailIndex = 0;
 
   @override
   void initState() {
@@ -52,9 +56,67 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
           _currentStatus = nextStatus;
           _isStatusUpdated = true;
         });
+        if (nextStatus == 'sedang_diantar' && widget.user != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TrackingDetailPage(
+                token: widget.token,
+                user: widget.user!,
+                orderId: widget.antrean.idOrders,
+              ),
+            ),
+          );
+          return;
+        }
       }
     } catch (e) {
       if (mounted) {}
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleOrderConfirmation(String action) async {
+    String? reason;
+    if (action == 'reject') {
+      reason = await _showRejectReasonDialog();
+      if (reason == null || reason.trim().isEmpty) return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final result = await _controller.processOrder(
+        idOrders: widget.antrean.idOrders,
+        action: action,
+        reason: reason,
+      );
+      if (mounted) {
+        if (result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Berhasil diproses'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Gagal memproses'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -74,10 +136,18 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
         reason: reason,
       );
       if (result['success'] == true && mounted) {
+        if (action == 'approve') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pembayaran disetujui. Pesanan masuk ke Pesanan Baru.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+          return;
+        }
         setState(() {
-          _currentStatus = action == 'approve'
-              ? 'menunggu_dijemput'
-              : 'menunggu_pembayaran';
+          _currentStatus = 'menunggu_pembayaran';
           _isStatusUpdated = true;
         });
       } else if (mounted) {
@@ -128,7 +198,11 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
         case 'washing':
           return 'selesai_cuci';
         case 'selesai_cuci':
+          return 'sedang_diantar';
+        case 'sedang_diantar':
           return 'selesai';
+        case 'selesai':
+          return null;
         default:
           return null;
       }
@@ -161,6 +235,8 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
         case 'washing':
           return 'Selesai Cuci';
         case 'selesai_cuci':
+          return 'Mulai Antar';
+        case 'sedang_diantar':
           return 'Selesaikan Order';
         default:
           return '';
@@ -559,120 +635,140 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Card 2: Detail Sepatu (Multi-item & Multi-gambar)
-              ...List.generate(widget.antrean.detailOrders.length, (index) {
-                final item = widget.antrean.detailOrders[index];
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // Card 2: Detail Sepatu (Multi-item Carousel)
+              if (widget.antrean.detailOrders.length > 1) ...[
+                SizedBox(
+                  height: 420,
+                  child: PageView.builder(
+                    itemCount: widget.antrean.detailOrders.length,
+                    onPageChanged: (index) {
+                      setState(() => _currentDetailIndex = index);
+                    },
+                    itemBuilder: (context, index) {
+                      return _buildDetailOrderCard(index);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    widget.antrean.detailOrders.length,
+                    (index) => Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: _currentDetailIndex == index ? 16 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: _currentDetailIndex == index
+                            ? AppColors.primaryBlue
+                            : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                if (widget.antrean.detailOrders.isNotEmpty)
+                  _buildDetailOrderCard(0),
+              ],
+              const SizedBox(height: 20),
+
+              // QR Code Section - hanya tampil setelah masuk Pesanan Baru (sudah dikonfirmasi)
+              if (_currentStatus != 'pending' &&
+                  _currentStatus != 'menunggu_pembayaran' &&
+                  _currentStatus != 'menunggu_konfirmasi') ...[
+              const Text(
+                'QR Code Pesanan',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A2E),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
                   children: [
+                    Builder(
+                      builder: (context) {
+                        final qrUrl = _qrImageUrl;
+                        if (qrUrl != null) {
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              qrUrl,
+                              width: 220,
+                              height: 220,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) =>
+                                  _buildQrPlaceholder(),
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return _buildQrPlaceholder(isLoading: true);
+                              },
+                            ),
+                          );
+                        }
+                        return _buildQrPlaceholder();
+                      },
+                    ),
+                    const SizedBox(height: 12),
                     Text(
-                      'Pesanan ${index + 1}',
+                      '#${widget.antrean.kodeOrder}',
                       style: const TextStyle(
-                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A1A2E),
+                        fontSize: 16,
+                        color: Color(0xFF1E293B),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Container(
+                    SizedBox(
                       width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 20),
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
+                      child: OutlinedButton.icon(
+                        onPressed: _isDownloadingQr ? null : _downloadQr,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primaryBlue,
+                          side: const BorderSide(color: AppColors.primaryBlue),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Foto Sepatu - Multi Gambar (Swipeable Carousel)
-                          Builder(
-                            builder: (context) {
-                              List<String> splitUrls(String? path) {
-                                if (path == null || path.isEmpty) return [];
-                                return path.split(',').map((u) => u.trim()).where((u) => u.isNotEmpty).toList();
-                              }
-
-                              final List<String> sebelumUrls = splitUrls(item.fotoSebelum);
-                              final List<String> sesudahUrls = splitUrls(item.fotoSesudah);
-
-                              final List<Map<String, String>> photos = [
-                                ...sebelumUrls.map((url) => {'url': url, 'label': 'Sebelum'}),
-                                ...sesudahUrls.map((url) => {'url': url, 'label': 'Sesudah'}),
-                              ];
-
-                              if (photos.isEmpty) {
-                                return _buildPlaceholderImage(
-                                  label: 'Foto sebelum & sesudah tidak tersedia',
-                                  height: 200,
-                                );
-                              }
-
-                              return _ImageCarousel(
-                                photos: photos,
-                                onImageTap: (initialIndex) {
-                                  _showFullscreenImage(
-                                    context,
-                                    photos,
-                                    initialIndex,
-                                    'Pesanan ${index + 1}',
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          // Info Merek & Warna
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildInfoItem(
-                                  'Merk Sepatu',
-                                  item.merk.isEmpty ? '-' : item.merk,
-                                ),
-                              ),
-                              Expanded(
-                                child: _buildInfoItem(
-                                  'Warna',
-                                  item.warna.isEmpty ? '-' : item.warna,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: Divider(height: 1, color: Color(0xFFEEEEEE)),
-                          ),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildInfoItem(
-                                  'Jenis Layanan',
-                                  item.namaLayanan ?? '-',
-                                ),
-                              ),
-                              Expanded(
-                                child: _buildInfoItem(
-                                  'Harga',
-                                  _formatHarga(item.totalHarga),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        icon: _isDownloadingQr
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primaryBlue),
+                              )
+                            : const Icon(Icons.download_rounded, size: 20),
+                        label: Text(
+                          _isDownloadingQr
+                              ? 'Mengunduh...'
+                              : 'Simpan QR ke Galeri',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
                   ],
-                );
-              }),
+                ),
+              ),
               const SizedBox(height: 20),
+              ],
 
               if (_currentStatus == 'menunggu_konfirmasi') ...[
                 const Text(
@@ -761,6 +857,88 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
             strokeWidth: 2.5,
           ),
         ),
+      );
+    }
+
+    if (_currentStatus == 'pending') {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.errorRed,
+                side: const BorderSide(color: AppColors.errorRed),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                minimumSize: const Size.fromHeight(54),
+              ),
+              onPressed: () => _handleOrderConfirmation('reject'),
+              icon: const Icon(Icons.close_rounded),
+              label: const Text(
+                'Tolak',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SizedBox(
+              height: 54,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Setujui Pesanan'),
+                      content: Text(
+                        'Apakah Anda yakin ingin menyetujui pesanan #${widget.antrean.kodeOrder}?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Batal'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Ya, Setujui'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await _handleOrderConfirmation('approve');
+                  }
+                },
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Setujui',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Icon(Icons.check, color: Colors.white, size: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
@@ -902,6 +1080,117 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailOrderCard(int index) {
+    final item = widget.antrean.detailOrders[index];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pesanan ${index + 1}',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1A1A2E),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Builder(
+                builder: (context) {
+                  List<String> splitUrls(String? path) {
+                    if (path == null || path.isEmpty) return [];
+                    return path.split(',').map((u) => u.trim()).where((u) => u.isNotEmpty).toList();
+                  }
+
+                  final List<String> sebelumUrls = splitUrls(item.fotoSebelum);
+                  final List<String> sesudahUrls = splitUrls(item.fotoSesudah);
+
+                  final List<Map<String, String>> photos = [
+                    ...sebelumUrls.map((url) => {'url': url, 'label': 'Sebelum'}),
+                    ...sesudahUrls.map((url) => {'url': url, 'label': 'Sesudah'}),
+                  ];
+
+                  if (photos.isEmpty) {
+                    return _buildPlaceholderImage(
+                      label: 'Foto sebelum & sesudah tidak tersedia',
+                      height: 200,
+                    );
+                  }
+
+                  return _ImageCarousel(
+                    photos: photos,
+                    onImageTap: (initialIndex) {
+                      _showFullscreenImage(
+                        context,
+                        photos,
+                        initialIndex,
+                        'Pesanan ${index + 1}',
+                      );
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildInfoItem(
+                      'Merk Sepatu',
+                      item.merk.isEmpty ? '-' : item.merk,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildInfoItem(
+                      'Warna',
+                      item.warna.isEmpty ? '-' : item.warna,
+                    ),
+                  ),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Divider(height: 1, color: Color(0xFFEEEEEE)),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildInfoItem(
+                      'Jenis Layanan',
+                      item.namaLayanan ?? '-',
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildInfoItem(
+                      'Harga',
+                      _formatHarga(item.totalHarga),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );

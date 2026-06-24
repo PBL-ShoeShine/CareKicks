@@ -2,13 +2,14 @@ import '../../../../core/network/api_service.dart';
 import '../../../../core/auth/session_manager.dart';
 
 class KonfirmasiService {
-  static Future<List<dynamic>> getOrders(String tab) async {
+  static Future<List<dynamic>> getOrders(String tab, {String? metodeOrder}) async {
     final session = await AuthSessionManager.getValidSession();
     if (session == null) return [];
 
     final response = await ApiService.getOrdersToConfirm(
       token: session.token,
       tab: tab,
+      metodeOrder: metodeOrder,
     );
 
     if (response != null && response['success'] == true) {

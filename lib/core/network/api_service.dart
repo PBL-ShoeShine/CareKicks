@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://172.16.162.126:5000/api/v1';
+  static const String baseUrl = 'http://172.16.162.103:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -1482,10 +1482,18 @@ class ApiService {
   static Future<Map<String, dynamic>?> getOrdersToConfirm({
     required String token,
     String tab = 'pembayaran',
+    String? metodeOrder,
   }) async {
     try {
+      final queryParams = {
+        'tab': tab,
+        if (metodeOrder != null) 'metode_order': metodeOrder,
+      };
+      final uri = Uri.parse(
+        '$baseUrl/admin/konfirmasi_pesanan',
+      ).replace(queryParameters: queryParams);
       final response = await http.get(
-        Uri.parse('$baseUrl/admin/konfirmasi_pesanan?tab=$tab'),
+        uri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
