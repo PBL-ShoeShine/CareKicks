@@ -496,18 +496,17 @@ class _DashboardPageState extends State<DashboardPage> {
                               letterSpacing: -0.3,
                             ),
                           ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => ProfilePage(
-                                            token: widget.token,
-                                            user: widget.user,
-                                          ),
-                                        ),
-                                      ).then((_) => setState(() {}));
-                                    },
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => HistoryPage(
+                                        token: widget.token,
+                                      ),
+                                    ),
+                                  ).then((_) => setState(() {}));
+                                },
                             child: const Row(
                               children: [
                                 Text(

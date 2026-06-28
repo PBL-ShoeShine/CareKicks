@@ -57,6 +57,16 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    if (noHp.length > 15) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Nomor HP maksimal 15 digit"),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
+      return;
+    }
+
     final success = await _authController.register(
       nama: nama,
       noHp: noHp,
@@ -193,6 +203,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           keyboardType: TextInputType.phone,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(15),
                           ],
                           decoration: _buildInputDecoration(
                             "Nomor Handphone",
