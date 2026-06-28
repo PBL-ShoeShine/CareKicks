@@ -10,11 +10,13 @@ class AuthController extends ChangeNotifier {
   String? _errorMessage;
   String? _token;
   Map<String, dynamic>? _user;
+  Map<String, dynamic>? _suspendedShop;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get token => _token;
   Map<String, dynamic>? get user => _user;
+  Map<String, dynamic>? get suspendedShop => _suspendedShop;
 
   Future<bool> login(String email, String password) async {
     _isLoading = true;
@@ -27,6 +29,7 @@ class AuthController extends ChangeNotifier {
       if (result['success']) {
         _token = result['token'];
         _user = Map<String, dynamic>.from(result['user'] ?? {});
+        _suspendedShop = null;
         final role = _user?['jenis_role'];
         if (role == 'customer' || role == 'shops_admin' || role == 'staff') {
           await saveSession();
@@ -35,6 +38,11 @@ class AuthController extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
+        if (result['code'] == 'SHOP_SUSPENDED') {
+          _suspendedShop = Map<String, dynamic>.from(result['data'] ?? {});
+        } else {
+          _suspendedShop = null;
+        }
         _errorMessage = result['message'] ?? 'Login gagal';
         _isLoading = false;
         notifyListeners();
@@ -123,6 +131,14 @@ class AuthController extends ChangeNotifier {
 
       _token = savedToken;
       _user = Map<String, dynamic>.from(decodedUser);
+      if (_isSavedShopSuspended(_user)) {
+        _suspendedShop = Map<String, dynamic>.from(_user?['shop'] ?? {});
+        _errorMessage = 'Toko Anda ditangguhkan';
+        notifyListeners();
+        return false;
+      }
+
+      _suspendedShop = null;
       _errorMessage = null;
       notifyListeners();
       return true;
@@ -158,7 +174,17 @@ class AuthController extends ChangeNotifier {
     await clearSession();
     _token = null;
     _user = null;
+    _suspendedShop = null;
     _errorMessage = null;
     notifyListeners();
+  }
+
+  bool _isSavedShopSuspended(Map<String, dynamic>? user) {
+    final role = user?['jenis_role'];
+    final shop = user?['shop'];
+
+    if ((role != 'shops_admin' && role != 'staff') || shop is! Map) return false;
+
+    return shop['status_verifikasi'] == 'suspended';
   }
 }

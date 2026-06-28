@@ -6,6 +6,7 @@ import '../../../../core/widgets/custom_appbar.dart';
 import '../../../../core/widgets/custom_filter_bar.dart';
 import '../../../../core/widgets/custom_search_field.dart';
 import '../controllers/history_controller.dart';
+import '../../../../core/utils/date_utils.dart';
 
 class HistoryPage extends StatefulWidget {
   final String token;
@@ -24,9 +25,18 @@ class _HistoryPageState extends State<HistoryPage> {
 
   final List<CustomFilterItem<String>> _statusFilters = const [
     CustomFilterItem(value: 'all', label: 'Semua'),
-    CustomFilterItem(value: 'pending', label: 'Pending'),
-    CustomFilterItem(value: 'diproses', label: 'Diproses'),
+    CustomFilterItem(value: 'pending', label: 'Pesanan Masuk'),
+    CustomFilterItem(value: 'menunggu_pembayaran', label: 'Menunggu Pembayaran'),
+    CustomFilterItem(value: 'menunggu_konfirmasi', label: 'Konfirmasi Pembayaran'),
+    CustomFilterItem(value: 'dikonfirmasi', label: 'Dikonfirmasi'),
+    CustomFilterItem(value: 'menunggu_dijemput', label: 'Menunggu Jemput'),
+    CustomFilterItem(value: 'sedang_dijemput', label: 'Sedang Jemput'),
+    CustomFilterItem(value: 'sudah_dijemput', label: 'Sudah Jemput'),
+    CustomFilterItem(value: 'washing', label: 'Sedang Dicuci'),
+    CustomFilterItem(value: 'selesai_cuci', label: 'Selesai Cuci'),
+    CustomFilterItem(value: 'sedang_diantar', label: 'Sedang Diantar'),
     CustomFilterItem(value: 'selesai', label: 'Selesai'),
+    CustomFilterItem(value: 'dibatalkan', label: 'Dibatalkan'),
   ];
 
   @override
@@ -68,7 +78,7 @@ class _HistoryPageState extends State<HistoryPage> {
     if (dateStr == null || dateStr.isEmpty) return '-';
 
     try {
-      final date = DateTime.parse(dateStr);
+      final date = DateTimeUtils.parseToWib(dateStr);
       return '${date.day}/${date.month}/${date.year}';
     } catch (e) {
       return dateStr;
@@ -76,19 +86,63 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   String _formatStatus(String? status) {
-    if (status == null || status.isEmpty) return 'PENDING';
-    return status.toUpperCase();
+    if (status == null || status.isEmpty) return 'PESANAN MASUK';
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'PESANAN MASUK';
+      case 'menunggu_pembayaran':
+        return 'MENUNGGU PEMBAYARAN';
+      case 'menunggu_konfirmasi':
+        return 'KONFIRMASI PEMBAYARAN';
+      case 'dikonfirmasi':
+        return 'DIKONFIRMASI';
+      case 'menunggu_dijemput':
+        return 'MENUNGGU JEMPUT';
+      case 'sedang_dijemput':
+        return 'SEDANG JEMPUT';
+      case 'sudah_dijemput':
+        return 'SUDAH JEMPUT';
+      case 'washing':
+        return 'SEDANG DICUCI';
+      case 'selesai_cuci':
+        return 'SELESAI DICUCI';
+      case 'sedang_diantar':
+        return 'SEDANG DIANTAR';
+      case 'selesai':
+        return 'SELESAI';
+      case 'dibatalkan':
+      case 'cancel':
+      case 'cancelled':
+        return 'DIBATALKAN';
+      default:
+        return status.toUpperCase().replaceAll('_', ' ');
+    }
   }
 
   Color _getStatusColor(String? status) {
     switch (status?.toLowerCase()) {
       case 'pending':
         return Colors.orange;
-      case 'diproses':
-        return Colors.blue;
-
+      case 'menunggu_pembayaran':
+      case 'menunggu_konfirmasi':
+        return Colors.amber.shade700;
+      case 'dikonfirmasi':
+        return AppColors.primaryBlue;
+      case 'menunggu_dijemput':
+        return AppColors.successGreen;
+      case 'sedang_dijemput':
+        return Colors.orange;
+      case 'sudah_dijemput':
+        return Colors.orange.shade700;
+      case 'washing':
+        return Colors.purple;
+      case 'selesai_cuci':
+        return Colors.teal;
+      case 'sedang_diantar':
+        return AppColors.primaryBlue;
       case 'selesai':
-        return Colors.green;
+        return AppColors.successGreen;
+      case 'dibatalkan':
       case 'cancel':
       case 'cancelled':
         return Colors.red;

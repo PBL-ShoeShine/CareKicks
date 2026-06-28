@@ -30,7 +30,6 @@ class CustomBottomNavBar extends StatelessWidget {
       (Icons.assignment_outlined, 'Antrean'),
       (Icons.qr_code_scanner, 'Pemindai'),
       if (showInventory) (Icons.inventory_2_outlined, 'Inventaris'),
-      (Icons.local_shipping_outlined, 'Tracking'),
     ];
 
     final bottomInset = MediaQuery.of(context).padding.bottom;

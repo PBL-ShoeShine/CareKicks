@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../core/widgets/custom_scaffold.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/notification_registration_service.dart';
 import '../../admin/views/admin_main_page.dart';
 import '../../customer/view/customer_main_page.dart';
 import '../controllers/auth_controller.dart';
 import 'login_page.dart';
+import 'suspended_shop_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -42,8 +44,20 @@ class _SplashScreenState extends State<SplashScreen> {
       final role = user['jenis_role'];
 
       if (role == 'shops_admin' || role == 'staff') {
-        nextPage = AdminMainPage(token: token, user: user);
+        final shop = user['shop'];
+        if (shop is Map && shop['status_verifikasi'] == 'suspended') {
+          nextPage = SuspendedShopPage(
+            shop: Map<String, dynamic>.from(shop),
+          );
+        } else {
+          nextPage = AdminMainPage(token: token, user: user);
+        }
       } else if (role == 'customer') {
+        await NotificationRegistrationService.registerForUser(
+          token: token,
+          user: user,
+        );
+        if (!mounted) return;
         nextPage = CustomerMainPage(token: token, user: user);
       } else {
         await _authController.logout();

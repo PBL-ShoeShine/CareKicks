@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/riwayat_controller.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../detail_order/views/detail_order_page.dart';
+import '../../../../core/utils/date_utils.dart';
 
 class RiwayatPage extends StatefulWidget {
   final String token;
@@ -16,11 +17,18 @@ class _RiwayatPageState extends State<RiwayatPage> {
   late RiwayatController _controller;
   final TextEditingController _searchController = TextEditingController();
 
+  // Dropdown filter options sesuai enum baru
   final List<Map<String, String>> _statusFilters = [
-    {'label': 'Semua', 'value': ''},
-    {'label': 'Menunggu', 'value': 'menunggu'},
-    {'label': 'Di Proses', 'value': 'di_proses'},
+    {'label': 'Semua Status', 'value': ''},
+    {'label': 'Menunggu Konfirmasi Admin', 'value': 'pending'},
+    {'label': 'Menunggu Pembayaran', 'value': 'menunggu_pembayaran'},
+    {'label': 'Menunggu Verifikasi Bayar', 'value': 'menunggu_konfirmasi'},
+    {'label': 'Menunggu Dijemput', 'value': 'menunggu_dijemput'},
+    {'label': 'Sedang Dijemput', 'value': 'sedang_dijemput'},
+    {'label': 'Sedang Dicuci', 'value': 'washing'},
+    {'label': 'Sedang Diantar', 'value': 'sedang_diantar'},
     {'label': 'Selesai', 'value': 'selesai'},
+    {'label': 'Dibatalkan', 'value': 'dibatalkan'},
   ];
 
   @override
@@ -37,29 +45,54 @@ class _RiwayatPageState extends State<RiwayatPage> {
     super.dispose();
   }
 
-  Color _getStatusColor(String status) {
+  String _getStatusLabel(String? status) {
     switch (status) {
+      case 'pending':
+        return 'Menunggu';
+      case 'menunggu_pembayaran':
+        return 'Menunggu Bayar';
+      case 'menunggu_konfirmasi':
+        return 'Verifikasi';
+      case 'dikonfirmasi':
+        return 'Dikonfirmasi';
+      case 'menunggu_dijemput':
+        return 'Menunggu Jemput';
+      case 'sedang_dijemput':
+        return 'Dijemput';
+      case 'sudah_dijemput':
+        return 'Sudah Dijemput';
+      case 'washing':
+        return 'Dicuci';
+      case 'selesai_cuci':
+        return 'Selesai Cuci';
+      case 'sedang_diantar':
+        return 'Dikirim';
       case 'selesai':
-        return AppColors.successGreen;
-      case 'di_proses':
-        return Colors.orange;
-      case 'menunggu':
-        return Colors.red;
+        return 'Selesai';
+      case 'dibatalkan':
+        return 'Dibatalkan';
       default:
-        return Colors.grey;
+        return status?.replaceAll('_', ' ') ?? '-';
     }
   }
 
-  String _getStatusLabel(String status) {
+  Color _getStatusColor(String? status) {
     switch (status) {
       case 'selesai':
-        return 'Selesai';
-      case 'di_proses':
-        return 'Di proses';
-      case 'menunggu':
-        return 'Menunggu';
+        return AppColors.successGreen;
+      case 'sedang_diantar':
+      case 'selesai_cuci':
+        return AppColors.primaryBlue;
+      case 'washing':
+        return Colors.purple;
+      case 'menunggu_dijemput':
+      case 'sedang_dijemput':
+      case 'sudah_dijemput':
+        return Colors.orange;
+      case 'dibatalkan':
+        return Colors.red;
       default:
-        return status;
+        return Colors.grey;
     }
   }
 
@@ -73,6 +106,161 @@ class _RiwayatPageState extends State<RiwayatPage> {
     return 'Rp $formatted';
   }
 
+  DateTime _parseToWib(String dateStr) {
+    return DateTimeUtils.parseToWib(dateStr);
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '-';
+    try {
+      final date = _parseToWib(dateStr);
+      return '${date.day.toString().padLeft(2, '0')}/'
+          '${date.month.toString().padLeft(2, '0')}/'
+          '${date.year}';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
+  List<dynamic> _filterOrders(List<dynamic> orders) {
+    var result = orders;
+
+    final selectedStatus = _controller.selectedStatus;
+    if (selectedStatus.isNotEmpty) {
+      // Beberapa status di-group karena satu fase bisa punya beberapa status
+      final Map<String, List<String>> faseMap = {
+        'pending': ['pending'],
+        'menunggu_pembayaran': ['menunggu_pembayaran'],
+        'menunggu_konfirmasi': ['menunggu_konfirmasi'],
+        'menunggu_dijemput': ['dikonfirmasi', 'menunggu_dijemput'],
+        'sedang_dijemput': ['sedang_dijemput', 'sudah_dijemput'],
+        'washing': ['washing', 'selesai_cuci'],
+        'sedang_diantar': ['sedang_diantar'],
+        'selesai': ['selesai'],
+        'dibatalkan': ['dibatalkan'],
+      };
+      final allowed = faseMap[selectedStatus] ?? [selectedStatus];
+      result = result.where((o) {
+        final s = o['status_order']?.toString() ?? '';
+        return allowed.contains(s);
+      }).toList();
+    }
+
+    final search = _searchController.text.trim().toLowerCase();
+    if (search.isNotEmpty) {
+      result = result.where((o) {
+        final kode = o['kode_order']?.toString().toLowerCase() ?? '';
+        final toko = o['shops']?['nm_toko']?.toString().toLowerCase() ?? '';
+        return kode.contains(search) || toko.contains(search);
+      }).toList();
+    }
+
+    return result;
+  }
+
+  // Ambil label dropdown yang sedang dipilih
+  String get _selectedFilterLabel {
+    return _statusFilters.firstWhere(
+      (f) => f['value'] == _controller.selectedStatus,
+      orElse: () => _statusFilters.first,
+    )['label']!;
+  }
+
+  void _showFilterDropdown(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      isScrollControlled: true, // ← tambah ini
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Filter Status',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Bungkus list dengan Flexible + SingleChildScrollView
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ..._statusFilters.map((filter) {
+                        final isSelected =
+                            _controller.selectedStatus == filter['value'];
+                        return ListTile(
+                          title: Text(
+                            filter['label']!,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? AppColors.primaryBlue
+                                  : Colors.black87,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(
+                                  Icons.check,
+                                  color: AppColors.primaryBlue,
+                                  size: 18,
+                                )
+                              : null,
+                          onTap: () {
+                            _controller.setStatus(filter['value']!);
+                            Navigator.pop(context);
+                            setState(() {});
+                          },
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _navigateToDetail(Map<String, dynamic> order) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DetailOrderPage(
+          token: widget.token,
+          orderId: order['id_orders'].toString(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,24 +268,28 @@ class _RiwayatPageState extends State<RiwayatPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: false,
         title: const Text(
           'Riwayat',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
       ),
       body: Column(
         children: [
-          // SEARCH & FILTER BAR
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Column(
               children: [
-                // Search
+                // Search bar
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search Product',
+                    hintText: 'Cari kode order atau nama toko',
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
                     filled: true,
                     fillColor: const Color(0xFFF5F5F5),
@@ -107,70 +299,76 @@ class _RiwayatPageState extends State<RiwayatPage> {
                     ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  onChanged: (value) {
-                    _controller.setSearch(value);
-                    _controller.fetchRiwayat(widget.token);
-                  },
+                  onChanged: (value) => setState(() {}),
                 ),
-                const SizedBox(height: 12),
-                // Filter chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ListenableBuilder(
-                    listenable: _controller,
-                    builder: (context, _) {
-                      return Row(
-                        children: _statusFilters.map((filter) {
-                          final isSelected =
-                              _controller.selectedStatus == filter['value'];
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: GestureDetector(
-                              onTap: () {
-                                _controller.setStatus(filter['value']!);
-                                _controller.fetchRiwayat(widget.token);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
+                const SizedBox(height: 10),
+
+                // Dropdown filter
+                ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) {
+                    final hasFilter = _controller.selectedStatus.isNotEmpty;
+                    return GestureDetector(
+                      onTap: () => _showFilterDropdown(context),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: hasFilter
+                              ? AppColors.primaryBlue.withOpacity(0.05)
+                              : const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: hasFilter
+                                ? AppColors.primaryBlue.withOpacity(0.4)
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.filter_list,
+                              size: 18,
+                              color: hasFilter
+                                  ? AppColors.primaryBlue
+                                  : Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _selectedFilterLabel,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: hasFilter
                                       ? AppColors.primaryBlue
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? AppColors.primaryBlue
-                                        : Colors.grey.shade300,
-                                  ),
-                                ),
-                                child: Text(
-                                  filter['label']!,
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    fontSize: 13,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                                  ),
+                                      : Colors.grey.shade600,
+                                  fontWeight: hasFilter
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
                                 ),
                               ),
                             ),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
+                            Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 18,
+                              color: hasFilter
+                                  ? AppColors.primaryBlue
+                                  : Colors.grey,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
 
-          // ORDER LIST
+          // List pesanan
           Expanded(
             child: ListenableBuilder(
               listenable: _controller,
@@ -196,17 +394,43 @@ class _RiwayatPageState extends State<RiwayatPage> {
                   );
                 }
 
-                if (_controller.orders.isEmpty) {
-                  return const Center(child: Text('Belum ada riwayat pesanan'));
+                final filtered = _filterOrders(_controller.orders);
+
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.inbox_outlined,
+                          size: 48,
+                          color: Colors.grey.shade300,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _controller.selectedStatus.isEmpty
+                              ? 'Belum ada riwayat pesanan'
+                              : 'Tidak ada pesanan dengan status ini',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _controller.orders.length,
-                  itemBuilder: (context, index) {
-                    final order = _controller.orders[index];
-                    return _buildOrderCard(order);
-                  },
+                return RefreshIndicator(
+                  onRefresh: () async => _controller.fetchRiwayat(widget.token),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final order = filtered[index] as Map<String, dynamic>;
+                      return _buildOrderCard(order);
+                    },
+                  ),
                 );
               },
             ),
@@ -217,97 +441,100 @@ class _RiwayatPageState extends State<RiwayatPage> {
   }
 
   Widget _buildOrderCard(Map<String, dynamic> order) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  order['service_type'] ?? '-',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                Text(
-                  order['date'] ?? '-',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Id Pemesanan:  ${order['order_number'] ?? '-'}',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Jumlah:  ${order['order_items']?.length ?? 0}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-                Text(
-                  'Total Biaya:  ${_formatCurrency(order['total_price'])}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailOrderPage(
-                          token: widget.token,
-                          orderId: order['id'],
-                        ),
-                      ),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey.shade400),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Detail',
-                    style: TextStyle(color: Colors.black87),
-                  ),
-                ),
-                Text(
-                  _getStatusLabel(order['status'] ?? ''),
-                  style: TextStyle(
-                    color: _getStatusColor(order['status'] ?? ''),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
+    final detailOrders = order['detail_orders'] as List<dynamic>? ?? [];
+    final totalHargaLayanan = detailOrders.fold<int>(0, (sum, item) {
+      final value =
+          double.tryParse(item['total_harga']?.toString() ?? '0') ?? 0;
+      return sum + value.toInt();
+    });
+    final ongkir = int.tryParse(order['total_ongkir']?.toString() ?? '0') ?? 0;
+    final totalKeseluruhan = totalHargaLayanan + ongkir;
+    final nmToko = order['shops']?['nm_toko']?.toString() ?? '-';
+    final statusOrder = order['status_order']?.toString() ?? '';
+    
+
+    return GestureDetector(
+      onTap: () => _navigateToDetail(order),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      nmToko,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Badge status
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(statusOrder).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _getStatusColor(statusOrder).withOpacity(0.4),
+                      ),
+                    ),
+                    child: Text(
+                      _getStatusLabel(statusOrder),
+                      style: TextStyle(
+                        color: _getStatusColor(statusOrder),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+
+
+              Text(
+                _formatDate(order['tgl_order']),
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Id Pemesanan: ${order['kode_order'] ?? '-'}',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Jumlah: ${detailOrders.length} item',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Total Biaya: ${_formatCurrency(totalKeseluruhan)}',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+          ),
         ),
       ),
     );

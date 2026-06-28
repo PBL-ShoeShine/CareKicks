@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/payment_service.dart';
 
@@ -14,18 +15,25 @@ class PaymentController extends ChangeNotifier {
   List<dynamic> get bankAccounts => _bankAccounts;
   Map<String, dynamic>? get paymentResult => _paymentResult;
 
-  Future<void> fetchBankAccounts(String token) async {
+  Future<void> fetchBankAccounts({
+    required String token,
+    required String orderId,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final result = await PaymentService.getBankAccounts(token: token);
+      final result = await PaymentService.getBankAccounts(
+        token: token,
+        orderId: orderId,
+      );
 
       if (result['success']) {
         _bankAccounts = result['data'] ?? [];
       } else {
-        _errorMessage = result['message'] ?? 'Gagal mengambil rekening bank';
+        _errorMessage =
+            result['message'] ?? 'Gagal mengambil rekening bank';
       }
     } catch (e) {
       _errorMessage = 'Terjadi kesalahan: $e';
@@ -38,7 +46,7 @@ class PaymentController extends ChangeNotifier {
   Future<bool> confirmPayment({
     required String token,
     required String orderId,
-    required String paymentProofUrl,
+    required File imageFile,
   }) async {
     _isConfirming = true;
     _errorMessage = null;
@@ -48,7 +56,7 @@ class PaymentController extends ChangeNotifier {
       final result = await PaymentService.confirmPayment(
         token: token,
         orderId: orderId,
-        paymentProofUrl: paymentProofUrl,
+        imageFile: imageFile,
       );
 
       if (result['success']) {
@@ -57,7 +65,8 @@ class PaymentController extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        _errorMessage = result['message'] ?? 'Gagal konfirmasi pembayaran';
+        _errorMessage =
+            result['message'] ?? 'Gagal konfirmasi pembayaran';
         _isConfirming = false;
         notifyListeners();
         return false;
@@ -68,10 +77,5 @@ class PaymentController extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-  }
-
-  void clearError() {
-    _errorMessage = null;
-    notifyListeners();
   }
 }

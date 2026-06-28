@@ -20,6 +20,15 @@ class AuthService {
         return {'success': false, 'message': 'Gagal menghubungi server'};
       }
 
+      if (response['code'] == 'SHOP_SUSPENDED') {
+        return {
+          'success': false,
+          'code': 'SHOP_SUSPENDED',
+          'message': response['message'] ?? 'Toko Anda ditangguhkan',
+          'data': response['data'] ?? {},
+        };
+      }
+
       if (response.containsKey('message')) {
         final message = response['message'];
         if (message.toString().toLowerCase().contains('berhasil') ||

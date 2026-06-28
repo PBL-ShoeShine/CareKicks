@@ -1,12 +1,17 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../../../../../core/network/api_service.dart';
 
 class PaymentService {
   static Future<Map<String, dynamic>> getBankAccounts({
     required String token,
+    required String orderId,
   }) async {
     try {
-      final response = await ApiService.getCustomerBankAccounts(token: token);
+      final response = await ApiService.getCustomerBankAccounts(
+        token: token,
+        orderId: orderId,
+      );
 
       if (response == null) {
         return {'success': false, 'message': 'Gagal menghubungi server'};
@@ -18,7 +23,7 @@ class PaymentService {
 
       return {
         'success': false,
-        'message': response['message'] ?? 'Gagal mengambil rekening bank',
+        'message': response['message'] ?? 'Gagal mengambil rekening',
       };
     } catch (e) {
       debugPrint('Error in PaymentService.getBankAccounts: $e');
@@ -29,13 +34,13 @@ class PaymentService {
   static Future<Map<String, dynamic>> confirmPayment({
     required String token,
     required String orderId,
-    required String paymentProofUrl,
+    required File imageFile,
   }) async {
     try {
       final response = await ApiService.confirmCustomerPayment(
         token: token,
         orderId: orderId,
-        paymentProofUrl: paymentProofUrl,
+        imageFile: imageFile,
       );
 
       if (response == null) {

@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/notification_registration_service.dart';
 import '../../../core/widgets/custom_scaffold.dart';
 import '../controllers/auth_controller.dart';
 import 'register_page.dart';
 import '../../admin/views/admin_main_page.dart';
 import '../../customer/view/customer_main_page.dart';
+import 'suspended_shop_page.dart';
+
+// --- TAMBAHAN IMPORT HALAMAN LUPA PASSWORD ---
+import 'lupa_password_view.dart';
+// ---------------------------------------------
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -65,6 +71,22 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (role == 'shops_admin' || role == 'staff') {
+        final shop = user['shop'];
+        debugPrint('DEBUG LOGIN: role=$role, shop=$shop, shop_type=${shop?.runtimeType}');
+        if (shop is Map && shop['status_verifikasi'] == 'suspended') {
+          debugPrint('DEBUG LOGIN: Redirecting to SuspendedShopPage because shop is suspended');
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => SuspendedShopPage(
+                shop: Map<String, dynamic>.from(shop),
+              ),
+            ),
+            (route) => false,
+          );
+          return;
+        }
+
+
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Login berhasil!')));
@@ -78,6 +100,11 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (role == 'customer') {
+        await NotificationRegistrationService.registerForUser(
+          token: token,
+          user: user,
+        );
+        if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Login berhasil!')));
@@ -96,6 +123,17 @@ class _LoginPageState extends State<LoginPage> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Role tidak dikenali.')));
     } else if (mounted) {
+      final suspendedShop = _authController.suspendedShop;
+      if (suspendedShop != null) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => SuspendedShopPage(shop: suspendedShop),
+          ),
+          (route) => false,
+        );
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_authController.errorMessage ?? 'Login gagal')),
       );
@@ -213,7 +251,43 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
 
-                      const SizedBox(height: 50),
+                      // --- TAMBAHAN: TOMBOL LUPA PASSWORD ---
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _authController.isLoading
+                              ? null
+                              : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      // Ganti nama class ini jika berbeda di file lupa_password_view.dart milikmu
+                                      builder: (_) => const LupaPasswordView(),
+                                    ),
+                                  );
+                                },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.only(
+                              top: 8,
+                              bottom: 8,
+                              right: 4,
+                            ),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            "Lupa Password?",
+                            style: TextStyle(
+                              color: AppColors.primaryBlue,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // --------------------------------------
+                      const SizedBox(height: 30),
 
                       // BUTTON
                       SizedBox(
