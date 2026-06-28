@@ -830,7 +830,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     );
   }
 
-  Widget _deliveryDetailCard(String title, Map<String, dynamic> order) {
+  Widget _deliveryDetailCard(String title, Map<String, dynamic> order, {double? distanceMeters}) {
     final items = order['detail_orders'] as List<dynamic>? ?? [];
     final ongkir = double.tryParse(order['total_ongkir']?.toString() ?? '0') ?? 0;
     final subtotal = _totalHarga(items);
