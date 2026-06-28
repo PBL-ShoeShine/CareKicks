@@ -83,11 +83,30 @@ class _BerandaPageState extends State<BerandaPage> {
                     children: [
                       const Text(
                         'Urutkan',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
+                      Row(
+                        children: [
+                          // Tombol Reset
+                          TextButton(
+                            onPressed: () {
+                              setModalState(
+                                () => tempSortOrder = '',
+                              ); // Reset ke string kosong
+                            },
+                            child: const Text(
+                              'Reset',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -95,7 +114,9 @@ class _BerandaPageState extends State<BerandaPage> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Harga Terendah (Termurah)'),
-                    trailing: tempSortOrder == 'asc' ? const Icon(Icons.check, color: AppColors.primaryBlue) : null,
+                    trailing: tempSortOrder == 'asc'
+                        ? const Icon(Icons.check, color: AppColors.primaryBlue)
+                        : null,
                     onTap: () {
                       setModalState(() => tempSortOrder = 'asc');
                     },
@@ -103,7 +124,9 @@ class _BerandaPageState extends State<BerandaPage> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Harga Tertinggi (Termahal)'),
-                    trailing: tempSortOrder == 'desc' ? const Icon(Icons.check, color: AppColors.primaryBlue) : null,
+                    trailing: tempSortOrder == 'desc'
+                        ? const Icon(Icons.check, color: AppColors.primaryBlue)
+                        : null,
                     onTap: () {
                       setModalState(() => tempSortOrder = 'desc');
                     },
@@ -114,6 +137,7 @@ class _BerandaPageState extends State<BerandaPage> {
                     child: ElevatedButton(
                       onPressed: () {
                         // Terapkan ke controller dan panggil API
+                        // Pastikan di controller-mu bisa menangani string kosong ('') sebagai reset urutan
                         _controller.setSorting('harga', tempSortOrder);
                         _controller.fetchBeranda(widget.token, isRefresh: true);
                         Navigator.pop(context);
@@ -121,9 +145,17 @@ class _BerandaPageState extends State<BerandaPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryBlue,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text('Terapkan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Terapkan',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -182,10 +214,30 @@ class _BerandaPageState extends State<BerandaPage> {
                   Wrap(
                     spacing: 8,
                     children: [
-                      _buildLocalFilterChip('Semua', null, tempSpesialisasi, (val) => setModalState(() => tempSpesialisasi = val)),
-                      _buildLocalFilterChip('Sneakers', 'Sneakers', tempSpesialisasi, (val) => setModalState(() => tempSpesialisasi = val)),
-                      _buildLocalFilterChip('Leather', 'Leather', tempSpesialisasi, (val) => setModalState(() => tempSpesialisasi = val)),
-                      _buildLocalFilterChip('Canvas', 'Canvas', tempSpesialisasi, (val) => setModalState(() => tempSpesialisasi = val)),
+                      _buildLocalFilterChip(
+                        'Semua',
+                        null,
+                        tempSpesialisasi,
+                        (val) => setModalState(() => tempSpesialisasi = val),
+                      ),
+                      _buildLocalFilterChip(
+                        'Sneakers',
+                        'Sneakers',
+                        tempSpesialisasi,
+                        (val) => setModalState(() => tempSpesialisasi = val),
+                      ),
+                      _buildLocalFilterChip(
+                        'Leather',
+                        'Leather',
+                        tempSpesialisasi,
+                        (val) => setModalState(() => tempSpesialisasi = val),
+                      ),
+                      _buildLocalFilterChip(
+                        'Canvas',
+                        'Canvas',
+                        tempSpesialisasi,
+                        (val) => setModalState(() => tempSpesialisasi = val),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -226,7 +278,10 @@ class _BerandaPageState extends State<BerandaPage> {
                       ),
                       child: const Text(
                         'Terapkan Filter',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -240,7 +295,12 @@ class _BerandaPageState extends State<BerandaPage> {
     );
   }
 
-  Widget _buildLocalFilterChip(String label, String? value, String? currentValue, ValueChanged<String?> onSelected) {
+  Widget _buildLocalFilterChip(
+    String label,
+    String? value,
+    String? currentValue,
+    ValueChanged<String?> onSelected,
+  ) {
     final isSelected = currentValue == value;
     return ChoiceChip(
       label: Text(label),
@@ -261,7 +321,9 @@ class _BerandaPageState extends State<BerandaPage> {
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
-        final isFilterActive = _controller.selectedSpesialisasi != null || _controller.minRating != null;
+        final isFilterActive =
+            _controller.selectedSpesialisasi != null ||
+            _controller.minRating != null;
         final isSortActive = _controller.isSortActive;
 
         return Scaffold(
@@ -273,25 +335,49 @@ class _BerandaPageState extends State<BerandaPage> {
             titleSpacing: 16,
             title: Row(
               children: [
+                // --- BAGIAN KOTAK SEARCH ---
                 Expanded(
-                  child: Container(
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
+                  child: SizedBox(
+                    height: 42,
                     child: TextField(
                       controller: _searchController,
                       textInputAction: TextInputAction.search,
-                      decoration: const InputDecoration(
+                      textAlignVertical: TextAlignVertical.center,
+                      decoration: InputDecoration(
                         hintText: 'Search Product',
-                        hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                        prefixIcon: Icon(Icons.search, color: AppColors.primaryBlue, size: 20),
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 10),
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 14,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: AppColors.primaryBlue,
+                          size: 20,
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 0,
+                          horizontal: 12,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: Colors.grey.shade300,
+                            width: 1.2,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                            color: AppColors.primaryBlue,
+                            width: 1.5,
+                          ),
+                        ),
                       ),
                       onSubmitted: (value) {
                         _controller.setSearch(value);
@@ -300,30 +386,44 @@ class _BerandaPageState extends State<BerandaPage> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _showSortSheet,
-                  icon: Icon(
-                    Icons.swap_vert,
-                    color: isSortActive ? AppColors.primaryBlue : Colors.grey,
-                  ),
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                ),
-                IconButton(
-                  onPressed: _showFilterSheet,
-                  icon: Icon(
-                    Icons.filter_alt_outlined,
-                    color: isFilterActive ? AppColors.primaryBlue : Colors.grey,
-                  ),
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                ),
-                Stack(
-                  clipBehavior: Clip.none,
+
+                // -------------------------------------------
+                const SizedBox(
+                  width: 16,
+                ), // Jarak antara search bar ke gerombolan icon
+                // --- GRUP 3 IKON (MEPET KANAN TANPA PADDING SILUMAN) ---
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      onPressed: () {
+                    // Icon Urutkan
+                    GestureDetector(
+                      onTap: _showSortSheet,
+                      child: Icon(
+                        Icons.swap_vert,
+                        color: isSortActive
+                            ? AppColors.primaryBlue
+                            : Colors.grey,
+                        size: 26,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12), // Jarak tipis murni antar icon
+                    // Icon Filter
+                    GestureDetector(
+                      onTap: _showFilterSheet,
+                      child: Icon(
+                        Icons.filter_alt_outlined,
+                        color: isFilterActive
+                            ? AppColors.primaryBlue
+                            : Colors.grey,
+                        size: 26,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12), // Jarak tipis murni antar icon
+                    // Icon Keranjang
+                    GestureDetector(
+                      onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -334,33 +434,51 @@ class _BerandaPageState extends State<BerandaPage> {
                           ),
                         ).then((_) => _loadCartCount());
                       },
-                      icon: const Icon(Icons.shopping_cart_outlined, color: Colors.grey),
-                      padding: const EdgeInsets.only(right: 16, left: 4),
-                    ),
-                    if (_cartItemCount > 0)
-                      Positioned(
-                        right: 8,
-                        top: 2,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(8),
+                      child: Stack(
+                        alignment: Alignment.topRight,
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(
+                            Icons.shopping_cart_outlined,
+                            color: Colors.grey,
+                            size: 24,
                           ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                          child: Text(
-                            _cartItemCount > 99 ? '99+' : '$_cartItemCount',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                          if (_cartItemCount > 0)
+                            Positioned(
+                              right: -6,
+                              top: -6,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  _cartItemCount > 99
+                                      ? '99+'
+                                      : '$_cartItemCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
+                        ],
                       ),
+                    ),
                   ],
                 ),
+                // -------------------------------------------
               ],
             ),
           ),
@@ -370,17 +488,25 @@ class _BerandaPageState extends State<BerandaPage> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (_controller.errorMessage != null && _controller.services.isEmpty) {
+              if (_controller.errorMessage != null &&
+                  _controller.services.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: Colors.red,
+                      ),
                       const SizedBox(height: 16),
                       Text(_controller.errorMessage!),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: () => _controller.fetchBeranda(widget.token, isRefresh: true),
+                        onPressed: () => _controller.fetchBeranda(
+                          widget.token,
+                          isRefresh: true,
+                        ),
                         child: const Text('Coba Lagi'),
                       ),
                     ],
@@ -395,7 +521,8 @@ class _BerandaPageState extends State<BerandaPage> {
               }
 
               return RefreshIndicator(
-                onRefresh: () => _controller.fetchBeranda(widget.token, isRefresh: true),
+                onRefresh: () =>
+                    _controller.fetchBeranda(widget.token, isRefresh: true),
                 child: GridView.builder(
                   padding: const EdgeInsets.all(16),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -447,7 +574,9 @@ class _BerandaPageState extends State<BerandaPage> {
             // Service Image
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
                 child: service['foto_layanan'] != null
                     ? Image.network(
                         service['foto_layanan'],
@@ -482,8 +611,8 @@ class _BerandaPageState extends State<BerandaPage> {
                       return Icon(
                         Icons.star,
                         size: 14,
-                        color: index < rating.floor() 
-                            ? Colors.orange 
+                        color: index < rating.floor()
+                            ? Colors.orange
                             : Colors.grey.shade300,
                       );
                     }),
@@ -503,10 +632,7 @@ class _BerandaPageState extends State<BerandaPage> {
                     toko['nm_toko'] ?? '-',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                   ),
                 ],
               ),
