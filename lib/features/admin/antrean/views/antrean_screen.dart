@@ -347,7 +347,7 @@ class _AntreanScreenState extends State<AntreanScreen>
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              _formatTgl(antrean.tglOrder),
+                              _formatTgl(antrean.statusTimestamp ?? antrean.tglOrder),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.orange.shade600,
@@ -935,10 +935,13 @@ class _AntreanScreenState extends State<AntreanScreen>
 
   String _formatTgl(String tgl) {
     try {
-      final dt = DateTime.parse(tgl).toLocal();
-      return '${dt.day}/${dt.month}/${dt.year} '
-          '${dt.hour.toString().padLeft(2, '0')}:'
-          '${dt.minute.toString().padLeft(2, '0')}';
+      final dt = DateTimeUtils.parseToWib(tgl);
+      final day = dt.day.toString().padLeft(2, '0');
+      final month = dt.month.toString().padLeft(2, '0');
+      final year = dt.year.toString();
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      return '$day/$month/$year $hour:$minute';
     } catch (_) {
       return tgl;
     }

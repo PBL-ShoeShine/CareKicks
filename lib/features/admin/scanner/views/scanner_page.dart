@@ -131,25 +131,18 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
 
     if (rawRole == null || rawRole.isEmpty) return 'Admin Shoes Clean';
 
-    switch (rawRole.toLowerCase()) {
-      case 'shops_admin':
-        return 'Admin Shoes Clean';
-      case 'staff':
-        return 'Staff Toko';
-      case 'customer':
-        return 'Customer';
-      default:
-        try {
-          return rawRole
-              .replaceAll('_', ' ')
-              .split(' ')
-              .where((word) => word.isNotEmpty)
-              .map((word) => word[0].toUpperCase() + word.substring(1))
-              .join(' ');
-        } catch (_) {
-          return rawRole;
-        }
-    }
+    final shopName = _shopName;
+    final roleText = switch (rawRole.toLowerCase()) {
+      'shops_admin' => 'Admin',
+      'staff' => 'Staff',
+      'customer' => 'Customer',
+      _ => rawRole
+          .split('_')
+          .map((w) =>
+              w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}')
+          .join(' '),
+    };
+    return '$roleText - $shopName';
   }
 
   @override
@@ -181,7 +174,8 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
   Widget _topBar() {
     final shopName = _shopName;
     final roleLabel = _roleLabel;
-    final String? userPhotoUrl = widget.user['foto']?.toString().trim();
+    final String? userPhotoUrl =
+        (widget.user['foto'] ?? widget.user['path_gambar'])?.toString().trim();
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 12, 12),
@@ -198,7 +192,7 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
                     builder: (context) =>
                         ProfilePage(token: widget.token, user: widget.user),
                   ),
-                ).then((_) => _startCamera());
+                )                .then((_) => setState(() {}));
               },
               child: Row(
                 children: [
@@ -296,6 +290,22 @@ class _ScannerPageState extends State<ScannerPage> with WidgetsBindingObserver {
               MobileScanner(
                 controller: _scannerController,
                 scanWindow: scanRect,
+                errorBuilder: (context, error, child) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const SizedBox(height: 12),
+                        Text(
+                          error.errorDetails?.message ?? 'Gagal mengakses kamera',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  );
+                },
                 onDetect: (capture) async {
                   if (isScanCompleted || !_isCameraActive) return;
 

@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:carekicks/features/admin/edit_profile/views/edit_profile_view.dart';
 import 'package:carekicks/features/admin/edit_profile/views/ubah_email_view.dart';
@@ -18,12 +20,13 @@ import 'package:carekicks/core/widgets/custom_appbar.dart';
 import 'package:carekicks/features/admin/profile/controllers/profile_controller.dart';
 import 'package:carekicks/features/admin/manajemen_layanan/views/m_layanan_page.dart';
 import 'package:carekicks/features/admin/manajemen_staff/views/manajemen_staff_screen.dart';
-import 'package:carekicks/features/admin/toko/views/jam_operasional_page.dart';
-import 'package:carekicks/features/admin/toko/views/profil_toko_page.dart';
 import 'package:carekicks/features/auth/controllers/auth_controller.dart';
+import 'package:carekicks/core/auth/session_manager.dart';
 import 'package:carekicks/features/auth/views/login_page.dart';
 import 'package:carekicks/features/admin/metode_pembayaran/views/metode_pembayaran_view.dart';
 import 'package:carekicks/features/admin/ongkir/views/manajemen_ongkir_page.dart';
+import 'package:carekicks/features/admin/toko/views/profil_toko_page.dart';
+import 'package:carekicks/features/admin/toko/views/jam_operasional_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final String token;
@@ -243,8 +246,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _navigateToEditProfile() {
-    Navigator.push(
+  Future<void> _navigateToEditProfile() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EditProfilView(
@@ -257,7 +260,26 @@ class _ProfilePageState extends State<ProfilePage> {
           },
         ),
       ),
-    ).then((_) => _profileController.fetchProfile(widget.token));
+    );
+    if (!mounted) return;
+    await _profileController.fetchProfile(widget.token);
+    if (_profileController.userData != null && mounted) {
+      widget.user['nama'] = _profileController.userData!['nama'] ?? widget.user['nama'];
+      widget.user['path_gambar'] = _profileController.userData!['path_gambar'] ?? widget.user['path_gambar'];
+      widget.user['foto'] = _profileController.userData!['foto'] ?? widget.user['path_gambar'] ?? widget.user['foto'];
+      widget.user['email'] = _profileController.userData!['email'] ?? widget.user['email'];
+      widget.user['no_hp'] = _profileController.userData!['no_hp'] ?? widget.user['no_hp'];
+      final prefs = await SharedPreferences.getInstance();
+      final savedUser = prefs.getString(AuthSessionManager.userKey);
+      if (savedUser != null) {
+        final userMap = jsonDecode(savedUser) as Map<String, dynamic>;
+        userMap['nama'] = widget.user['nama'];
+        userMap['foto'] = widget.user['foto'];
+        userMap['path_gambar'] = widget.user['path_gambar'];
+        await prefs.setString(AuthSessionManager.userKey, jsonEncode(userMap));
+      }
+      if (mounted) setState(() {});
+    }
   }
 
   @override
