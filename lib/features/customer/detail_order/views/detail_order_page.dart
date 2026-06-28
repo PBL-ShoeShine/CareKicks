@@ -774,6 +774,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           ),
           const SizedBox(height: 12),
+          _buildDetailRow('Kode Pesanan', _controller.orderNumber ?? '-'),
           _buildDetailRow('Tanggal', _formatDate(_controller.date)),
           // FIX: gunakan _formatStatusText yang sudah punya mapping eksplisit
           _buildDetailRow('Status', _formatStatusText(_controller.status)),
