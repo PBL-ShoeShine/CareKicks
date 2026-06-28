@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -820,10 +822,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     );
   }
 
-  Widget _deliveryDetailCard(
-    String title,
-    Map<String, dynamic> order,
-  ) {
+  Widget _deliveryDetailCard(String title, Map<String, dynamic> order) {
     final items = order['detail_orders'] as List<dynamic>? ?? [];
     final ongkir = double.tryParse(order['ongkir']?.toString() ?? '0') ?? 0;
     final subtotal = _totalHarga(items);
@@ -923,14 +922,18 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                         Expanded(
                           child: _buildInfoColumn(
                             'Jenis Layanan',
-                            item['services']?['nama_layanan']?.toString() ?? '-',
+                            item['services']?['nama_layanan']?.toString() ??
+                                '-',
                           ),
                         ),
                         Expanded(
                           child: _buildInfoColumn(
                             'Harga',
                             _formatCurrency(
-                              double.tryParse(item['total_harga']?.toString() ?? '0') ?? 0,
+                              double.tryParse(
+                                    item['total_harga']?.toString() ?? '0',
+                                  ) ??
+                                  0,
                             ),
                           ),
                         ),
@@ -1020,10 +1023,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.grey, fontSize: 11),
-        ),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
         const SizedBox(height: 2),
         Text(
           value,
@@ -1033,11 +1033,140 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     );
   }
 
+  Future<File> _addWatermark(
+    File imageFile,
+    String name,
+    String timestamp,
+  ) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frameInfo = await codec.getNextFrame();
+      final image = frameInfo.image;
+
+      ui.Codec? scaledCodec;
+      ui.FrameInfo? scaledFrameInfo;
+      ui.Image currentImage = image;
+
+      double scale = 1.0;
+      ByteData? pngBytes;
+      bool sizeOk = false;
+
+      // Loop to scale down image dimensions if the output size exceeds 2MB
+      while (!sizeOk && scale > 0.1) {
+        final currentWidth = (image.width * scale).toInt();
+        final currentHeight = (image.height * scale).toInt();
+
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        final paint = Paint();
+
+        // Draw scaled original image
+        canvas.drawImageRect(
+          image,
+          Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+          Rect.fromLTWH(
+            0,
+            0,
+            currentWidth.toDouble(),
+            currentHeight.toDouble(),
+          ),
+          paint,
+        );
+
+        // Draw a black semi-transparent banner at the bottom of the image for readability
+        final double bannerHeight = currentHeight * 0.08; // 8% of image height
+        final bannerPaint = Paint()
+          ..color = Colors.black.withOpacity(0.6)
+          ..style = PaintingStyle.fill;
+        canvas.drawRect(
+          Rect.fromLTWH(
+            0,
+            currentHeight - bannerHeight,
+            currentWidth.toDouble(),
+            bannerHeight,
+          ),
+          bannerPaint,
+        );
+
+        // Draw the watermark text
+        final textStyle = TextStyle(
+          color: Colors.white,
+          fontSize: currentHeight * 0.025, // Scale text size to image height
+          fontWeight: FontWeight.bold,
+        );
+
+        final watermarkText = 'Kurir: $name | $timestamp';
+
+        final textPainter = TextPainter(textDirection: TextDirection.ltr);
+        textPainter.text = TextSpan(text: watermarkText, style: textStyle);
+        textPainter.layout();
+
+        // Position the text in the banner (horizontal padding: 20)
+        final xOffset = 20.0;
+        final yOffset =
+            currentHeight -
+            bannerHeight +
+            (bannerHeight - textPainter.height) / 2;
+
+        textPainter.paint(canvas, Offset(xOffset, yOffset));
+
+        final picture = recorder.endRecording();
+        final img = await picture.toImage(currentWidth, currentHeight);
+        pngBytes = await img.toByteData(format: ui.ImageByteFormat.png);
+
+        if (pngBytes == null) break;
+
+        final sizeInBytes = pngBytes.lengthInBytes;
+        if (sizeInBytes <= 2 * 1024 * 1024) {
+          sizeOk = true;
+        } else {
+          // Reduce dimensions by 30% for the next try
+          scale *= 0.7;
+        }
+      }
+
+      if (pngBytes == null) return imageFile;
+
+      // Save back to a temporary file
+      final tempDir = Directory.systemTemp;
+      final watermarkedFile = File(
+        '${tempDir.path}/delivery_proof_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      await watermarkedFile.writeAsBytes(pngBytes.buffer.asUint8List());
+      return watermarkedFile;
+    } catch (e) {
+      debugPrint('Error watermarking image: $e');
+      return imageFile; // Return original image on failure
+    }
+  }
+
+  String _getFormattedTimestamp() {
+    final now = DateTime.now();
+    final y = now.year;
+    final m = now.month.toString().padLeft(2, '0');
+    final d = now.day.toString().padLeft(2, '0');
+    final h = now.hour.toString().padLeft(2, '0');
+    final min = now.minute.toString().padLeft(2, '0');
+    final s = now.second.toString().padLeft(2, '0');
+    return '$y-$m-$d $h:$min:$s';
+  }
+
   Future<void> _submitDelivery(File image, int? idStaff) async {
+    File watermarkedImage = image;
+    try {
+      final uploaderName =
+          widget.user['nama'] ?? widget.user['username'] ?? 'Staff / Admin';
+      final timestamp = _getFormattedTimestamp();
+      watermarkedImage = await _addWatermark(image, uploaderName, timestamp);
+    } catch (e) {
+      debugPrint('Error adding watermark: $e');
+    }
+
     final success = await _controller.finishDelivery(
       token: widget.token,
       orderId: widget.orderId,
-      foto: image,
+      foto: watermarkedImage,
       idStaff: idStaff,
     );
 
@@ -1067,10 +1196,20 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
   }
 
   Future<void> _submitPickup(File image, int? idStaff) async {
+    File watermarkedImage = image;
+    try {
+      final uploaderName =
+          widget.user['nama'] ?? widget.user['username'] ?? 'Staff / Admin';
+      final timestamp = _getFormattedTimestamp();
+      watermarkedImage = await _addWatermark(image, uploaderName, timestamp);
+    } catch (e) {
+      debugPrint('Error adding watermark: $e');
+    }
+
     final success = await _controller.finishPickup(
       token: widget.token,
       orderId: widget.orderId,
-      foto: image,
+      foto: watermarkedImage,
       idStaff: idStaff,
     );
 
@@ -1440,9 +1579,8 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                     borderRadius: BorderRadius.circular(16),
                     child: Image.network(
                       order['foto_validasi'].toString(),
-                      height: 200,
                       width: double.infinity,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           height: 200,
