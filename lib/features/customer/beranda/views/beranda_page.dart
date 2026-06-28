@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../controllers/beranda_controller.dart';
 import '../../detail_layanan/views/detail_layanan_page.dart';
@@ -578,11 +579,22 @@ class _BerandaPageState extends State<BerandaPage> {
                   top: Radius.circular(12),
                 ),
                 child: service['foto_layanan'] != null
-                    ? Image.network(
-                        service['foto_layanan'],
+                    ? CachedNetworkImage(
+                        imageUrl: service['foto_layanan'],
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
+                        placeholder: (context, url) => Container(
+                          width: double.infinity,
+                          color: Colors.grey.shade100,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => _buildPlaceholderImage(),
                       )
                     : _buildPlaceholderImage(),
               ),
