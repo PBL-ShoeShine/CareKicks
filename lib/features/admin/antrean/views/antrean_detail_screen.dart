@@ -282,6 +282,22 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     }
   }
 
+  String _formatDateTime(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '-';
+    try {
+      final date = DateTimeUtils.parseToWib(dateStr);
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des',
+      ];
+      final time =
+          '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      return '${date.day} ${months[date.month - 1]} ${date.year}, $time';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
   String? get _qrImageUrl {
     final qrImage = widget.antrean.qrImage?.trim();
     if (qrImage != null && qrImage.isNotEmpty && qrImage.startsWith('http')) {
@@ -668,14 +684,17 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
               // Card 2: Detail Sepatu (Multi-item Carousel)
               if (widget.antrean.detailOrders.length > 1) ...[
                 SizedBox(
-                  height: 420,
+                  height: 560,
                   child: PageView.builder(
                     itemCount: widget.antrean.detailOrders.length,
                     onPageChanged: (index) {
                       setState(() => _currentDetailIndex = index);
                     },
                     itemBuilder: (context, index) {
-                      return _buildDetailOrderCard(index);
+                      return SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: _buildDetailOrderCard(index),
+                      );
                     },
                   ),
                 ),

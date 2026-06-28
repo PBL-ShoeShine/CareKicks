@@ -78,6 +78,12 @@ class _DashboardPageState extends State<DashboardPage> {
         'Toko Sepatu';
   }
 
+  String? get _userPhotoUrl {
+    final url = (widget.user['foto'] ?? widget.user['path_gambar'])?.toString().trim();
+    if (url != null && url.isNotEmpty && url != 'null') return url;
+    return null;
+  }
+
   String get _userName {
     return _firstString([
           widget.user['nama'],
@@ -216,10 +222,15 @@ class _DashboardPageState extends State<DashboardPage> {
                                             radius: 22,
                                             backgroundColor: Colors.white
                                                 .withOpacity(0.2),
-                                            child: const Icon(
-                                              Icons.store,
-                                              color: Colors.white,
-                                            ),
+                                            backgroundImage: _userPhotoUrl != null
+                                                ? NetworkImage(_userPhotoUrl!)
+                                                : null,
+                                            child: _userPhotoUrl == null
+                                                ? const Icon(
+                                                    Icons.store,
+                                                    color: Colors.white,
+                                                  )
+                                                : null,
                                           ),
                                         ),
                                         const SizedBox(width: 12),
@@ -485,16 +496,18 @@ class _DashboardPageState extends State<DashboardPage> {
                               letterSpacing: -0.3,
                             ),
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      HistoryPage(token: widget.token),
-                                ),
-                              );
-                            },
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ProfilePage(
+                                            token: widget.token,
+                                            user: widget.user,
+                                          ),
+                                        ),
+                                      ).then((_) => setState(() {}));
+                                    },
                             child: const Row(
                               children: [
                                 Text(
