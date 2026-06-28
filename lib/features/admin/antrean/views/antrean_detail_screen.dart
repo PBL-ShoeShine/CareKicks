@@ -1245,10 +1245,7 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     );
   }
 
-  Widget _buildPlaceholderImage({
-    String label = 'Foto tidak tersedia',
-    double height = 140,
-  }) {
+  Widget _buildPlaceholderImage({String label = 'Foto tidak tersedia', double height = 140}) {
     return Container(
       width: double.infinity,
       height: height,
