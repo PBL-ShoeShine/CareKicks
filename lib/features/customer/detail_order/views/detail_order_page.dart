@@ -139,21 +139,11 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     if (dateStr == null || dateStr.isEmpty) return '-';
     try {
       final date = DateTimeUtils.parseToWib(dateStr);
-      const months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'Mei',
-        'Jun',
-        'Jul',
-        'Agt',
-        'Sep',
-        'Okt',
-        'Nov',
-        'Des',
-      ];
-      return '${date.day} ${months[date.month - 1]} ${date.year}';
+      final day = date.day.toString().padLeft(2, '0');
+      final month = date.month.toString().padLeft(2, '0');
+      final hour = date.hour.toString().padLeft(2, '0');
+      final minute = date.minute.toString().padLeft(2, '0');
+      return '$day/$month/${date.year} $hour:$minute';
     } catch (_) {
       return dateStr;
     }

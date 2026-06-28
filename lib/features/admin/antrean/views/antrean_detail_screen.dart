@@ -282,6 +282,22 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
     }
   }
 
+  String _formatDateTime(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '-';
+    try {
+      final date = DateTimeUtils.parseToWib(dateStr);
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des',
+      ];
+      final time =
+          '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      return '${date.day} ${months[date.month - 1]} ${date.year}, $time';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
   String? get _qrImageUrl {
     final qrImage = widget.antrean.qrImage?.trim();
     if (qrImage != null && qrImage.isNotEmpty && qrImage.startsWith('http')) {
@@ -668,14 +684,17 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
               // Card 2: Detail Sepatu (Multi-item Carousel)
               if (widget.antrean.detailOrders.length > 1) ...[
                 SizedBox(
-                  height: 420,
+                  height: 560,
                   child: PageView.builder(
                     itemCount: widget.antrean.detailOrders.length,
                     onPageChanged: (index) {
                       setState(() => _currentDetailIndex = index);
                     },
                     itemBuilder: (context, index) {
-                      return _buildDetailOrderCard(index);
+                      return SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: _buildDetailOrderCard(index),
+                      );
                     },
                   ),
                 ),
@@ -702,6 +721,13 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
                   _buildDetailOrderCard(0),
               ],
               const SizedBox(height: 20),
+
+              // Timeline Riwayat Status
+              if (widget.antrean.timeline != null &&
+                  widget.antrean.timeline!.isNotEmpty) ...[
+                _buildTimeline(),
+                const SizedBox(height: 20),
+              ],
 
               // QR Code Section - hanya tampil setelah masuk Pesanan Baru (sudah dikonfirmasi)
               if (_currentStatus != 'pending' &&
@@ -1223,6 +1249,175 @@ class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTimeline() {
+    final timeline = widget.antrean.timeline;
+    if (timeline == null || timeline.isEmpty) return const SizedBox.shrink();
+
+    String getStatusLabel(String? status) {
+      switch (status) {
+        case 'pending':
+          return 'Pesanan Masuk';
+        case 'menunggu_pembayaran':
+          return 'Menunggu Pembayaran';
+        case 'menunggu_konfirmasi':
+          return 'Bukti Bayar Dikirim';
+        case 'dikonfirmasi':
+          return 'Pembayaran Dikonfirmasi';
+        case 'menunggu_dijemput':
+          return 'Menunggu Dijemput';
+        case 'sedang_dijemput':
+          return 'Sedang Dijemput';
+        case 'sudah_dijemput':
+          return 'Sepatu Sudah Dijemput';
+        case 'washing':
+          return 'Sedang Dicuci';
+        case 'selesai_cuci':
+          return 'Pencucian Selesai';
+        case 'sedang_diantar':
+          return 'Sedang Diantar';
+        case 'selesai':
+          return 'Pesanan Selesai';
+        case 'dibatalkan':
+          return 'Pesanan Dibatalkan';
+        default:
+          return status ?? '-';
+      }
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Riwayat Status',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          const SizedBox(height: 16),
+          ...List.generate(timeline.length, (index) {
+            final item = timeline[index] as Map<String, dynamic>;
+            final isLast = index == timeline.length - 1;
+            final status = item['status']?.toString();
+            final namaStaff =
+                item['staff']?['staff_profile']?['nama']?.toString();
+            final color = isLast
+                ? (status == 'dibatalkan' ? Colors.red : Colors.green)
+                : Colors.grey.shade400;
+
+            return IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 24,
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 14,
+                          height: 14,
+                          margin: const EdgeInsets.only(top: 3),
+                          decoration: BoxDecoration(
+                            color: isLast ? color : Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: color, width: 2),
+                          ),
+                        ),
+                        if (!isLast)
+                          Expanded(
+                            child: Container(
+                              width: 2,
+                              color: Colors.grey.shade200,
+                              margin:
+                                  const EdgeInsets.symmetric(vertical: 4),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            getStatusLabel(status),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: color,
+                            ),
+                          ),
+                          if (item['keterangan'] != null &&
+                              item['keterangan'].toString().isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                item['keterangan'].toString(),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          if (namaStaff != null && namaStaff.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.person_outline,
+                                    size: 12,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    namaStaff,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              _formatDateTime(
+                                  item['created_at']?.toString()),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 

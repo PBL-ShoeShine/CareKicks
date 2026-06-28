@@ -30,163 +30,162 @@ class OrderSuccessPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             children: [
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Ikon sukses
-                    Container(
-                      width: 110,
-                      height: 110,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryBlue.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check_circle_rounded,
-                        size: 72,
-                        color: AppColors.primaryBlue,
-                      ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Ikon sukses
+                  Container(
+                    width: 110,
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withOpacity(0.1),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 28),
+                    child: const Icon(
+                      Icons.check_circle_rounded,
+                      size: 72,
+                      color: AppColors.primaryBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
 
-                    // Judul
-                    const Text(
-                      'Pesanan Berhasil Dibuat!',
-                      style: TextStyle(
-                        fontSize: 22,
+                  // Judul
+                  const Text(
+                    'Pesanan Berhasil Dibuat!',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A1A2E),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Kode pesanan
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '#$kodeOrder',
+                      style: const TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A1A2E),
+                        color: AppColors.primaryBlue,
+                        letterSpacing: 1.2,
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 10),
+                  ),
+                  const SizedBox(height: 24),
 
-                    // Kode pesanan
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryBlue.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '#$kodeOrder',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryBlue,
-                          letterSpacing: 1.2,
+                  // Kartu info alur
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Langkah Selanjutnya',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Color(0xFF1A1A2E),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _buildStep(
+                          icon: Icons.hourglass_top_rounded,
+                          color: AppColors.primaryBlue,
+                          title: 'Menunggu Konfirmasi Admin',
+                          subtitle: 'Admin toko sedang memproses pesananmu',
+                          isActive: true,
+                        ),
+                        _buildDivider(),
+                        _buildStep(
+                          icon: Icons.payment_rounded,
+                          color: Colors.orange.shade600,
+                          title: 'Lakukan Pembayaran',
+                          subtitle:
+                              'Setelah dikonfirmasi, kamu akan mendapat info pembayaran',
+                          isActive: false,
+                        ),
+                        _buildDivider(),
+                        _buildStep(
+                          icon: Icons.local_shipping_rounded,
+                          color: Colors.green.shade600,
+                          title: 'Sepatu Dijemput & Dicuci',
+                          subtitle:
+                              'Kurir akan menjemput sepatumu setelah pembayaran terverifikasi',
+                          isActive: false,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-                    // Kartu info alur
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                  // Total harga info
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Tagihan',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF64748B),
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Langkah Selanjutnya',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Color(0xFF1A1A2E),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          _buildStep(
-                            icon: Icons.hourglass_top_rounded,
+                        ),
+                        Text(
+                          _formatCurrency(totalHarga),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                             color: AppColors.primaryBlue,
-                            title: 'Menunggu Konfirmasi Admin',
-                            subtitle: 'Admin toko sedang memproses pesananmu',
-                            isActive: true,
                           ),
-                          _buildDivider(),
-                          _buildStep(
-                            icon: Icons.payment_rounded,
-                            color: Colors.orange.shade600,
-                            title: 'Lakukan Pembayaran',
-                            subtitle:
-                                'Setelah dikonfirmasi, kamu akan mendapat info pembayaran',
-                            isActive: false,
-                          ),
-                          _buildDivider(),
-                          _buildStep(
-                            icon: Icons.local_shipping_rounded,
-                            color: Colors.green.shade600,
-                            title: 'Sepatu Dijemput & Dicuci',
-                            subtitle:
-                                'Kurir akan menjemput sepatumu setelah pembayaran terverifikasi',
-                            isActive: false,
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-
-                    // Total harga info
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Total Tagihan',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          Text(
-                            _formatCurrency(totalHarga),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryBlue,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 32),
 
               // Tombol aksi
               Column(
