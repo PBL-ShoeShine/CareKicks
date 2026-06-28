@@ -149,6 +149,14 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
     return 'Rp $formatted';
   }
 
+  String _formatDistance(double meters) {
+    if (meters >= 1000) {
+      final km = meters / 1000;
+      return 'Jarak: ${km.toStringAsFixed(1)} km';
+    }
+    return 'Jarak: ${meters.toInt()} m';
+  }
+
   String _formatDateTime(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '-';
     try {
@@ -824,7 +832,7 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
 
   Widget _deliveryDetailCard(String title, Map<String, dynamic> order) {
     final items = order['detail_orders'] as List<dynamic>? ?? [];
-    final ongkir = double.tryParse(order['ongkir']?.toString() ?? '0') ?? 0;
+    final ongkir = double.tryParse(order['total_ongkir']?.toString() ?? '0') ?? 0;
     final subtotal = _totalHarga(items);
     final total = subtotal + ongkir.toInt();
 
@@ -861,6 +869,24 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
             ],
           ),
           const Divider(height: 24),
+          if (distanceMeters != null) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Icon(Icons.straighten, size: 18, color: Colors.grey),
+                  const SizedBox(width: 10),
+                  Text(
+                    _formatDistance(distanceMeters),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           _detailRow(
             icon: Icons.person_outline,
             label: 'Pelanggan',
@@ -869,12 +895,17 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
           _detailRow(
             icon: Icons.phone_outlined,
             label: 'Nomor HP',
-            value: order['customers']?['nomor_hp']?.toString() ?? '-',
+            value: order['customers']?['nomor_hp']?.toString()
+                ?? order['customers']?['no_hp']?.toString()
+                ?? order['no_hp']?.toString()
+                ?? '-',
           ),
           _detailRow(
             icon: Icons.location_on_outlined,
             label: 'Alamat Tujuan',
-            value: order['customers']?['alamat']?.toString() ?? '-',
+            value: order['alamat_pengantaran']?.toString()
+                ?? order['customers']?['alamat']?.toString()
+                ?? '-',
           ),
           const SizedBox(height: 8),
           ...items.asMap().entries.map((entry) {
@@ -946,6 +977,24 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
           }),
           if (items.isNotEmpty) ...[
             const SizedBox(height: 12),
+            // Biaya layanan subtotal
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Biaya Layanan',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                Text(
+                  _formatCurrency(subtotal.toDouble()),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             if (ongkir > 0) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1028,6 +1077,8 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
         Text(
           value,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -1595,7 +1646,11 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
                   const SizedBox(height: 16),
                 ],
 
-                _deliveryDetailCard(detailTitle, order),
+                _deliveryDetailCard(
+                  detailTitle,
+                  order,
+                  distanceMeters: distanceMeters,
+                ),
                 const SizedBox(height: 24),
               ],
             ),

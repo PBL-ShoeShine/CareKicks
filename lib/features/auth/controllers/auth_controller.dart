@@ -148,6 +148,15 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  void updateField(String key, dynamic value) {
+    if (_user != null) {
+      _user = Map<String, dynamic>.from(_user!);
+      _user![key] = value;
+      saveSession();
+      notifyListeners();
+    }
+  }
+
   Future<void> saveSession() async {
     final token = _token;
     final user = _user;
