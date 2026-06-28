@@ -23,11 +23,9 @@ class AntreanController extends ChangeNotifier {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  bool get _isStaff => _role == 'courier' || _role == 'washer';
+  bool get _isStaff => _role == 'courier' || _role == 'washer' || _role == 'staff';
 
-  String get _baseEndpoint => _isStaff
-      ? '${ApiService.baseUrl}/staff/antrean'
-      : '${ApiService.baseUrl}/admin/antrean';
+  String get _baseEndpoint => '${ApiService.baseUrl}/admin/antrean';
 
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',

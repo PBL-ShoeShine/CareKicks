@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/custom_scaffold.dart';
 import '../controllers/auth_controller.dart';
@@ -36,6 +37,17 @@ class _SuspendedShopPageState extends State<SuspendedShopPage> {
       MaterialPageRoute(builder: (_) => const LoginPage()),
       (route) => false,
     );
+  }
+
+  Future<void> _openChromeLink() async {
+    final Uri url = Uri.parse('http://localhost:3000/toko-saya');
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal membuka tautan Chrome.')),
+        );
+      }
+    }
   }
 
   @override
@@ -81,10 +93,10 @@ class _SuspendedShopPageState extends State<SuspendedShopPage> {
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  'Toko Ditangguhkan',
+                  'Maaf, Toko anda disuspend',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryDark,
                   ),
@@ -139,14 +151,48 @@ class _SuspendedShopPageState extends State<SuspendedShopPage> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton.icon(
-                    onPressed: _logout,
-                    icon: const Icon(Icons.logout, color: Colors.white),
+                    onPressed: _openChromeLink,
+                    icon: const Icon(
+                      Icons.open_in_browser,
+                      color: Colors.white,
+                    ),
                     label: const Text(
-                      'Logout',
-                      style: TextStyle(color: Colors.white),
+                      'Ajukan Banding',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryDark,
+                      backgroundColor: AppColors.primaryBlue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: _logout,
+                    icon: const Icon(
+                      Icons.logout,
+                      color: AppColors.primaryDark,
+                    ),
+                    label: const Text(
+                      'Logout',
+                      style: TextStyle(
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(
+                        color: AppColors.primaryDark,
+                        width: 2,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),

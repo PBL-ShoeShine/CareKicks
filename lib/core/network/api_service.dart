@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.10.237:5000/api/v1';
+  static const String baseUrl = 'http://172.16.162.103:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -95,7 +95,6 @@ class ApiService {
 
   // ─── Profile ──────────────────────────────────────────────────────────────
 
-  /// [role] — jenis_role dari data user ('courier', 'washer', atau lainnya)
   static Future<Map<String, dynamic>?> getProfile({
     required String token,
     String? role,
@@ -301,16 +300,25 @@ class ApiService {
 
   // ─── Pemindai ─────────────────────────────────────────────────────────────
 
-  static Future<Map<String, dynamic>?> cekSepatu(String qrCode) async {
+  // --- PERBAIKAN: MENGIRIM TOKEN SAAT SCAN AGAR TIDAK "DATA TIDAK DITEMUKAN" ---
+  static Future<Map<String, dynamic>?> cekSepatu(
+    String token,
+    String qrCode,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/admin/pemindai/verify'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token', // <- TOKEN DIKIRIM DI SINI
+        },
         body: jsonEncode({'qr_code': qrCode}),
       );
 
       if (response.statusCode == 200 ||
           response.statusCode == 404 ||
+          response.statusCode == 401 ||
+          response.statusCode == 500 ||
           response.statusCode == 400) {
         return await _decodeJsonResponse(response);
       } else {
@@ -322,16 +330,28 @@ class ApiService {
     return null;
   }
 
-  static Future<Map<String, dynamic>?> updateStatusPesanan(
-    String kodeOrder,
-    String statusBaru,
-  ) async {
+  // --- PERBAIKAN: MENAMBAHKAN TIMEOUT & TOKEN PADA UPDATE STATUS ---
+  static Future<Map<String, dynamic>?> updateStatusPesanan({
+    required String token,
+    required String kodeOrder,
+    required String statusBaru,
+  }) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/admin/pemindai/update-status'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'kode_order': kodeOrder, 'status_baru': statusBaru}),
-      );
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/admin/pemindai/update-status'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              'kode_order': kodeOrder,
+              'status_baru': statusBaru,
+            }),
+          )
+          .timeout(
+            const Duration(seconds: 15),
+          ); // <- Mencegah muter-muter tanpa batas
 
       return jsonDecode(response.body);
     } catch (e) {
@@ -778,7 +798,6 @@ class ApiService {
 
   // ─── Tracking ─────────────────────────────────────────────────────────────
 
-  /// [role] — jenis_role dari data user ('courier', 'washer', atau lainnya)
   static Future<Map<String, dynamic>?> getTrackingList({
     required String token,
     String? search,
@@ -1482,10 +1501,18 @@ class ApiService {
   static Future<Map<String, dynamic>?> getOrdersToConfirm({
     required String token,
     String tab = 'pembayaran',
+    String? metodeOrder,
   }) async {
     try {
+      final queryParams = {
+        'tab': tab,
+        if (metodeOrder != null) 'metode_order': metodeOrder,
+      };
+      final uri = Uri.parse(
+        '$baseUrl/admin/konfirmasi_pesanan',
+      ).replace(queryParameters: queryParams);
       final response = await http.get(
-        Uri.parse('$baseUrl/admin/konfirmasi_pesanan?tab=$tab'),
+        uri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -2202,15 +2229,15 @@ class ApiService {
     return getCustomerReviews(shopId: idShops, rating: rating);
   }
 
-  /// Membuat ulasan baru dengan foto (multipart)
   static Future<Map<String, dynamic>?> createUlasan({
     required String token,
     required int rating,
     required String ulasan,
     int? idShops,
     int? idOrders,
-    int? idServices, // <--- 1. TAMBAHKAN INI
+    int? idServices,
     List<File>? fotoUlasan,
+    File? videoUlasan, // Parameter tambahan untuk video
   }) async {
     try {
       final request = http.MultipartRequest(
@@ -2229,6 +2256,7 @@ class ApiService {
         request.fields['id_services'] = idServices.toString();
       }
 
+      // Memproses maksimal 5 foto
       if (fotoUlasan != null && fotoUlasan.isNotEmpty) {
         for (final foto in fotoUlasan) {
           final extension = foto.path.split('.').last.toLowerCase();
@@ -2244,6 +2272,22 @@ class ApiService {
             ),
           );
         }
+      }
+
+      // Memproses 1 video
+      if (videoUlasan != null) {
+        final extension = videoUlasan.path.split('.').last.toLowerCase();
+        String mimeType = 'video/mp4';
+        if (extension == 'mov') mimeType = 'video/quicktime';
+        if (extension == 'avi') mimeType = 'video/x-msvideo';
+
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'video_ulasan',
+            videoUlasan.path,
+            contentType: MediaType.parse(mimeType),
+          ),
+        );
       }
 
       final response = await request.send();
@@ -2499,7 +2543,8 @@ class ApiService {
       request.fields['id_shops'] = idShops;
       request.fields['id_services'] = idServices;
       request.fields['harga_layanan'] = hargaLayanan;
-      if (catatan != null && catatan.isNotEmpty) request.fields['catatan'] = catatan;
+      if (catatan != null && catatan.isNotEmpty)
+        request.fields['catatan'] = catatan;
       request.fields['merk'] = merk;
       request.fields['jenis_sepatu'] = jenisSepatu;
       request.fields['warna'] = warna;
@@ -2531,7 +2576,10 @@ class ApiService {
       return {'success': false, 'message': 'Response kosong dari server'};
     } catch (e) {
       debugPrint('Gagal menghubungi backend (addToCart): $e');
-      return {'success': false, 'message': 'Gagal menambahkan ke keranjang: $e'};
+      return {
+        'success': false,
+        'message': 'Gagal menambahkan ke keranjang: $e',
+      };
     }
   }
 

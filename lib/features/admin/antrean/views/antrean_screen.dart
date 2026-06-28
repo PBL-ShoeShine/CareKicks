@@ -178,7 +178,8 @@ class _AntreanScreenState extends State<AntreanScreen>
     final btnLabel = _btnLabel(antrean.statusOrder, antrean.metodeOrder);
     final statusColor = _statusColor(antrean.statusOrder);
     final currentStatus = _tabs[_currentTab]['status'];
-    final isTrackingTab = currentStatus == 'pickup' || currentStatus == 'delivery';
+    final isTrackingTab =
+        currentStatus == 'pickup' || currentStatus == 'delivery';
 
     return GestureDetector(
       onTap: () async {
@@ -199,7 +200,11 @@ class _AntreanScreenState extends State<AntreanScreen>
             context,
             MaterialPageRoute(
               builder: (context) =>
-                  AntreanDetailScreen(token: widget.token, antrean: antrean),
+                  AntreanDetailScreen(
+                    token: widget.token,
+                    antrean: antrean,
+                    user: widget.user,
+                  ),
             ),
           );
           if (result == true) _loadData();
@@ -230,8 +235,12 @@ class _AntreanScreenState extends State<AntreanScreen>
                     borderRadius: BorderRadius.circular(12),
                     child: Builder(
                       builder: (context) {
-                        final fotoSebelumUrl = detail?.fotoSebelum?.split(',').first.trim();
-                        return (fotoSebelumUrl != null && fotoSebelumUrl.isNotEmpty)
+                        final fotoSebelumUrl = detail?.fotoSebelum
+                            ?.split(',')
+                            .first
+                            .trim();
+                        return (fotoSebelumUrl != null &&
+                                fotoSebelumUrl.isNotEmpty)
                             ? Image.network(
                                 fotoSebelumUrl,
                                 width: 56,
@@ -240,7 +249,7 @@ class _AntreanScreenState extends State<AntreanScreen>
                                 errorBuilder: (_, __, ___) => _placeholder(),
                               )
                             : _placeholder();
-                      }
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -273,7 +282,6 @@ class _AntreanScreenState extends State<AntreanScreen>
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                // --- PERBAIKAN: MENGHILANGKAN UNDERSCORE DI SINI ---
                                 antrean.statusOrder
                                     .replaceAll('_', ' ')
                                     .toUpperCase(),
@@ -284,6 +292,27 @@ class _AntreanScreenState extends State<AntreanScreen>
                                 ),
                               ),
                             ),
+                            if ((antrean.qrImage != null || antrean.linkQr != null) &&
+                                antrean.statusOrder != 'pending' &&
+                                antrean.statusOrder != 'menunggu_pembayaran' &&
+                                antrean.statusOrder != 'menunggu_konfirmasi') ...[
+                              const SizedBox(width: 4),
+                              Tooltip(
+                                message: 'QR Code tersedia',
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryBlue.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Icon(
+                                    Icons.qr_code_2_rounded,
+                                    size: 14,
+                                    color: AppColors.primaryBlue,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -320,12 +349,38 @@ class _AntreanScreenState extends State<AntreanScreen>
                             Text(
                               _formatTgl(antrean.tglOrder),
                               style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.orange.shade600,
+                                fontSize: 11,
+                                color: Colors.orange.shade600,
                               ),
                             ),
                           ],
                         ),
+                        // --- TAMBAHAN MENAMPILKAN NAMA STAFF DI CARD ---
+                        if (antrean.namaStaff != null &&
+                            antrean.namaStaff!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.badge_outlined,
+                                size: 12,
+                                color: AppColors.primaryBlue,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  'Staff: ${antrean.namaStaff}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.primaryBlue,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -372,33 +427,33 @@ class _AntreanScreenState extends State<AntreanScreen>
                       ),
                     )
                   : nextStatus != null
-                      ? _buildActionButtons(antrean, nextStatus, btnLabel)
-                      : Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.successGreen.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                  ? _buildActionButtons(antrean, nextStatus, btnLabel)
+                  : Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.successGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: AppColors.successGreen,
+                            size: 18,
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.check_circle,
-                                color: AppColors.successGreen,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Pesanan Selesai',
-                                style: TextStyle(
-                                  color: AppColors.successGreen,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                          SizedBox(width: 8),
+                          Text(
+                            'Pesanan Selesai',
+                            style: TextStyle(
+                              color: AppColors.successGreen,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
+                        ],
+                      ),
+                    ),
             ],
           ),
         ),
@@ -460,8 +515,8 @@ class _AntreanScreenState extends State<AntreanScreen>
       );
     }
 
-    // 2. Tab Pembayaran (menunggu_pembayaran)
-    if (antrean.statusOrder == 'menunggu_pembayaran') {
+    // 2. Tab Pembayaran (menunggu_konfirmasi)
+    if (antrean.statusOrder == 'menunggu_konfirmasi') {
       return Row(
         children: [
           Expanded(
@@ -964,7 +1019,9 @@ class _AntreanHeader extends StatelessWidget implements PreferredSizeWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: isSelected ? AppColors.primaryBlue : const Color(0xFF64748B),
+              color: isSelected
+                  ? AppColors.primaryBlue
+                  : const Color(0xFF64748B),
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),

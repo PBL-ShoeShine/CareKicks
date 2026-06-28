@@ -50,6 +50,109 @@ class _UlasanPageState extends State<UlasanPage> {
     }
   }
 
+  // --- Menampilkan Foto Fullscreen & Slider ---
+  void _showFullscreenImage(
+    BuildContext context,
+    List<String> photos,
+    int initialPage,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PageView.builder(
+                itemCount: photos.length,
+                controller: PageController(initialPage: initialPage),
+                itemBuilder: (context, index) {
+                  return InteractiveViewer(
+                    panEnabled: true,
+                    boundaryMargin: const EdgeInsets.all(20),
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          photos[index],
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            );
+                          },
+                          errorBuilder: (_, __, ___) => Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.all(20),
+                            child: const Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 48,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Gagal memuat gambar',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: CircleAvatar(
+                  backgroundColor: Colors.black.withOpacity(0.5),
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+              if (photos.length > 1) ...[
+                Positioned(
+                  left: 10,
+                  child: IgnorePointer(
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 36,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 10,
+                  child: IgnorePointer(
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 36,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,7 +161,11 @@ class _UlasanPageState extends State<UlasanPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black54, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            color: Colors.black54,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -111,8 +218,11 @@ class _UlasanPageState extends State<UlasanPage> {
                             child: Row(
                               children: [
                                 if (filter['value'] != 'Semua') ...[
-                                  const Icon(Icons.star,
-                                      color: Colors.amber, size: 16),
+                                  const Icon(
+                                    Icons.star,
+                                    color: Colors.amber,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 4),
                                 ],
                                 Text(
@@ -155,14 +265,17 @@ class _UlasanPageState extends State<UlasanPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(_controller.errorMessage!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.red)),
+                          Text(
+                            _controller.errorMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.red),
+                          ),
                           const SizedBox(height: 16),
                           CustomButton(
                             label: 'Coba Lagi',
-                            onPressed: () =>
-                                _controller.fetchUlasan(idShops: widget.idShops),
+                            onPressed: () => _controller.fetchUlasan(
+                              idShops: widget.idShops,
+                            ),
                           ),
                         ],
                       ),
@@ -171,9 +284,7 @@ class _UlasanPageState extends State<UlasanPage> {
                 }
 
                 if (_controller.ulasanList.isEmpty) {
-                  return const Center(
-                    child: Text('Belum ada ulasan'),
-                  );
+                  return const Center(child: Text('Belum ada ulasan'));
                 }
 
                 return ListView.builder(
@@ -257,7 +368,9 @@ class _UlasanPageState extends State<UlasanPage> {
                       return Icon(
                         Icons.star,
                         size: 16,
-                        color: index < rating ? Colors.amber : Colors.grey.shade200,
+                        color: index < rating
+                            ? Colors.amber
+                            : Colors.grey.shade200,
                       );
                     }),
                   ),
@@ -282,14 +395,40 @@ class _UlasanPageState extends State<UlasanPage> {
                 scrollDirection: Axis.horizontal,
                 itemCount: photos.length,
                 itemBuilder: (context, index) {
-                  return Container(
-                    width: 80,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      image: DecorationImage(
-                        image: NetworkImage(photos[index]),
-                        fit: BoxFit.cover,
+                  final String photoUrl = photos[index].toString();
+                  final List<String> allPhotos = photos
+                      .map((e) => e.toString())
+                      .toList();
+
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        _showFullscreenImage(context, allPhotos, index);
+                      },
+                      // --- BUNGKUSAN CONTAINER AGAR UKURAN TETAP 80X80 ---
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.grey.shade100,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            photoUrl,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover, // Wajib agar crop kotak presisi
+                            errorBuilder: (_, __, ___) => const Center(
+                              child: Icon(
+                                Icons.broken_image,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   );
@@ -300,10 +439,7 @@ class _UlasanPageState extends State<UlasanPage> {
           const SizedBox(height: 12),
           Text(
             _formatDate(ulasan['created_at']),
-            style: TextStyle(
-              color: Colors.grey.shade400,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
           ),
         ],
       ),

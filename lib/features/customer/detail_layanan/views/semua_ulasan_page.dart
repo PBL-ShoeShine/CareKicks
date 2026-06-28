@@ -15,13 +15,126 @@ class SemuaUlasanPage extends StatelessWidget {
     try {
       final date = DateTime.parse(isoString);
       final months = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
       ];
       return '${months[date.month - 1]} ${date.day}, ${date.year}';
     } catch (_) {
       return isoString;
     }
+  }
+
+  // --- FUNGSI BARU: Menampilkan Foto Fullscreen & Slider ---
+  void _showFullscreenImage(
+    BuildContext context,
+    List<String> photos,
+    int initialPage,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PageView.builder(
+                itemCount: photos.length,
+                controller: PageController(initialPage: initialPage),
+                itemBuilder: (context, index) {
+                  return InteractiveViewer(
+                    panEnabled: true,
+                    boundaryMargin: const EdgeInsets.all(20),
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          photos[index],
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            );
+                          },
+                          errorBuilder: (_, __, ___) => Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.all(20),
+                            child: const Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 48,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Gagal memuat gambar',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: CircleAvatar(
+                  backgroundColor: Colors.black.withOpacity(0.5),
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+              if (photos.length > 1) ...[
+                Positioned(
+                  left: 10,
+                  child: IgnorePointer(
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 36,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 10,
+                  child: IgnorePointer(
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 36,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -32,7 +145,11 @@ class SemuaUlasanPage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            color: Colors.black87,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
@@ -48,10 +165,7 @@ class SemuaUlasanPage extends StatelessWidget {
             ),
             Text(
               shopName,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
         ),
@@ -63,13 +177,15 @@ class SemuaUlasanPage extends StatelessWidget {
               itemCount: reviews.length,
               separatorBuilder: (_, __) => const Divider(height: 32),
               itemBuilder: (context, index) {
-                return _buildReviewItem(reviews[index]);
+                // Melempar 'context' agar bisa memanggil showDialog
+                return _buildReviewItem(context, reviews[index]);
               },
             ),
     );
   }
 
-  Widget _buildReviewItem(Map<String, dynamic> review) {
+  // Parameter ditambahkan BuildContext
+  Widget _buildReviewItem(BuildContext context, Map<String, dynamic> review) {
     final user = review['user'] ?? {};
     final rating = (review['rating'] as num?)?.toDouble() ?? 0.0;
     final photos = List<String>.from(review['foto_ulasan'] ?? []);
@@ -81,9 +197,12 @@ class SemuaUlasanPage extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundImage: user['foto'] != null ? NetworkImage(user['foto']) : null,
+              backgroundImage:
+                  user['foto'] != null && user['foto'].toString().isNotEmpty
+                  ? NetworkImage(user['foto'])
+                  : null,
               backgroundColor: Colors.grey.shade200,
-              child: user['foto'] == null
+              child: (user['foto'] == null || user['foto'].toString().isEmpty)
                   ? const Icon(Icons.person, color: Colors.grey)
                   : null,
             ),
@@ -94,7 +213,10 @@ class SemuaUlasanPage extends StatelessWidget {
                 children: [
                   Text(
                     user['nama'] ?? 'User',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF223263)),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF223263),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -104,8 +226,8 @@ class SemuaUlasanPage extends StatelessWidget {
                           return Icon(
                             Icons.star,
                             size: 14,
-                            color: index < rating.floor() 
-                                ? Colors.orange 
+                            color: index < rating.floor()
+                                ? Colors.orange
                                 : Colors.grey.shade300,
                           );
                         }),
@@ -113,7 +235,10 @@ class SemuaUlasanPage extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         _formatDate(review['created_at']),
-                        style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                        style: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -125,7 +250,11 @@ class SemuaUlasanPage extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           review['ulasan'] ?? '',
-          style: const TextStyle(color: Colors.black87, height: 1.5, fontSize: 13),
+          style: const TextStyle(
+            color: Colors.black87,
+            height: 1.5,
+            fontSize: 13,
+          ),
         ),
         const SizedBox(height: 12),
         if (photos.isNotEmpty)
@@ -136,13 +265,28 @@ class SemuaUlasanPage extends StatelessWidget {
               itemCount: photos.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    photos[index],
+                return GestureDetector(
+                  onTap: () => _showFullscreenImage(context, photos, index),
+                  // --- PERBAIKAN: Dibungkus dengan Container ---
+                  child: Container(
                     width: 80,
                     height: 80,
-                    fit: BoxFit.cover,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey.shade100,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        photos[index],
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Center(
+                          child: Icon(Icons.broken_image, color: Colors.grey),
+                        ),
+                      ),
+                    ),
                   ),
                 );
               },
