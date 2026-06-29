@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/location_utils.dart';
+import '../../../../core/network/api_service.dart';
 import '../controllers/cart_controller.dart';
 import '../../profile/services/customer_profile_service.dart';
 import '../../profile/controllers/customer_profile_controller.dart';
@@ -35,6 +36,16 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
   double? _shopLat;
   double? _shopLng;
 
+  // ─── Tarif Ongkir Toko ────────────────────────────────────────────────────────
+  double _jarakGratisKm = 2.0;
+  double _tarifPerKm = 5000;
+  double _jarakMaksimalKm = double.infinity;
+  double _tarifPerKmLuarRadius = 5000;
+
+  // ─── OSRM Distance ──────────────────────────────────────────────────────────
+  double? _osrmDistanceKm;
+  bool _isFetchingOsrm = false;
+
   static const _blue = Color(0xFF2563EB);
 
   String get _effectiveAddress =>
@@ -45,6 +56,10 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
       double.tryParse(_selectedAlamat?['longitude']?.toString() ?? '');
 
   double get _distanceKm {
+    // Gunakan OSRM jika sudah berhasil di-fetch
+    if (_osrmDistanceKm != null) return _osrmDistanceKm!;
+
+    // Fallback: Haversine (garis lurus) jika OSRM belum/gagal
     if (_shopLat == null ||
         _shopLng == null ||
         _effectiveLat == null ||
@@ -59,7 +74,13 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
     );
   }
 
-  int get _ongkir => LocationUtils.calculateOngkir(_distanceKm);
+  int get _ongkir => LocationUtils.calculateOngkir(
+    _distanceKm,
+    jarakGratisKm: _jarakGratisKm,
+    tarifPerKm: _tarifPerKm,
+    jarakMaksimalKm: _jarakMaksimalKm,
+    tarifPerKmLuarRadius: _tarifPerKmLuarRadius,
+  );
 
   @override
   void initState() {
@@ -89,6 +110,20 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
       if (shop != null) {
         _shopLat = double.tryParse(shop['lat_toko']?.toString() ?? '');
         _shopLng = double.tryParse(shop['long_toko']?.toString() ?? '');
+
+        // Ambil tarif ongkir dari data toko (sekarang disertakan di response cart)
+        _jarakGratisKm =
+            double.tryParse(shop['jarak_gratis_km']?.toString() ?? '') ?? 2.0;
+        _tarifPerKm =
+            double.tryParse(shop['tarif_per_km']?.toString() ?? '') ?? 5000;
+        _jarakMaksimalKm =
+            double.tryParse(shop['jarak_maksimal_km']?.toString() ?? '') ??
+            double.infinity;
+        _tarifPerKmLuarRadius =
+            double.tryParse(
+              shop['tarif_per_km_luar_radius']?.toString() ?? '',
+            ) ??
+            5000;
       }
     }
   }
@@ -104,6 +139,8 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
       );
       if (defaultAlamat != null && _selectedAlamat == null) {
         _selectedAlamat = defaultAlamat;
+        // Fetch OSRM setelah alamat default dipilih
+        _fetchOsrmDistance();
       }
     }
     if (mounted) setState(() => _isLoadingAlamat = false);
@@ -253,8 +290,49 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
     if (picked != null && mounted) {
       setState(() {
         _selectedAlamat = picked;
+        // Reset OSRM cache dan fetch ulang
+        _osrmDistanceKm = null;
       });
+      _fetchOsrmDistance();
     }
+  }
+
+  /// Panggil OSRM untuk menghitung jarak rute jalan raya ke toko
+  Future<void> _fetchOsrmDistance() async {
+    final custLat = _effectiveLat;
+    final custLng = _effectiveLng;
+    if (_shopLat == null || _shopLng == null || custLat == null || custLng == null) {
+      return;
+    }
+
+    if (mounted) setState(() => _isFetchingOsrm = true);
+
+    try {
+      final response = await ApiService.getRouteOsrm(
+        originLat: _shopLat!,
+        originLng: _shopLng!,
+        destLat: custLat,
+        destLng: custLng,
+      );
+
+      if (response != null) {
+        final routes = response['routes'] as List<dynamic>?;
+        if (routes != null && routes.isNotEmpty) {
+          final route = routes.first as Map<String, dynamic>;
+          final distanceMeters = (route['distance'] as num?)?.toDouble() ?? 0;
+          if (mounted) {
+            setState(() {
+              _osrmDistanceKm = distanceMeters / 1000.0;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('CartCheckout OSRM error: $e');
+      // Biarkan _osrmDistanceKm = null → fallback ke Haversine
+    }
+
+    if (mounted) setState(() => _isFetchingOsrm = false);
   }
 
   String _formatCurrency(dynamic value) {
@@ -745,17 +823,29 @@ class _CartCheckoutPageState extends State<CartCheckoutPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Jarak ${_distanceKm.toStringAsFixed(1)} km',
+                _isFetchingOsrm
+                    ? 'Menghitung jarak...'
+                    : 'Jarak ${_distanceKm.toStringAsFixed(1)} km',
                 style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
               ),
-              Text(
-                _ongkir == 0 ? 'Gratis' : _formatCurrency(_ongkir),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: _ongkir == 0 ? FontWeight.bold : FontWeight.w600,
-                  color: _ongkir == 0 ? Colors.green : const Color(0xFF223263),
+              if (_isFetchingOsrm)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF2563EB),
+                  ),
+                )
+              else
+                Text(
+                  _ongkir == 0 ? 'Gratis' : _formatCurrency(_ongkir),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: _ongkir == 0 ? FontWeight.bold : FontWeight.w600,
+                    color: _ongkir == 0 ? Colors.green : const Color(0xFF223263),
+                  ),
                 ),
-              ),
             ],
           ),
           if (_shopLat == null || _effectiveLat == null)
