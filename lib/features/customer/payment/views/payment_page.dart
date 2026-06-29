@@ -1,11 +1,80 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+
+// --- PERBAIKAN: Menggunakan versi PLUS yang bebas error namespace ---
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
+
+// --- PERBAIKAN: Import package SVG untuk memuat logo bank ---
+import 'package:flutter_svg/flutter_svg.dart';
+// -------------------------------------------------------------------
+
 import '../../../../../core/constants/app_colors.dart';
 import '../controllers/payment_controller.dart';
 import 'payment_success_page.dart';
 
+// ─── WIDGET LOGO BANK (SAMA SEPERTI DI ADMIN) ────────────────────────────────
+class _BankLogo extends StatelessWidget {
+  final String? slug;
+  final String name;
+  final double size;
+
+  const _BankLogo({required this.name, this.slug, this.size = 40});
+
+  static const _base =
+      'https://raw.githubusercontent.com/hafidznoor/idn-finlogos/main/icons';
+
+  String? get _url {
+    if (slug == null || slug!.isEmpty) return null;
+    return '$_base/$slug.svg';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final url = _url;
+    if (url == null) return _fallback();
+
+    return SvgPicture.network(
+      url,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      placeholderBuilder: (_) => _shimmer(),
+    );
+  }
+
+  Widget _shimmer() => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: Colors.grey.shade200,
+      borderRadius: BorderRadius.circular(8),
+    ),
+  );
+
+  Widget _fallback() => Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: AppColors.primaryBlue.withOpacity(0.08),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      name.isNotEmpty ? name[0].toUpperCase() : '?',
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        color: AppColors.primaryBlue,
+        fontSize: 16,
+      ),
+    ),
+  );
+}
+
+// ─── MAIN CLASS PAYMENT PAGE ──────────────────────────────────────────────────
 class PaymentPage extends StatefulWidget {
   final String token;
   final String orderId;
@@ -28,6 +97,65 @@ class _PaymentPageState extends State<PaymentPage> {
   late PaymentController _controller;
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
+  bool _isDownloading = false;
+
+  // ─── DATABASE LOGO BANK & E-WALLET UNTUK SINKRONISASI ────────────────────────
+  static const List<Map<String, String?>> daftarBankLengkap = [
+    {'name': 'BCA', 'slug': 'bca', 'type': 'Bank'},
+    {'name': 'Mandiri', 'slug': 'mandiri', 'type': 'Bank'},
+    {'name': 'BNI', 'slug': 'bni', 'type': 'Bank'},
+    {'name': 'BRI', 'slug': 'bri', 'type': 'Bank'},
+    {'name': 'BSI', 'slug': 'bsi', 'type': 'Bank'},
+    {'name': 'BTN', 'slug': 'btn', 'type': 'Bank'},
+    {'name': 'CIMB Niaga', 'slug': 'cimb-niaga', 'type': 'Bank'},
+    {'name': 'Permata Bank', 'slug': 'permata', 'type': 'Bank'},
+    {'name': 'Danamon', 'slug': 'danamon', 'type': 'Bank'},
+    {'name': 'Bank Mega', 'slug': 'mega', 'type': 'Bank'},
+    {'name': 'Maybank', 'slug': 'maybank', 'type': 'Bank'},
+    {'name': 'OCBC NISP', 'slug': 'ocbc-nisp', 'type': 'Bank'},
+    {'name': 'Panin Bank', 'slug': null, 'type': 'Bank'},
+    {'name': 'Bukopin', 'slug': null, 'type': 'Bank'},
+    {'name': 'Sinarmas', 'slug': 'sinarmas', 'type': 'Bank'},
+    {'name': 'Muamalat', 'slug': null, 'type': 'Bank'},
+    {'name': 'Jenius', 'slug': 'jenius', 'type': 'Bank'},
+    {'name': 'Bank Jago', 'slug': 'jago', 'type': 'Bank'},
+    {'name': 'SeaBank', 'slug': 'seabank', 'type': 'Bank'},
+    {'name': 'Allo Bank', 'slug': 'allo', 'type': 'Bank'},
+    {'name': 'Bank Neo Commerce', 'slug': 'bnc', 'type': 'Bank'},
+    {'name': 'Bank DKI', 'slug': 'bank-dki', 'type': 'Bank'},
+    {'name': 'Bank Jateng', 'slug': null, 'type': 'Bank'},
+    {'name': 'Bank Jatim', 'slug': null, 'type': 'Bank'},
+    {'name': 'HSBC Indonesia', 'slug': 'hsbc', 'type': 'Bank'},
+    {'name': 'Citibank', 'slug': 'citibank', 'type': 'Bank'},
+    {'name': 'Commonwealth', 'slug': 'commonwealth', 'type': 'Bank'},
+    {
+      'name': 'Standard Chartered',
+      'slug': 'standard-chartered',
+      'type': 'Bank',
+    },
+    {'name': 'GoPay', 'slug': 'gopay', 'type': 'E-Wallet'},
+    {'name': 'OVO', 'slug': null, 'type': 'E-Wallet'},
+    {'name': 'DANA', 'slug': 'dana', 'type': 'E-Wallet'},
+    {'name': 'ShopeePay', 'slug': 'shopee-pay', 'type': 'E-Wallet'},
+    {'name': 'LinkAja', 'slug': 'linkaja', 'type': 'E-Wallet'},
+    {'name': 'Doku', 'slug': 'doku', 'type': 'E-Wallet'},
+    {'name': 'Sakuku', 'slug': null, 'type': 'E-Wallet'},
+    {'name': 'Akulaku', 'slug': 'akulaku', 'type': 'E-Wallet'},
+  ];
+
+  // Fungsi pencari slug berdasarkan nama bank dari API
+  String? _getSlug(String namaBankFull) {
+    try {
+      final match = daftarBankLengkap.firstWhere((e) {
+        final eName = e['name']!.toLowerCase();
+        final qName = namaBankFull.toLowerCase();
+        return eName == qName || qName.contains(eName) || eName.contains(qName);
+      });
+      return match['slug'];
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   void initState() {
@@ -184,6 +312,76 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 
+  Future<void> _downloadQris(String url) async {
+    if (_isDownloading) return;
+
+    setState(() {
+      _isDownloading = true;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Sedang mengunduh QRIS...'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final Uint8List bytes = response.bodyBytes;
+
+        final result = await ImageGallerySaverPlus.saveImage(
+          bytes,
+          quality: 100,
+          name: "QRIS_CareKicks_${DateTime.now().millisecondsSinceEpoch}",
+        );
+
+        if (!mounted) return;
+
+        if (result['isSuccess'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Berhasil! Gambar QRIS tersimpan di Galeri.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal menyimpan gambar ke galeri.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal mengunduh gambar dari server.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -303,8 +501,17 @@ class _PaymentPageState extends State<PaymentPage> {
                         )
                       else
                         ..._controller.bankAccounts.map((bank) {
-                          // REVISI: Ambil URL foto QRIS
                           final String pathQris = bank['path_qris'] ?? '';
+                          final bool isQris =
+                              bank['nama_bank']?.toString().toUpperCase() ==
+                                  'QRIS' ||
+                              pathQris.isNotEmpty;
+
+                          // --- PERBAIKAN: Dapatkan nama bank dan slug logo ---
+                          final String namaBankFull =
+                              bank['nama_bank'] ?? 'BANK';
+                          final String? slug = _getSlug(namaBankFull);
+                          // --------------------------------------------------
 
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -326,18 +533,39 @@ class _PaymentPageState extends State<PaymentPage> {
                               children: [
                                 Row(
                                   children: [
+                                    // --- PERBAIKAN UI CONTAINER LOGO ---
                                     Container(
-                                      padding: const EdgeInsets.all(10),
+                                      width: 44,
+                                      height: 44,
+                                      padding: isQris
+                                          ? const EdgeInsets.all(10)
+                                          : const EdgeInsets.all(4),
                                       decoration: BoxDecoration(
-                                        color: Colors.blue.shade50,
+                                        color: isQris
+                                            ? Colors.blue.shade50
+                                            : Colors.white,
                                         borderRadius: BorderRadius.circular(10),
+                                        border: isQris
+                                            ? null
+                                            : Border.all(
+                                                color: Colors.grey.shade200,
+                                              ),
                                       ),
-                                      child: const Icon(
-                                        Icons.account_balance,
-                                        color: AppColors.primaryBlue,
-                                        size: 22,
-                                      ),
+                                      child: isQris
+                                          ? const Icon(
+                                              Icons.qr_code_2,
+                                              color: AppColors.primaryBlue,
+                                              size: 22,
+                                            )
+                                          : Center(
+                                              child: _BankLogo(
+                                                name: namaBankFull,
+                                                slug: slug,
+                                                size: 32,
+                                              ),
+                                            ),
                                     ),
+                                    // -----------------------------------
                                     const SizedBox(width: 14),
                                     Column(
                                       crossAxisAlignment:
@@ -362,84 +590,154 @@ class _PaymentPageState extends State<PaymentPage> {
                                   ],
                                 ),
                                 const SizedBox(height: 16),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          bank['no_rek'] ?? '-',
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.5,
-                                            color: Colors.black87,
+
+                                if (!isQris) ...[
+                                  // Tampilan Transfer Bank
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            bank['no_rek'] ?? '-',
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 1.5,
+                                              color: Colors.black87,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        GestureDetector(
+                                          onTap: () {
+                                            Clipboard.setData(
+                                              ClipboardData(
+                                                text: bank['no_rek'] ?? '',
+                                              ),
+                                            );
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Nomor disalin'),
+                                                duration: Duration(seconds: 1),
+                                              ),
+                                            );
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryBlue,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: const Text(
+                                              'Salin',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ] else ...[
+                                  // Tampilan QRIS
+                                  if (pathQris.isNotEmpty) ...[
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.grey.shade200,
                                         ),
                                       ),
-                                      const SizedBox(width: 12),
-                                      GestureDetector(
-                                        onTap: () {
-                                          Clipboard.setData(
-                                            ClipboardData(
-                                              text: bank['no_rek'] ?? '',
-                                            ),
-                                          );
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Nomor disalin'),
-                                              duration: Duration(seconds: 1),
-                                            ),
-                                          );
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 8,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.primaryBlue,
+                                      child: Column(
+                                        children: [
+                                          // --- PERBAIKAN: Gunakan ClipRRect dan BoxFit.cover ---
+                                          ClipRRect(
                                             borderRadius: BorderRadius.circular(
                                               8,
                                             ),
-                                          ),
-                                          child: const Text(
-                                            'Salin',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
+                                            child: Image.network(
+                                              pathQris,
+                                              width: double.infinity,
+                                              height: 320,
+                                              fit: BoxFit.cover,
+                                              alignment: Alignment.center,
+                                              errorBuilder: (_, __, ___) =>
+                                                  const Padding(
+                                                    padding: EdgeInsets.all(
+                                                      16.0,
+                                                    ),
+                                                    child: Text(
+                                                      'Gagal memuat QRIS',
+                                                    ),
+                                                  ),
                                             ),
                                           ),
-                                        ),
+                                          // -----------------------------------------------------
+                                          const SizedBox(height: 12),
+                                          SizedBox(
+                                            width: double.infinity,
+                                            child: OutlinedButton.icon(
+                                              onPressed: _isDownloading
+                                                  ? null
+                                                  : () =>
+                                                        _downloadQris(pathQris),
+                                              icon: _isDownloading
+                                                  ? const SizedBox(
+                                                      width: 16,
+                                                      height: 16,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                          ),
+                                                    )
+                                                  : const Icon(
+                                                      Icons.download_rounded,
+                                                      size: 18,
+                                                    ),
+                                              label: Text(
+                                                _isDownloading
+                                                    ? 'Mengunduh...'
+                                                    : 'Unduh QRIS',
+                                              ),
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor:
+                                                    Colors.grey.shade800,
+                                                side: BorderSide(
+                                                  color: Colors.grey.shade300,
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 12,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                ),
-                                // 👇 KODE REVISI: Tampilkan Foto QRIS Jika Ada
-                                if (pathQris.isNotEmpty) ...[
-                                  const SizedBox(height: 16),
-                                  Center(
-                                    child: Image.network(
-                                      pathQris,
-                                      width: 200,
-                                      height: 200,
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) =>
-                                          const Text('Gagal memuat QRIS'),
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ],
                             ),
