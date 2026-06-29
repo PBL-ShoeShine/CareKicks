@@ -138,6 +138,23 @@ class AuthController extends ChangeNotifier {
     if (savedToken != null && savedToken.isNotEmpty && savedUserStr != null) {
       _token = savedToken;
       _user = jsonDecode(savedUserStr);
+      
+      final shop = _user?['shop'];
+      final role = _user?['jenis_role'];
+      if ((role == 'shops_admin' || role == 'staff') && shop is Map) {
+        final status = shop['status_verifikasi']?.toString().toLowerCase();
+        if (status == 'suspended' || status == 'appealed') {
+          _suspendedShop = Map<String, dynamic>.from(shop);
+          _errorMessage = 'Toko Anda ditangguhkan';
+        } else {
+          _suspendedShop = null;
+          _errorMessage = null;
+        }
+      } else {
+        _suspendedShop = null;
+        _errorMessage = null;
+      }
+      
       notifyListeners();
       return true;
     }
@@ -178,7 +195,7 @@ class AuthController extends ChangeNotifier {
       if (shopData != null) {
         final status = shopData['status_verifikasi']?.toString().toLowerCase();
         debugPrint("shop status: $status");
-        if (status == 'suspended') {
+        if (status == 'suspended' || status == 'appealed') {
           _suspendedShop = Map<String, dynamic>.from(shopData);
           _errorMessage = 'Toko Anda ditangguhkan';
           notifyListeners();

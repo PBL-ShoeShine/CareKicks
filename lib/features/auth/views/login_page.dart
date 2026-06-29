@@ -72,7 +72,8 @@ class _LoginPageState extends State<LoginPage> {
 
       if (role == 'shops_admin' || role == 'staff') {
         final shop = user['shop'];
-        if (shop is Map && shop['status_verifikasi'] == 'suspended') {
+        final shopStatus = shop is Map ? shop['status_verifikasi']?.toString().toLowerCase() : null;
+        if (shop is Map && (shopStatus == 'suspended' || shopStatus == 'appealed')) {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (_) =>

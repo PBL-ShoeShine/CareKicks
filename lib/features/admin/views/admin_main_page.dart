@@ -72,7 +72,7 @@ class _AdminMainPageState extends State<AdminMainPage> with WidgetsBindingObserv
       if (shopData == null) return;
 
       final status = shopData['status_verifikasi']?.toString().toLowerCase();
-      if (status == 'suspended' && mounted) {
+      if ((status == 'suspended' || status == 'appealed') && mounted) {
         _suspendCheckTimer?.cancel(); // Stop polling once suspended
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(

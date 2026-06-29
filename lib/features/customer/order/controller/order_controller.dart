@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/order_service.dart';
 import '../../../../core/utils/location_utils.dart';
+import '../../../../core/network/api_service.dart';
 
 class OrderController extends ChangeNotifier {
   // ─── State: Services ──────────────────────────────────────────────────────
@@ -27,9 +28,15 @@ class OrderController extends ChangeNotifier {
   double? _currentLat;
   double? _currentLong;
 
+  // ─── State: OSRM Distance ─────────────────────────────────────────────────
+  /// Jarak via OSRM (jalan raya). null = belum di-fetch / gagal.
+  double? _osrmDistanceKm;
+  bool _isFetchingOsrm = false;
+
   // ─── Getters ──────────────────────────────────────────────────────────────
   bool get isLoadingServices => _isLoadingServices;
   bool get isSubmitting => _isSubmitting;
+  bool get isFetchingOsrm => _isFetchingOsrm;
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
   List<Map<String, dynamic>> get services => _services;
@@ -43,8 +50,12 @@ class OrderController extends ChangeNotifier {
   bool isServiceSelected(int idServices) =>
       _selectedServiceIds.contains(idServices);
 
-  /// Hitung jarak (KM) antara toko dan lokasi customer saat ini
+  /// Jarak dalam KM: pakai OSRM jika tersedia, fallback ke Haversine.
   double get distanceKm {
+    // Jika OSRM sudah berhasil, gunakan jarak rute jalan raya
+    if (_osrmDistanceKm != null) return _osrmDistanceKm!;
+
+    // Fallback: Haversine (garis lurus) jika OSRM belum/gagal
     if (_latToko == null ||
         _longToko == null ||
         _currentLat == null ||
@@ -84,9 +95,51 @@ class OrderController extends ChangeNotifier {
 
   // ─── Actions ──────────────────────────────────────────────────────────────
 
+  /// Update lokasi customer, lalu fetch jarak via OSRM jika toko sudah diketahui.
   void updateLocation(double? lat, double? lng) {
     _currentLat = lat;
     _currentLong = lng;
+    // Reset OSRM cache karena lokasi berubah
+    _osrmDistanceKm = null;
+    notifyListeners();
+    // Fetch OSRM distance asynchronously
+    _fetchOsrmDistance();
+  }
+
+  /// Panggil OSRM untuk mendapatkan jarak rute jalan raya.
+  Future<void> _fetchOsrmDistance() async {
+    if (_latToko == null ||
+        _longToko == null ||
+        _currentLat == null ||
+        _currentLong == null) {
+      return;
+    }
+
+    _isFetchingOsrm = true;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.getRouteOsrm(
+        originLat: _latToko!,
+        originLng: _longToko!,
+        destLat: _currentLat!,
+        destLng: _currentLong!,
+      );
+
+      if (response != null) {
+        final routes = response['routes'] as List<dynamic>?;
+        if (routes != null && routes.isNotEmpty) {
+          final route = routes.first as Map<String, dynamic>;
+          final distanceMeters = (route['distance'] as num?)?.toDouble() ?? 0;
+          _osrmDistanceKm = distanceMeters / 1000.0;
+        }
+      }
+    } catch (e) {
+      debugPrint('OrderController OSRM error: $e');
+      // Biarkan _osrmDistanceKm = null → fallback ke Haversine
+    }
+
+    _isFetchingOsrm = false;
     notifyListeners();
   }
 
@@ -163,6 +216,11 @@ class OrderController extends ChangeNotifier {
         if (exists) {
           _selectedServiceIds.add(prefillServiceId);
         }
+      }
+
+      // Setelah koordinat toko diketahui, fetch OSRM jika lokasi customer sudah ada
+      if (_currentLat != null && _currentLong != null) {
+        _fetchOsrmDistance();
       }
     } else {
       _errorMessage = result['message'] ?? 'Gagal memuat layanan';

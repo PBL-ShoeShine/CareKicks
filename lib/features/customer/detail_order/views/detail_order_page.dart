@@ -735,7 +735,9 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     final catatanPengiriman = _controller.order?['catatan_pengiriman']
         ?.toString();
     final cleanAddress = LocationUtils.cleanAddress(_controller.address);
-    final distanceKm = _isOnline ? _calculateDistanceKm() : null;
+
+    // Gunakan jarak OSRM dari controller (sudah di-fetch via fetchRoute)
+    final distanceKm = _isOnline ? _getOsrmDistanceKm() : null;
 
     return Container(
       padding: const EdgeInsets.all(16),

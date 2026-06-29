@@ -1150,25 +1150,33 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: Text(
-                      'Ongkos Kirim (${dist.toStringAsFixed(1)} km)',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                      ),
-                    ),
+                    child: _controller.isFetchingOsrm
+                        ? Row(
+                            children: [
+                              const SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 1.5, color: Colors.white70),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text('Menghitung jarak...',
+                                  style: TextStyle(color: Colors.white70, fontSize: 13)),
+                            ],
+                          )
+                        : Text(
+                            'Ongkos Kirim (${dist.toStringAsFixed(1)} km)',
+                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    ongkir == 0 ? 'Gratis' : _fmt(ongkir),
-                    style: TextStyle(
-                      color: ongkir == 0 ? Colors.greenAccent : Colors.white,
-                      fontWeight: ongkir == 0
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      fontSize: 13,
-                    ),
-                  ),
+                  _controller.isFetchingOsrm
+                      ? const SizedBox(width: 0)
+                      : Text(ongkir == 0 ? 'Gratis' : _fmt(ongkir),
+                          style: TextStyle(
+                              color: ongkir == 0 ? Colors.greenAccent : Colors.white,
+                              fontWeight: ongkir == 0 ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 13)),
                 ],
               ),
 
