@@ -41,31 +41,18 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
   bool get _isOnline =>
       _controller.order?['metode_order']?.toString().toLowerCase() == 'online';
 
-  double? _calculateDistanceKm() {
-    final shopLat = _controller.shopLat;
-    final shopLng = _controller.shopLng;
-    final custLat = _controller.customerLat;
-    final custLng = _controller.customerLng;
-
-    if (shopLat == null ||
-        shopLng == null ||
-        custLat == null ||
-        custLng == null) {
-      return null;
-    }
-
-    return LocationUtils.calculateDistanceKm(
-      shopLat,
-      shopLng,
-      custLat,
-      custLng,
-    );
+  // ===== Jarak dari OSRM (sudah di-fetch oleh controller via fetchRoute) =====
+  double? _getOsrmDistanceKm() {
+    final meters = _controller.routeDistanceMeters;
+    if (meters == null || meters <= 0) return null;
+    return meters / 1000.0;
   }
 
   String _formatDistance(double? km) {
     if (km == null) return '-';
     return '${km.toStringAsFixed(1)} km';
   }
+  // ===== END =====
 
   int _getPhaseIndex(String? status) {
     if (_isOnline) {
