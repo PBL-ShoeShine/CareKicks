@@ -198,18 +198,26 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     }
   }
 
+  // ===== PERBAIKAN BUG STATUS GANDA =====
   List<Map<String, dynamic>> _deduplicatedTimeline() {
     final raw = _controller.timeline;
-    final seen = <String>{};
+    final seenStatuses = <String>{};
     final result = <Map<String, dynamic>>[];
+
     for (final item in raw) {
-      final key = '${item['status']}_${item['created_at']}';
-      if (seen.contains(key)) continue;
-      seen.add(key);
-      result.add(item as Map<String, dynamic>);
+      final status = item['status']?.toString();
+      if (status == null || status.isEmpty) continue;
+
+      // Filter ketat: Jika status ini belum pernah ada di timeline, baru dimasukkan.
+      // Ini akan otomatis mengabaikan spam klik admin atau status yang diganti bolak-balik.
+      if (!seenStatuses.contains(status)) {
+        seenStatuses.add(status);
+        result.add(item as Map<String, dynamic>);
+      }
     }
     return result;
   }
+  // ======================================
 
   Widget _buildStepIndicator() {
     final currentPhase = _getPhaseIndex(_controller.status);
@@ -291,7 +299,8 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
   }
 
   Widget _buildTimeline() {
-    final timeline = _deduplicatedTimeline();
+    final timeline =
+        _deduplicatedTimeline(); // Memanggil fungsi yang sudah disempurnakan
     if (timeline.isEmpty) return const SizedBox.shrink();
 
     String getStatusLabel(String? status) {
@@ -343,6 +352,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
             final item = timeline[index];
             final isLast = index == timeline.length - 1;
             final status = item['status']?.toString();
+
             final namaStaff =
                 (item['nama_staff'] ??
                         item['staff']?['nama'] ??
@@ -1126,7 +1136,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                       _buildTimeline(),
                       const SizedBox(height: 16),
 
-                      // Produk
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(

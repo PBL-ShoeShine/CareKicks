@@ -113,7 +113,7 @@ class _SuspendedShopPageState extends State<SuspendedShopPage> {
   }
 
   Future<void> _openChromeLink() async {
-    final Uri url = Uri.parse('http://localhost:3000/toko-saya');
+    final Uri url = Uri.parse('http://localhost:5000/toko-saya');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
