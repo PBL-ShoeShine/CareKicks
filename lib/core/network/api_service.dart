@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.10.232:5000/api/v1';
+  static const String baseUrl = 'http://172.16.93.243:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -58,6 +58,30 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  /// Check the user's latest role and shop status from the database.
+  static Future<Map<String, dynamic>?> checkRole({
+    required String token,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/user/check-role'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401) {
+        return await _decodeJsonResponse(response);
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend (checkRole): $e');
     }
     return null;
   }
