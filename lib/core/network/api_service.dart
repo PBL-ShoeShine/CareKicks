@@ -2285,7 +2285,7 @@ class ApiService {
     required String ulasan,
     int? idShops,
     int? idOrders,
-    int? idServices,
+    List<int>? idServices,
     List<File>? fotoUlasan,
   }) async {
     try {
@@ -2301,8 +2301,8 @@ class ApiService {
       request.fields['ulasan'] = ulasan;
       if (idShops != null) request.fields['id_shops'] = idShops.toString();
       if (idOrders != null) request.fields['id_orders'] = idOrders.toString();
-      if (idServices != null) {
-        request.fields['id_services'] = idServices.toString();
+      if (idServices != null && idServices.isNotEmpty) {
+        request.fields['id_services'] = idServices.join(',');
       }
 
       if (fotoUlasan != null && fotoUlasan.isNotEmpty) {

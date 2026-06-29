@@ -29,7 +29,6 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
 
   bool _isLoading = false;
   bool _obscurePassword = true;
-  StaffStatus _selectedStatus = StaffStatus.aktif;
 
   bool get _isEditMode => widget.existingStaff != null;
 
@@ -42,7 +41,6 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
       _namaController.text = s.nama;
       _emailController.text = s.email;
       _noHpController.text = s.noHp;
-      _selectedStatus = s.status;
     }
   }
 
@@ -65,7 +63,6 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
           'nama': _namaController.text.trim(),
           'email': _emailController.text.trim(),
           'no_hp': _noHpController.text.trim(),
-          'status': _selectedStatus.name.toUpperCase(),
         });
       } else {
         await _controller.createStaff(
@@ -155,38 +152,6 @@ class _ManajemenStaffFormScreenState extends State<ManajemenStaffFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              if (_isEditMode) ...[
-                _label('Status Karyawan'),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7F8FA),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE0E0E0)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<StaffStatus>(
-                      value: _selectedStatus,
-                      isExpanded: true,
-                      items: const [
-                        // ✅ FIX: hanya Aktif dan Cuti
-                        DropdownMenuItem(
-                          value: StaffStatus.aktif,
-                          child: Text('Aktif'),
-                        ),
-                        DropdownMenuItem(
-                          value: StaffStatus.cuti,
-                          child: Text('Cuti'),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _selectedStatus = val);
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
               _label('Nama Lengkap'),
               _buildField(
                 controller: _namaController,

@@ -33,8 +33,6 @@ class _InputOffPageState extends State<InputOffPage> {
 
   final List<String> _metodeBayarList = ['tunai', 'qris'];
 
-  bool _isDownloadingQr = false;
-
   String _formatRupiah(int amount) {
     String result = amount.toString();
     String formatted = '';
@@ -77,8 +75,10 @@ class _InputOffPageState extends State<InputOffPage> {
   }
 
   void _submit() async {
+    // Validasi form (nama, phone, jenis, merk, warna)
     if (!_formKey.currentState!.validate()) return;
 
+    // Validasi layanan
     if (_controller.selectedServices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih satu layanan terlebih dahulu')),
@@ -86,6 +86,7 @@ class _InputOffPageState extends State<InputOffPage> {
       return;
     }
 
+    // Validasi foto
     if (_selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ambil foto kondisi awal sepatu')),
@@ -98,8 +99,8 @@ class _InputOffPageState extends State<InputOffPage> {
       namaCustomer: _namaController.text,
       nomorTelepon: _phoneController.text,
       jenisSepatu: _jenisSepatuController.text.trim(),
-      merk: _merkController.text,
-      warna: _warnaController.text,
+      merk: _merkController.text.trim(),
+      warna: _warnaController.text.trim(),
       catatan: _catatanController.text,
       metodeBayar: _selectedMetodeBayar,
       fotoSebelum: _selectedImage!,
@@ -197,8 +198,9 @@ class _InputOffPageState extends State<InputOffPage> {
                     controller: _namaController,
                     label: 'NAMA LENGKAP',
                     hint: 'Masukkan nama...',
-                    validator: (v) =>
-                        v!.isEmpty ? 'Nama tidak boleh kosong' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Nama tidak boleh kosong'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
@@ -207,33 +209,41 @@ class _InputOffPageState extends State<InputOffPage> {
                     hint: '0812...',
                     keyboardType: TextInputType.phone,
                     maxLength: 15,
-                    validator: (v) =>
-                        v!.isEmpty ? 'Nomor telepon tidak boleh kosong' : null,
-                  ),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle('Jenis Sepatu'),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    controller: _jenisSepatuController,
-                    label: '',
-                    hint: 'Contoh: Sneakers, Boots, dll',
-                    validator: (v) => v!.trim().isEmpty
-                        ? 'Jenis sepatu tidak boleh kosong'
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Nomor telepon tidak boleh kosong'
                         : null,
                   ),
                   const SizedBox(height: 24),
                   _buildSectionTitle('Detail Sepatu'),
                   const SizedBox(height: 12),
+                  // FIX: Jenis Sepatu
+                  _buildTextField(
+                    controller: _jenisSepatuController,
+                    label: 'JENIS SEPATU',
+                    hint: 'Contoh: Sneakers, Boots, dll',
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Jenis sepatu tidak boleh kosong'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  // FIX: Merk — tambah validator
                   _buildTextField(
                     controller: _merkController,
                     label: 'MERK',
                     hint: 'Contoh: Nike, Adidas...',
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Merk tidak boleh kosong'
+                        : null,
                   ),
                   const SizedBox(height: 16),
+                  // FIX: Warna — tambah validator
                   _buildTextField(
                     controller: _warnaController,
                     label: 'WARNA',
                     hint: 'Contoh: Putih, Hitam...',
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Warna tidak boleh kosong'
+                        : null,
                   ),
                   const SizedBox(height: 24),
                   _buildSectionTitle('Layanan'),
@@ -251,6 +261,7 @@ class _InputOffPageState extends State<InputOffPage> {
                     label: '',
                     hint: 'Contoh: Ada lecet di bagian heel...',
                     maxLines: 3,
+                    // Catatan: opsional, tidak ada validator
                   ),
                   const SizedBox(height: 24),
                   _buildTotalSection(),
@@ -355,6 +366,14 @@ class _InputOffPageState extends State<InputOffPage> {
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade400),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
             ),
           ),
         ),
@@ -501,7 +520,6 @@ class _InputOffPageState extends State<InputOffPage> {
                 ),
               ),
               subtitle: Text(
-                // ✅ FIX: format titik ribuan
                 _formatRupiah(service['harga']),
                 style: const TextStyle(
                   fontSize: 12,
@@ -540,7 +558,6 @@ class _InputOffPageState extends State<InputOffPage> {
             ),
           ),
           Text(
-            // ✅ FIX: format titik ribuan
             _formatRupiah(_controller.totalHarga.toInt()),
             style: const TextStyle(
               fontSize: 20,
@@ -576,8 +593,7 @@ class _OfflineOrderSuccessDialog extends StatefulWidget {
       _OfflineOrderSuccessDialogState();
 }
 
-class _OfflineOrderSuccessDialogState
-    extends State<_OfflineOrderSuccessDialog>
+class _OfflineOrderSuccessDialogState extends State<_OfflineOrderSuccessDialog>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _scale;
@@ -587,7 +603,9 @@ class _OfflineOrderSuccessDialogState
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 500));
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
     _scale = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
     _ctrl.forward();
   }
@@ -628,9 +646,7 @@ class _OfflineOrderSuccessDialogState
           ? result['isSuccess'] == true
           : result != null;
 
-      if (!isSuccess) {
-        throw Exception('Gagal menyimpan QR ke gallery');
-      }
+      if (!isSuccess) throw Exception('Gagal menyimpan QR ke gallery');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -650,9 +666,7 @@ class _OfflineOrderSuccessDialogState
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isDownloadingQr = false);
-      }
+      if (mounted) setState(() => _isDownloadingQr = false);
     }
   }
 
@@ -670,9 +684,10 @@ class _OfflineOrderSuccessDialogState
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8))
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
             ],
           ),
           child: SingleChildScrollView(
@@ -683,28 +698,37 @@ class _OfflineOrderSuccessDialogState
                   padding: const EdgeInsets.all(18),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                        colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                      colors: [Color(0xFF10B981), Color(0xFF059669)],
+                    ),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_rounded,
-                      color: Colors.white, size: 36),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    color: Colors.white,
+                    size: 36,
+                  ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Pesanan Berhasil!',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                        color: Color(0xFF1E293B))),
+                const Text(
+                  'Pesanan Berhasil!',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Text(
                   'QR Code untuk pesanan #${widget.kodeOrder}',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 20),
 
-                // QR Code display
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -766,9 +790,7 @@ class _OfflineOrderSuccessDialogState
                 ),
                 const SizedBox(height: 16),
 
-                // Download QR button
-                if (widget.qrCodeUrl != null &&
-                    widget.qrCodeUrl!.isNotEmpty)
+                if (widget.qrCodeUrl != null && widget.qrCodeUrl!.isNotEmpty)
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -814,9 +836,13 @@ class _OfflineOrderSuccessDialogState
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text('Selesai',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: const Text(
+                      'Selesai',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ],

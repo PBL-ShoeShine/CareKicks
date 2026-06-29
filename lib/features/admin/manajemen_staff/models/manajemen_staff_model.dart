@@ -41,22 +41,4 @@ class ManajemenStaffModel {
         return StaffStatus.aktif; // ✅ semua selain CUTI → aktif
     }
   }
-
-  String get statusLabel {
-    switch (status) {
-      case StaffStatus.aktif:
-        return 'AKTIF';
-      case StaffStatus.cuti:
-        return 'CUTI';
-    }
-  }
-
-  Color get statusColor {
-    switch (status) {
-      case StaffStatus.aktif:
-        return const Color(0xFF2ECC71);
-      case StaffStatus.cuti:
-        return const Color(0xFF95A5A6);
-    }
-  }
 }

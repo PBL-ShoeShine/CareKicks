@@ -24,7 +24,6 @@ class DetailOrderPage extends StatefulWidget {
 
 class _DetailOrderPageState extends State<DetailOrderPage> {
   late DetailOrderController _controller;
-  bool _hasReviewedLocal = false;
 
   @override
   void initState() {
@@ -42,18 +41,31 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
   bool get _isOnline =>
       _controller.order?['metode_order']?.toString().toLowerCase() == 'online';
 
-  // ===== Jarak dari OSRM (sudah di-fetch oleh controller via fetchRoute) =====
-  double? _getOsrmDistanceKm() {
-    final meters = _controller.routeDistanceMeters;
-    if (meters == null || meters <= 0) return null;
-    return meters / 1000.0;
+  double? _calculateDistanceKm() {
+    final shopLat = _controller.shopLat;
+    final shopLng = _controller.shopLng;
+    final custLat = _controller.customerLat;
+    final custLng = _controller.customerLng;
+
+    if (shopLat == null ||
+        shopLng == null ||
+        custLat == null ||
+        custLng == null) {
+      return null;
+    }
+
+    return LocationUtils.calculateDistanceKm(
+      shopLat,
+      shopLng,
+      custLat,
+      custLng,
+    );
   }
 
   String _formatDistance(double? km) {
     if (km == null) return '-';
     return '${km.toStringAsFixed(1)} km';
   }
-  // ===== END =====
 
   int _getPhaseIndex(String? status) {
     if (_isOnline) {
@@ -160,7 +172,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     }
   }
 
-  // FIX: mapping eksplisit semua status → label yang benar
   String _formatStatusText(String? status) {
     switch (status) {
       case 'pending':
@@ -200,7 +211,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     }
   }
 
-  // FIX: deduplikasi timeline — buang entry dengan status + created_at yang identik
   List<Map<String, dynamic>> _deduplicatedTimeline() {
     final raw = _controller.timeline;
     final seen = <String>{};
@@ -214,7 +224,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     return result;
   }
 
-  // Step indicator — TANPA badge online/offline (dihapus sesuai permintaan)
   Widget _buildStepIndicator() {
     final currentPhase = _getPhaseIndex(_controller.status);
     final phases = _getPhases();
@@ -294,7 +303,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     );
   }
 
-  // Timeline — pakai _deduplicatedTimeline(), nama staff selalu ditampilkan
   Widget _buildTimeline() {
     final timeline = _deduplicatedTimeline();
     if (timeline.isEmpty) return const SizedBox.shrink();
@@ -348,7 +356,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
             final item = timeline[index];
             final isLast = index == timeline.length - 1;
             final status = item['status']?.toString();
-            // FIX: coba beberapa kemungkinan key nama staff dari backend
             final namaStaff =
                 (item['nama_staff'] ??
                         item['staff']?['nama'] ??
@@ -364,7 +371,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Dot + garis vertikal
                   SizedBox(
                     width: 24,
                     child: Column(
@@ -391,7 +397,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Konten
                   Expanded(
                     child: Padding(
                       padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
@@ -418,7 +423,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
                                 ),
                               ),
                             ),
-                          // FIX: nama staff selalu tampil jika ada
                           if (namaStaff != null && namaStaff.isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
@@ -751,7 +755,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
           const SizedBox(height: 12),
           _buildDetailRow('Kode Pesanan', _controller.orderNumber ?? '-'),
           _buildDetailRow('Tanggal', _formatDate(_controller.date)),
-          // FIX: gunakan _formatStatusText yang sudah punya mapping eksplisit
           _buildDetailRow('Status', _formatStatusText(_controller.status)),
           _buildDetailRow(
             'Metode',
@@ -762,7 +765,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
               'Alamat',
               cleanAddress.isNotEmpty ? cleanAddress : '-',
             ),
-          // FIX: tampilkan jarak (hanya untuk order online & jika koordinat tersedia)
           if (_isOnline && distanceKm != null)
             _buildDetailRow('Jarak', _formatDistance(distanceKm)),
 
@@ -877,25 +879,26 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
     final orderStatus = _controller.status;
     final paymentStatus = _controller.paymentStatus;
 
-    // Cek apakah pesanan sudah diulas (dari backend atau state lokal setelah submit)
-    // Asumsi backend mengirimkan flag 'is_reviewed', jika tidak ada, cukup andalkan _hasReviewedLocal
-    final bool isReviewedBackend =
-        _controller.order?['is_reviewed'] == true ||
-        _controller.order?['is_reviewed'] == 1;
-    final bool isReviewed = isReviewedBackend || _hasReviewedLocal;
+    // FIX Bug 9: pakai is_reviewed dari backend via getter controller
+    final bool isReviewed = _controller.isReviewed;
 
-    int? firstIdServices;
-    if (_controller.items.isNotEmpty) {
-      firstIdServices = int.tryParse(
-        _controller.items.first['id_services']?.toString() ?? '',
-      );
-    }
+    // Semua id_services dari order ini
+    final List<int> allServiceIds = _controller.items
+        .map((item) => int.tryParse(item['id_services']?.toString() ?? ''))
+        .whereType<int>()
+        .toList();
+
+    // FIX Bug 10: hanya kirim layanan yang belum diulas
+    final List<int> reviewedServiceIds = _controller.reviewedServiceIds;
+    final List<int> pendingServiceIds = allServiceIds
+        .where((id) => !reviewedServiceIds.contains(id))
+        .toList();
 
     if (orderStatus == 'selesai') {
       if (isReviewed) {
-        // --- TOMBOL JIKA SUDAH DIULAS ---
+        // Tombol disabled jika semua layanan sudah diulas
         return ElevatedButton.icon(
-          onPressed: null, // Tombol dikunci (disabled)
+          onPressed: null,
           icon: const Icon(Icons.check_circle, color: AppColors.successGreen),
           label: const Text(
             'Ulasan Terkirim',
@@ -916,28 +919,31 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
         );
       }
 
-      // --- TOMBOL JIKA BELUM DIULAS ---
+      // Tombol beri ulasan — hanya jika masih ada layanan yang belum diulas
       return ElevatedButton.icon(
-        onPressed: () async {
-          // Tunggu hasil dari halaman ulasan
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TulisUlasanPage(
-                token: widget.token,
-                idOrders: int.tryParse(widget.orderId),
-                idServices: firstIdServices,
-              ),
-            ),
-          );
+        onPressed: pendingServiceIds.isEmpty
+            ? null
+            : () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TulisUlasanPage(
+                      token: widget.token,
+                      idOrders: int.tryParse(widget.orderId),
+                      // FIX Bug 10: kirim semua id_services yang belum diulas
+                      idServicesList: pendingServiceIds,
+                    ),
+                  ),
+                );
 
-          // Jika result == true (berhasil kirim ulasan), update state agar tombol terkunci
-          if (result == true) {
-            setState(() {
-              _hasReviewedLocal = true;
-            });
-          }
-        },
+                // FIX Bug 9: refresh dari backend setelah ulasan dikirim
+                if (result == true && mounted) {
+                  _controller.fetchDetailOrder(
+                    token: widget.token,
+                    orderId: widget.orderId,
+                  );
+                }
+              },
         icon: const Icon(Icons.star_rate_rounded, color: Colors.white),
         label: const Text(
           'Beri Ulasan Layanan',
@@ -948,8 +954,7 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-              AppColors.primaryBlue, // <--- WARNA SUDAH DISESUAIKAN
+          backgroundColor: AppColors.primaryBlue,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -959,8 +964,6 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
       );
     }
 
-    // 2. Daftar status di mana pembayaran sudah dianggap lunas/sedang diproses
-    //    (TAPI pesanan BELUM SELESAI)
     final sudahDiproses = [
       'dikonfirmasi',
       'menunggu_dijemput',
@@ -1048,10 +1051,9 @@ class _DetailOrderPageState extends State<DetailOrderPage> {
       );
     }
 
-    // 3. Jika sudah diproses (tapi belum selesai), tampilkan tombol Pembayaran Lunas
     if (sudahDiproses) {
       return ElevatedButton(
-        onPressed: null, // Disabled karena hanya sekadar info
+        onPressed: null,
         style: ElevatedButton.styleFrom(
           disabledBackgroundColor: Colors.green.shade50,
           padding: const EdgeInsets.symmetric(vertical: 16),
