@@ -1357,10 +1357,16 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
           final shopLocation = _toLatLng(shop['lat_toko'], shop['long_toko']);
 
           // 2. CUSTOMER LOCATION (RED)
+          // PENTING: Gunakan lat_order/long_order dari order (koordinat yang dipilih customer saat pesan),
+          // bukan dari profil customer — keduanya bisa berbeda jika customer punya banyak alamat.
           final customerLocation = _toLatLng(
-            customer['latitude'],
-            customer['longitude'],
-          );
+                order['lat_order'],
+                order['long_order'],
+              ) ??
+              _toLatLng(
+                customer['latitude'],
+                customer['longitude'],
+              );
 
           // 3. COURIER LOCATION (BLUE) - Priority: GPS Stream > Latest Log
           final courierLocation =
