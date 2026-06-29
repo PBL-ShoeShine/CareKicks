@@ -16,7 +16,7 @@ void main() {
       authController.dispose();
     });
 
-    test('checkLoginStatus returns false and sets suspendedShop if status_verifikasi is suspended', () async {
+    test('checkLoginStatus returns true and sets suspendedShop if status_verifikasi is suspended', () async {
       final userMap = {
         'id_user': 123,
         'email': 'shop_owner@mail.com',
@@ -37,11 +37,40 @@ void main() {
 
       final result = await authController.checkLoginStatus();
 
-      expect(result, isFalse);
+      expect(result, isTrue);
       expect(authController.token, equals('mock-jwt-token'));
       expect(authController.suspendedShop, isNotNull);
       expect(authController.suspendedShop?['nm_toko'], equals('Suspended Shoe Care'));
       expect(authController.suspendedShop?['status_verifikasi'], equals('suspended'));
+      expect(authController.errorMessage, equals('Toko Anda ditangguhkan'));
+    });
+
+    test('checkLoginStatus returns true and sets suspendedShop if status_verifikasi is appealed', () async {
+      final userMap = {
+        'id_user': 123,
+        'email': 'shop_owner@mail.com',
+        'jenis_role': 'shops_admin',
+        'shop': {
+          'id_shops': 456,
+          'nm_toko': 'Appealed Shoe Care',
+          'status_verifikasi': 'appealed',
+          'alasan_penangguhan': 'Alasan Penangguhan: Melanggar aturan | Banding: Saya minta maaf.'
+        }
+      };
+
+      SharedPreferences.setMockInitialValues({
+        AuthSessionManager.tokenKey: 'mock-jwt-token',
+        AuthSessionManager.userKey: jsonEncode(userMap),
+        AuthSessionManager.loginTimeKey: DateTime.now().millisecondsSinceEpoch,
+      });
+
+      final result = await authController.checkLoginStatus();
+
+      expect(result, isTrue);
+      expect(authController.token, equals('mock-jwt-token'));
+      expect(authController.suspendedShop, isNotNull);
+      expect(authController.suspendedShop?['nm_toko'], equals('Appealed Shoe Care'));
+      expect(authController.suspendedShop?['status_verifikasi'], equals('appealed'));
       expect(authController.errorMessage, equals('Toko Anda ditangguhkan'));
     });
 
@@ -70,7 +99,8 @@ void main() {
       expect(authController.suspendedShop, isNull);
       expect(authController.errorMessage, isNull);
     });
-    test('checkLoginStatus returns false and sets suspendedShop if staff role associated shop status_verifikasi is suspended', () async {
+
+    test('checkLoginStatus returns true and sets suspendedShop if staff role associated shop status_verifikasi is suspended', () async {
       final userMap = {
         'id_user': 124,
         'email': 'staff_member@mail.com',
@@ -91,7 +121,7 @@ void main() {
 
       final result = await authController.checkLoginStatus();
 
-      expect(result, isFalse);
+      expect(result, isTrue);
       expect(authController.suspendedShop, isNotNull);
       expect(authController.suspendedShop?['status_verifikasi'], equals('suspended'));
       expect(authController.errorMessage, equals('Toko Anda ditangguhkan'));

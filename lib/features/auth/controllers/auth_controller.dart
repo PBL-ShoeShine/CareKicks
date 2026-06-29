@@ -138,6 +138,23 @@ class AuthController extends ChangeNotifier {
     if (savedToken != null && savedToken.isNotEmpty && savedUserStr != null) {
       _token = savedToken;
       _user = jsonDecode(savedUserStr);
+      
+      final shop = _user?['shop'];
+      final role = _user?['jenis_role'];
+      if ((role == 'shops_admin' || role == 'staff') && shop is Map) {
+        final status = shop['status_verifikasi']?.toString().toLowerCase();
+        if (status == 'suspended' || status == 'appealed') {
+          _suspendedShop = Map<String, dynamic>.from(shop);
+          _errorMessage = 'Toko Anda ditangguhkan';
+        } else {
+          _suspendedShop = null;
+          _errorMessage = null;
+        }
+      } else {
+        _suspendedShop = null;
+        _errorMessage = null;
+      }
+      
       notifyListeners();
       return true;
     }
@@ -158,19 +175,27 @@ class AuthController extends ChangeNotifier {
 
   Future<bool> checkSuspendedStatus() async {
     final token = _token;
-    if (token == null || token.isEmpty) return false;
+    debugPrint("checkSuspendedStatus called. Token: $token");
+    if (token == null || token.isEmpty) {
+      debugPrint("checkSuspendedStatus: Token is null or empty");
+      return false;
+    }
 
     try {
-      final response = await ApiService.getProfile(token: token, role: 'admin');
-      if (response == null) return false;
+      final response = await ApiService.getShopProfile(token: token);
+      debugPrint("getShopProfile response: $response");
+      if (response == null || response['success'] != true) {
+        debugPrint("checkSuspendedStatus: Response is null or success is not true");
+        return false;
+      }
 
-      final shopData =
-          response['data']?['shopAdmin']?['shops'] ??
-          response['data']?['staff']?['staff_profile']?['shops'];
+      final shopData = response['data'];
+      debugPrint("shopData: $shopData");
 
       if (shopData != null) {
         final status = shopData['status_verifikasi']?.toString().toLowerCase();
-        if (status == 'suspended') {
+        debugPrint("shop status: $status");
+        if (status == 'suspended' || status == 'appealed') {
           _suspendedShop = Map<String, dynamic>.from(shopData);
           _errorMessage = 'Toko Anda ditangguhkan';
           notifyListeners();
@@ -182,7 +207,8 @@ class AuthController extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint("Error in checkSuspendedStatus: $e");
       await logout();
       return false;
     }
@@ -226,5 +252,10 @@ class AuthController extends ChangeNotifier {
     _suspendedShop = null;
     _errorMessage = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    // No-op because AuthController is a singleton and should never be disposed.
   }
 }
