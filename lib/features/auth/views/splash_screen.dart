@@ -45,7 +45,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (role == 'shops_admin' || role == 'staff') {
         final shop = user['shop'];
-        if (shop is Map && shop['status_verifikasi'] == 'suspended') {
+        final shopStatus = shop is Map ? shop['status_verifikasi']?.toString().toLowerCase() : null;
+        if (shop is Map && (shopStatus == 'suspended' || shopStatus == 'appealed')) {
           nextPage = SuspendedShopPage(
             shop: Map<String, dynamic>.from(shop),
           );
