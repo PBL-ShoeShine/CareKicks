@@ -1095,10 +1095,6 @@ class _TrackingDetailPageState extends State<TrackingDetailPage> {
       final frameInfo = await codec.getNextFrame();
       final image = frameInfo.image;
 
-      ui.Codec? scaledCodec;
-      ui.FrameInfo? scaledFrameInfo;
-      ui.Image currentImage = image;
-
       double scale = 1.0;
       ByteData? pngBytes;
       bool sizeOk = false;
