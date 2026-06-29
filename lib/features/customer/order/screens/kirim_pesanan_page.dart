@@ -2057,21 +2057,19 @@ class _SheetTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final Color? color;
   const _SheetTile({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.color,
   });
 
   @override
   Widget build(BuildContext context) => ListTile(
-    leading: Icon(icon, color: color ?? const Color(0xFF2563EB)),
+    leading: Icon(icon, color: const Color(0xFF2563EB)),
     title: Text(
       label,
-      style: TextStyle(
-        color: color ?? const Color(0xFF1E293B),
+      style: const TextStyle(
+        color: Color(0xFF1E293B),
         fontWeight: FontWeight.w500,
         fontSize: 14,
       ),
