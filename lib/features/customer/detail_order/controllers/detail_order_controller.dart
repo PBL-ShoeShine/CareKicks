@@ -36,6 +36,15 @@ class DetailOrderController extends ChangeNotifier {
   String? get paymentStatus => _order?['status_pembayaran'];
   String? get paymentRejectReason => _order?['alasan_tolak_pembayaran'];
 
+  // Tambahan Getter untuk Ulasan
+  List<int> get reviewedServiceIds {
+    final raw = _order?['reviewed_service_ids'];
+    if (raw == null) return [];
+    return (raw as List).map((e) => int.tryParse(e.toString()) ?? 0).toList();
+  }
+
+  bool get isReviewed => _order?['is_reviewed'] == true;
+
   double? get customerLat =>
       double.tryParse(_order?['lat_order']?.toString() ?? '');
   double? get customerLng =>

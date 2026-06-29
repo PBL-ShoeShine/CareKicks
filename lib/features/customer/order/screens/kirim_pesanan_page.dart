@@ -59,9 +59,11 @@ class _KirimPesananPageState extends State<KirimPesananPage>
   String get _effectiveAddress =>
       _customAddress ?? _selectedAlamat?['full_address']?.toString() ?? '';
   double? get _effectiveLat =>
-      _customLat ?? double.tryParse(_selectedAlamat?['latitude']?.toString() ?? '');
+      _customLat ??
+      double.tryParse(_selectedAlamat?['latitude']?.toString() ?? '');
   double? get _effectiveLng =>
-      _customLng ?? double.tryParse(_selectedAlamat?['longitude']?.toString() ?? '');
+      _customLng ??
+      double.tryParse(_selectedAlamat?['longitude']?.toString() ?? '');
   bool get _hasCoords => _effectiveLat != null && _effectiveLng != null;
 
   late AnimationController _animCtrl;
@@ -89,7 +91,9 @@ class _KirimPesananPageState extends State<KirimPesananPage>
       if (!_controller.isLoadingServices && _controller.services.isNotEmpty) {
         _animCtrl.forward();
         if (widget.prefillServiceId != null &&
-            !_controller.selectedServiceIds.contains(widget.prefillServiceId!)) {
+            !_controller.selectedServiceIds.contains(
+              widget.prefillServiceId!,
+            )) {
           _controller.toggleService(widget.prefillServiceId!);
         }
       }
@@ -131,9 +135,10 @@ class _KirimPesananPageState extends State<KirimPesananPage>
             _alamatList = list;
             // Pilih yang is_default=true, fallback ke pertama
             final def = list.where((a) => a['is_default'] == true).toList();
-            _selectedAlamat =
-                def.isNotEmpty ? def.first : (list.isNotEmpty ? list.first : null);
-            
+            _selectedAlamat = def.isNotEmpty
+                ? def.first
+                : (list.isNotEmpty ? list.first : null);
+
             // Reset custom address jika beralih ke saved
             _customAddress = null;
             _customLat = null;
@@ -172,36 +177,40 @@ class _KirimPesananPageState extends State<KirimPesananPage>
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  String _fmt(int amount) => 'Rp ${amount.toString().replaceAllMapped(
-        RegExp(r'(\d)(?=(\d{3})+$)'),
-        (m) => '${m[1]}.',
-      )}';
+  String _fmt(int amount) =>
+      'Rp ${amount.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]}.')}';
 
   void _showError(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Row(children: [
-        const Icon(Icons.error_outline, color: Colors.white, size: 18),
-        const SizedBox(width: 8),
-        Expanded(child: Text(msg, style: const TextStyle(fontSize: 13))),
-      ]),
-      backgroundColor: Colors.red.shade600,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(msg, style: const TextStyle(fontSize: 13))),
+          ],
+        ),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   void _showInfo(String msg, {Color? color}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: const TextStyle(fontSize: 13)),
-      backgroundColor: color ?? Colors.green.shade600,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16),
-      duration: const Duration(seconds: 2),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: const TextStyle(fontSize: 13)),
+        backgroundColor: color ?? Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   // ─── Foto ─────────────────────────────────────────────────────────────────
@@ -218,8 +227,11 @@ class _KirimPesananPageState extends State<KirimPesananPage>
             label: 'Kamera',
             onTap: () async {
               Navigator.pop(context);
-              final pic = await ImagePicker()
-                  .pickImage(source: ImageSource.camera, imageQuality: 80, maxWidth: 1080);
+              final pic = await ImagePicker().pickImage(
+                source: ImageSource.camera,
+                imageQuality: 80,
+                maxWidth: 1080,
+              );
               if (pic != null) _controller.addFotoSepatu(File(pic.path));
             },
           ),
@@ -228,8 +240,11 @@ class _KirimPesananPageState extends State<KirimPesananPage>
             label: 'Galeri',
             onTap: () async {
               Navigator.pop(context);
-              final pic = await ImagePicker()
-                  .pickImage(source: ImageSource.gallery, imageQuality: 80, maxWidth: 1080);
+              final pic = await ImagePicker().pickImage(
+                source: ImageSource.gallery,
+                imageQuality: 80,
+                maxWidth: 1080,
+              );
               if (pic != null) _controller.addFotoSepatu(File(pic.path));
             },
           ),
@@ -313,7 +328,9 @@ class _KirimPesananPageState extends State<KirimPesananPage>
       merk: _merkCtrl.text.trim(),
       jenisSepatu: _jenisSepatuCtrl.text.trim(),
       warna: _warnaCtrl.text.trim(),
-      catatan: _catatanCtrl.text.trim().isEmpty ? null : _catatanCtrl.text.trim(),
+      catatan: _catatanCtrl.text.trim().isEmpty
+          ? null
+          : _catatanCtrl.text.trim(),
       latOrder: _effectiveLat,
       longOrder: _effectiveLng,
     );
@@ -417,7 +434,11 @@ class _KirimPesananPageState extends State<KirimPesananPage>
             children: [
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                icon: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 4),
               Expanded(
@@ -429,17 +450,24 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
                     ),
                     ListenableBuilder(
                       listenable: _controller,
                       builder: (_, __) {
-                        if (_controller.nmToko.isEmpty) return const SizedBox.shrink();
+                        if (_controller.nmToko.isEmpty)
+                          return const SizedBox.shrink();
                         return Text(
                           _controller.nmToko,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
                         );
                       },
                     ),
@@ -492,8 +520,11 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                               ),
                             ),
                             child: const Center(
-                              child: Icon(Icons.add_photo_alternate_outlined,
-                                  size: 28, color: _blue),
+                              child: Icon(
+                                Icons.add_photo_alternate_outlined,
+                                size: 28,
+                                color: _blue,
+                              ),
                             ),
                           ),
                         );
@@ -526,8 +557,11 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                                   color: Colors.red,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.close,
-                                    color: Colors.white, size: 14),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
                               ),
                             ),
                           ),
@@ -557,21 +591,32 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                              color: _blue.withOpacity(0.1),
-                              shape: BoxShape.circle),
-                          child: const Icon(Icons.add_photo_alternate_outlined,
-                              size: 24, color: _blue),
+                            color: _blue.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.add_photo_alternate_outlined,
+                            size: 24,
+                            color: _blue,
+                          ),
                         ),
                         const SizedBox(height: 8),
-                        const Text('Tap untuk upload foto sepatu',
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: _blue,
-                                fontWeight: FontWeight.w600)),
+                        const Text(
+                          'Tap untuk upload foto sepatu',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _blue,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text('Format JPG/PNG · Maks 5 Foto',
-                            style: TextStyle(
-                                fontSize: 11, color: Colors.grey.shade500)),
+                        Text(
+                          'Format JPG/PNG · Maks 5 Foto',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -631,15 +676,19 @@ class _KirimPesananPageState extends State<KirimPesananPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _Label(icon: Icons.ice_skating_outlined, label: 'Detail Sepatu'),
+              const _Label(
+                icon: Icons.ice_skating_outlined,
+                label: 'Detail Sepatu',
+              ),
               const SizedBox(height: 16),
               _Field(
                 controller: _merkCtrl,
                 label: 'Merk Sepatu',
                 hint: 'Contoh: Nike, Adidas, dll',
                 icon: Icons.branding_watermark_outlined,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Merk sepatu wajib diisi' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Merk sepatu wajib diisi'
+                    : null,
               ),
               const SizedBox(height: 12),
               _Field(
@@ -647,8 +696,9 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                 label: 'Jenis Sepatu',
                 hint: 'Contoh: Sneakers, Boots, dll',
                 icon: Icons.category_outlined,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Jenis sepatu wajib diisi' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Jenis sepatu wajib diisi'
+                    : null,
               ),
               const SizedBox(height: 12),
               _Field(
@@ -656,8 +706,9 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                 label: 'Warna Sepatu',
                 hint: 'Contoh: Putih, Hitam, Merah',
                 icon: Icons.color_lens_outlined,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Warna sepatu wajib diisi' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Warna sepatu wajib diisi'
+                    : null,
               ),
             ],
           ),
@@ -679,7 +730,10 @@ class _KirimPesananPageState extends State<KirimPesananPage>
             suffix: GestureDetector(
               onTap: _showAlamatOptions,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: _blue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -689,11 +743,14 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                   children: [
                     Icon(Icons.edit_outlined, size: 13, color: _blue),
                     SizedBox(width: 4),
-                    Text('Ubah',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: _blue)),
+                    Text(
+                      'Ubah',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _blue,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -706,9 +763,13 @@ class _KirimPesananPageState extends State<KirimPesananPage>
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: _blue)),
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: _blue,
+                  ),
+                ),
               ),
             )
           else if (_effectiveAddress.isEmpty)
@@ -724,8 +785,11 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.add_location_alt_outlined,
-                        color: Colors.orange.shade700, size: 20),
+                    Icon(
+                      Icons.add_location_alt_outlined,
+                      color: Colors.orange.shade700,
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -733,9 +797,10 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                             ? 'Belum ada alamat. Tambah di Profil → Alamat Saya'
                             : 'Pilih alamat pengiriman',
                         style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.orange.shade800,
-                            fontWeight: FontWeight.w500),
+                          fontSize: 13,
+                          color: Colors.orange.shade800,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                     Icon(Icons.chevron_right, color: Colors.orange.shade400),
@@ -768,49 +833,64 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                             Container(
                               margin: const EdgeInsets.only(bottom: 4),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 7, vertical: 2),
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                  color: Colors.orange,
-                                  borderRadius: BorderRadius.circular(5)),
-                              child: const Text('Lokasi Manual',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold)),
+                                color: Colors.orange,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              child: const Text(
+                                'Lokasi Manual',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             )
                           else if (_selectedAlamat?['address_label'] != null &&
-                              _selectedAlamat!['address_label'].toString().isNotEmpty)
+                              _selectedAlamat!['address_label']
+                                  .toString()
+                                  .isNotEmpty)
                             Container(
                               margin: const EdgeInsets.only(bottom: 4),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 7, vertical: 2),
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                  color: _blue,
-                                  borderRadius: BorderRadius.circular(5)),
+                                color: _blue,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
                               child: Text(
                                 _selectedAlamat!['address_label'].toString(),
                                 style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold),
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
 
                           if (_selectedAlamat != null && _customAddress == null)
                             Text(
-                              _selectedAlamat!['recipient_name']?.toString() ?? '',
+                              _selectedAlamat!['recipient_name']?.toString() ??
+                                  '',
                               style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                  color: Color(0xFF1E293B)),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: Color(0xFF1E293B),
+                              ),
                             ),
 
                           Text(
                             _effectiveAddress,
                             style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade700,
-                                height: 1.4),
+                              fontSize: 12,
+                              color: Colors.grey.shade700,
+                              height: 1.4,
+                            ),
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -863,7 +943,9 @@ class _KirimPesananPageState extends State<KirimPesananPage>
       listenable: _controller,
       builder: (_, __) {
         final displayServices = widget.prefillServiceId != null
-            ? _controller.services.where((s) => s['id_services'] == widget.prefillServiceId).toList()
+            ? _controller.services
+                  .where((s) => s['id_services'] == widget.prefillServiceId)
+                  .toList()
             : _controller.services;
 
         return _Card(
@@ -877,16 +959,20 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                     ? null
                     : Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                            color: _blue,
-                            borderRadius: BorderRadius.circular(20)),
+                          color: _blue,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                         child: Text(
                           '${_controller.selectedServiceIds.length}',
                           style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold),
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
               ),
@@ -895,14 +981,17 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                 widget.prefillServiceId != null
                     ? 'Layanan yang Anda pilih'
                     : 'Pilih satu atau lebih layanan',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              ),
               const SizedBox(height: 14),
               if (displayServices.isEmpty && !_controller.isLoadingServices)
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Text('Tidak ada layanan tersedia',
-                        style: TextStyle(color: Colors.grey.shade400)),
+                    child: Text(
+                      'Tidak ada layanan tersedia',
+                      style: TextStyle(color: Colors.grey.shade400),
+                    ),
                   ),
                 )
               else
@@ -914,7 +1003,9 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                     final isSelected = _controller.isServiceSelected(id);
                     return _ServiceChip(
                       nama: svc['nama_layanan']?.toString() ?? '-',
-                      harga: _fmt(int.tryParse(svc['harga']?.toString() ?? '0') ?? 0),
+                      harga: _fmt(
+                        int.tryParse(svc['harga']?.toString() ?? '0') ?? 0,
+                      ),
                       estimasi: svc['estimasi_waktu']?.toString(),
                       isSelected: isSelected,
                       onTap: () {
@@ -955,16 +1046,22 @@ class _KirimPesananPageState extends State<KirimPesananPage>
               filled: true,
               fillColor: _surface,
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade200)),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
               enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade200)),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
               focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _blue, width: 1.5)),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: _blue, width: 1.5),
+              ),
               contentPadding: const EdgeInsets.all(14),
-              counterStyle: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+              counterStyle: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade400,
+              ),
             ),
           ),
         ],
@@ -979,7 +1076,9 @@ class _KirimPesananPageState extends State<KirimPesananPage>
       listenable: _controller,
       builder: (_, __) {
         final selected = _controller.services
-            .where((s) => _controller.selectedServiceIds.contains(s['id_services']))
+            .where(
+              (s) => _controller.selectedServiceIds.contains(s['id_services']),
+            )
             .toList();
         if (selected.isEmpty) return const SizedBox.shrink();
 
@@ -990,25 +1089,30 @@ class _KirimPesananPageState extends State<KirimPesananPage>
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-                colors: [Color(0xFF1D4ED8), Color(0xFF3B82F6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight),
+              colors: [Color(0xFF1D4ED8), Color(0xFF3B82F6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                  color: _blue.withOpacity(0.28),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4))
+                color: _blue.withOpacity(0.28),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Ringkasan Pesanan',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14)),
+              const Text(
+                'Ringkasan Pesanan',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
               const SizedBox(height: 12),
               ...selected.map((s) {
                 final h = int.tryParse(s['harga']?.toString() ?? '0') ?? 0;
@@ -1018,54 +1122,80 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(s['nama_layanan']?.toString() ?? '-',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                        child: Text(
+                          s['nama_layanan']?.toString() ?? '-',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      Text(_fmt(h),
-                          style: const TextStyle(color: Colors.white, fontSize: 13)),
+                      Text(
+                        _fmt(h),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                   ),
                 );
               }),
-              
+
               const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: Text('Ongkos Kirim (${dist.toStringAsFixed(1)} km)',
-                        style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                    child: Text(
+                      'Ongkos Kirim (${dist.toStringAsFixed(1)} km)',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  Text(ongkir == 0 ? 'Gratis' : _fmt(ongkir),
-                      style: TextStyle(
-                          color: ongkir == 0 ? Colors.greenAccent : Colors.white,
-                          fontWeight: ongkir == 0 ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 13)),
+                  Text(
+                    ongkir == 0 ? 'Gratis' : _fmt(ongkir),
+                    style: TextStyle(
+                      color: ongkir == 0 ? Colors.greenAccent : Colors.white,
+                      fontWeight: ongkir == 0
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      fontSize: 13,
+                    ),
+                  ),
                 ],
               ),
-              
+
               Divider(color: Colors.white.withOpacity(0.3), height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total Pembayaran',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16)),
+                  const Text(
+                    'Total Pembayaran',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   Flexible(
-                    child: Text(_fmt(_controller.totalHargaKeseluruhan),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18)),
+                    child: Text(
+                      _fmt(_controller.totalHargaKeseluruhan),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1082,19 +1212,26 @@ class _KirimPesananPageState extends State<KirimPesananPage>
     return ListenableBuilder(
       listenable: _controller,
       builder: (_, __) {
-        final ready = !_controller.isSubmitting &&
+        final ready =
+            !_controller.isSubmitting &&
             !_controller.isLoadingServices &&
             _controller.selectedServiceIds.isNotEmpty;
 
         return Container(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            12,
+            16,
+            12 + MediaQuery.of(context).padding.bottom,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, -4))
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, -4),
+              ),
             ],
           ),
           child: SizedBox(
@@ -1107,7 +1244,8 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                 disabledBackgroundColor: Colors.grey.shade300,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 elevation: ready ? 4 : 0,
                 shadowColor: _blue.withOpacity(0.4),
               ),
@@ -1115,8 +1253,11 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                   ? const SizedBox(
                       width: 22,
                       height: 22,
-                      child:
-                          CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -1130,7 +1271,9 @@ class _KirimPesananPageState extends State<KirimPesananPage>
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 15),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ],
@@ -1167,9 +1310,12 @@ class _AlamatOptionsSheet extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(20)),
-      constraints:
-          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.75,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1179,16 +1325,19 @@ class _AlamatOptionsSheet extends StatelessWidget {
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-                color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Pilih Alamat',
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Text(
+                  'Pilih Alamat',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close, size: 20),
@@ -1209,16 +1358,23 @@ class _AlamatOptionsSheet extends StatelessWidget {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                        color: Colors.blue.shade50, shape: BoxShape.circle),
-                    child: Icon(Icons.add_location_alt_outlined,
-                        color: Colors.blue.shade700, size: 20),
+                      color: Colors.blue.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.add_location_alt_outlined,
+                      color: Colors.blue.shade700,
+                      size: 20,
+                    ),
                   ),
-                  title: const Text('Tambah Alamat Baru',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                  subtitle: Text('Tambahkan alamat pengiriman baru',
-                      style:
-                          TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  title: const Text(
+                    'Tambah Alamat Baru',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  subtitle: Text(
+                    'Tambahkan alamat pengiriman baru',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  ),
                   trailing: const Icon(Icons.chevron_right, size: 18),
                   onTap: onAddNewAddress,
                 ),
@@ -1227,16 +1383,23 @@ class _AlamatOptionsSheet extends StatelessWidget {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                        color: Colors.orange.shade50, shape: BoxShape.circle),
-                    child: Icon(Icons.settings_outlined,
-                        color: Colors.orange.shade700, size: 20),
+                      color: Colors.orange.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.settings_outlined,
+                      color: Colors.orange.shade700,
+                      size: 20,
+                    ),
                   ),
-                  title: const Text('Kelola Alamat Saya',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                  subtitle: Text('Ubah atau hapus alamat tersimpan',
-                      style:
-                          TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  title: const Text(
+                    'Kelola Alamat Saya',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  subtitle: Text(
+                    'Ubah atau hapus alamat tersimpan',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  ),
                   trailing: const Icon(Icons.chevron_right, size: 18),
                   onTap: onManageAddresses,
                 ),
@@ -1244,23 +1407,27 @@ class _AlamatOptionsSheet extends StatelessWidget {
                 if (alamatList.isNotEmpty) ...[
                   const Divider(height: 1, indent: 20, endIndent: 20),
                   Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(20, 10, 20, 4),
-                    child: Text('Alamat Tersimpan',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade500,
-                            letterSpacing: 0.5)),
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                    child: Text(
+                      'Alamat Tersimpan',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade500,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   ),
                   ...alamatList.take(5).map((a) {
                     final isSelected = selectedId == a['id_address'];
-                    final hasCoords = a['latitude'] != null &&
-                        a['longitude'] != null;
+                    final hasCoords =
+                        a['latitude'] != null && a['longitude'] != null;
                     final label = a['address_label']?.toString() ?? '';
                     return ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 2,
+                      ),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -1294,15 +1461,21 @@ class _AlamatOptionsSheet extends StatelessWidget {
                           if (label.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 5, vertical: 1),
+                                horizontal: 5,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
-                                  color: const Color(0xFF2563EB),
-                                  borderRadius: BorderRadius.circular(4)),
-                              child: Text(label,
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold)),
+                                color: const Color(0xFF2563EB),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                label,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                         ],
                       ),
@@ -1312,7 +1485,9 @@ class _AlamatOptionsSheet extends StatelessWidget {
                           Text(
                             a['full_address']?.toString() ?? '-',
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey.shade600),
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1342,8 +1517,11 @@ class _AlamatOptionsSheet extends StatelessWidget {
                         ],
                       ),
                       trailing: isSelected
-                          ? const Icon(Icons.check_circle,
-                              color: Color(0xFF2563EB), size: 20)
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: Color(0xFF2563EB),
+                              size: 20,
+                            )
                           : null,
                       onTap: () => onSelectSaved(a),
                     );
@@ -1393,16 +1571,21 @@ class _OrderSuccessDialogState extends State<_OrderSuccessDialog>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 500));
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
     _scale = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
     _ctrl.forward();
   }
 
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
-  String _fmt(int v) => 'Rp ${v.toString().replaceAllMapped(
-        RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]}.')}';
+  String _fmt(int v) =>
+      'Rp ${v.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]}.')}';
 
   @override
   Widget build(BuildContext context) {
@@ -1418,9 +1601,10 @@ class _OrderSuccessDialogState extends State<_OrderSuccessDialog>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8))
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
             ],
           ),
           child: SingleChildScrollView(
@@ -1431,24 +1615,34 @@ class _OrderSuccessDialogState extends State<_OrderSuccessDialog>
                   padding: const EdgeInsets.all(18),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                        colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                      colors: [Color(0xFF10B981), Color(0xFF059669)],
+                    ),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_rounded,
-                      color: Colors.white, size: 36),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    color: Colors.white,
+                    size: 36,
+                  ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Pesanan Berhasil!',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                        color: Color(0xFF1E293B))),
+                const Text(
+                  'Pesanan Berhasil!',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Text(
                   'Pesanan Anda telah dikirim ke ${widget.nmToko}.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -1481,16 +1675,20 @@ class _OrderSuccessDialogState extends State<_OrderSuccessDialog>
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline,
-                          color: Color(0xFFF59E0B), size: 16),
+                      const Icon(
+                        Icons.info_outline,
+                        color: Color(0xFFF59E0B),
+                        size: 16,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Upload bukti pembayaran di halaman detail pesanan.',
                           style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.orange.shade800,
-                              height: 1.4),
+                            fontSize: 11,
+                            color: Colors.orange.shade800,
+                            height: 1.4,
+                          ),
                         ),
                       ),
                     ],
@@ -1508,7 +1706,8 @@ class _OrderSuccessDialogState extends State<_OrderSuccessDialog>
                           side: BorderSide(color: Colors.grey.shade300),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: const Text('Kembali'),
                       ),
@@ -1524,10 +1723,13 @@ class _OrderSuccessDialogState extends State<_OrderSuccessDialog>
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        child: const Text('Lihat Pesanan',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Lihat Pesanan',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ],
@@ -1544,18 +1746,23 @@ class _OrderSuccessDialogState extends State<_OrderSuccessDialog>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+        ),
         const SizedBox(width: 8),
         Flexible(
-          child: Text(value,
-              textAlign: TextAlign.right,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: bold ? FontWeight.bold : FontWeight.w600,
-                  color: const Color(0xFF1E293B))),
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: bold ? FontWeight.bold : FontWeight.w600,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
         ),
       ],
     );
@@ -1572,20 +1779,21 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2))
-          ],
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
         ),
-        child: child,
-      );
+      ],
+    ),
+    child: child,
+  );
 }
 
 class _Label extends StatelessWidget {
@@ -1596,32 +1804,31 @@ class _Label extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, size: 16, color: const Color(0xFF2563EB)),
+    children: [
+      Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFF6FF),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, size: 16, color: const Color(0xFF2563EB)),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: Color(0xFF1E293B),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Color(0xFF1E293B)),
-            ),
-          ),
-          if (suffix != null) ...[
-            const SizedBox(width: 8),
-            suffix!,
-          ],
-        ],
-      );
+        ),
+      ),
+      if (suffix != null) ...[const SizedBox(width: 8), suffix!],
+    ],
+  );
 }
 
 class _Badge extends StatelessWidget {
@@ -1630,10 +1837,13 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text,
-        style: const TextStyle(
-            fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
-      );
+    text,
+    style: const TextStyle(
+      fontSize: 11,
+      color: Colors.grey,
+      fontStyle: FontStyle.italic,
+    ),
+  );
 }
 
 class _Field extends StatelessWidget {
@@ -1659,52 +1869,60 @@ class _Field extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF374151))),
-          const SizedBox(height: 6),
-          TextFormField(
-            controller: controller,
-            keyboardType: keyboard,
-            inputFormatters: formatters,
-            validator: validator,
-            readOnly: readOnly,
-            style: TextStyle(
-                fontSize: 14,
-                color: readOnly ? Colors.grey.shade600 : const Color(0xFF111827)),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-              prefixIcon: Icon(icon, size: 20, color: Colors.grey.shade400),
-              filled: true,
-              fillColor: readOnly ? Colors.grey.shade100 : const Color(0xFFF8FAFF),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade200)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade200)),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: readOnly
-                      ? BorderSide(color: Colors.grey.shade200)
-                      : const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
-              errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.red.shade400)),
-              focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      BorderSide(color: Colors.red.shade400, width: 1.5)),
-              contentPadding: EdgeInsets.zero,
-            ),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF374151),
+        ),
+      ),
+      const SizedBox(height: 6),
+      TextFormField(
+        controller: controller,
+        keyboardType: keyboard,
+        inputFormatters: formatters,
+        validator: validator,
+        readOnly: readOnly,
+        style: TextStyle(
+          fontSize: 14,
+          color: readOnly ? Colors.grey.shade600 : const Color(0xFF111827),
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+          prefixIcon: Icon(icon, size: 20, color: Colors.grey.shade400),
+          filled: true,
+          fillColor: readOnly ? Colors.grey.shade100 : const Color(0xFFF8FAFF),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade200),
           ),
-        ],
-      );
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade200),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: readOnly
+                ? BorderSide(color: Colors.grey.shade200)
+                : const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.red.shade400),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+      ),
+    ],
+  );
 }
 
 class _ServiceChip extends StatelessWidget {
@@ -1726,67 +1944,75 @@ class _ServiceChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? _blue : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-                color: isSelected ? _blue : Colors.grey.shade300,
-                width: isSelected ? 2 : 1),
-            boxShadow: [
-              BoxShadow(
-                color: isSelected
-                    ? _blue.withOpacity(0.25)
-                    : Colors.black.withOpacity(0.04),
-                blurRadius: isSelected ? 8 : 4,
-                offset: const Offset(0, 2),
-              )
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isSelected) ...[
-                const Icon(Icons.check_circle, color: Colors.white, size: 15),
-                const SizedBox(width: 6),
-              ],
-              Flexible(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(nama,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: isSelected ? Colors.white : const Color(0xFF1E293B),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13)),
-                    const SizedBox(height: 2),
-                    Text(harga,
-                        style: TextStyle(
-                            color: isSelected
-                                ? Colors.white.withOpacity(0.9)
-                                : _blue,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500)),
-                    if (estimasi != null && estimasi!.isNotEmpty)
-                      Text('~$estimasi',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: isSelected ? Colors.white60 : Colors.grey.shade500,
-                              fontSize: 10)),
-                  ],
-                ),
-              ),
-            ],
-          ),
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isSelected ? _blue : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? _blue : Colors.grey.shade300,
+          width: isSelected ? 2 : 1,
         ),
-      );
+        boxShadow: [
+          BoxShadow(
+            color: isSelected
+                ? _blue.withOpacity(0.25)
+                : Colors.black.withOpacity(0.04),
+            blurRadius: isSelected ? 8 : 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isSelected) ...[
+            const Icon(Icons.check_circle, color: Colors.white, size: 15),
+            const SizedBox(width: 6),
+          ],
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nama,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : const Color(0xFF1E293B),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  harga,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white.withOpacity(0.9) : _blue,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (estimasi != null && estimasi!.isNotEmpty)
+                  Text(
+                    '~$estimasi',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white60 : Colors.grey.shade500,
+                      fontSize: 10,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _SimpleSheet extends StatelessWidget {
@@ -1795,25 +2021,29 @@ class _SimpleSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.all(16),
-        decoration:
-            BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 36, height: 4,
-              decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2)),
-            ),
-            const SizedBox(height: 12),
-            ...children,
-            const SizedBox(height: 8),
-          ],
+    margin: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 12),
+          width: 36,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
-      );
+        const SizedBox(height: 12),
+        ...children,
+        const SizedBox(height: 8),
+      ],
+    ),
+  );
 }
 
 class _SheetTile extends StatelessWidget {
@@ -1821,44 +2051,54 @@ class _SheetTile extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final Color? color;
-  const _SheetTile(
-      {required this.icon,
-      required this.label,
-      required this.onTap,
-      this.color});
+  const _SheetTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) => ListTile(
-        leading: Icon(icon, color: color ?? const Color(0xFF2563EB)),
-        title: Text(label,
-            style: TextStyle(
-                color: color ?? const Color(0xFF1E293B),
-                fontWeight: FontWeight.w500,
-                fontSize: 14)),
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-        dense: true,
-      );
+    leading: Icon(icon, color: color ?? const Color(0xFF2563EB)),
+    title: Text(
+      label,
+      style: TextStyle(
+        color: color ?? const Color(0xFF1E293B),
+        fontWeight: FontWeight.w500,
+        fontSize: 14,
+      ),
+    ),
+    onTap: onTap,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+    dense: true,
+  );
 }
 
 class _LoadingState extends StatelessWidget {
   const _LoadingState();
   @override
   Widget build(BuildContext context) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                  color: Color(0xFFEFF6FF), shape: BoxShape.circle),
-              child: const CircularProgressIndicator(
-                  color: Color(0xFF2563EB), strokeWidth: 3),
-            ),
-            const SizedBox(height: 20),
-            const Text('Memuat layanan...',
-                style: TextStyle(color: Colors.grey, fontSize: 14)),
-          ],
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            color: Color(0xFFEFF6FF),
+            shape: BoxShape.circle,
+          ),
+          child: const CircularProgressIndicator(
+            color: Color(0xFF2563EB),
+            strokeWidth: 3,
+          ),
         ),
-      );
+        const SizedBox(height: 20),
+        const Text(
+          'Memuat layanan...',
+          style: TextStyle(color: Colors.grey, fontSize: 14),
+        ),
+      ],
+    ),
+  );
 }

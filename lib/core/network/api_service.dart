@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.10.224:5000/api/v1';
+  static const String baseUrl = 'http://172.16.94.136:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -2261,7 +2261,7 @@ class ApiService {
     required String ulasan,
     int? idShops,
     int? idOrders,
-    int? idServices,
+    List<int>? idServices,
     List<File>? fotoUlasan,
   }) async {
     try {
@@ -2277,8 +2277,8 @@ class ApiService {
       request.fields['ulasan'] = ulasan;
       if (idShops != null) request.fields['id_shops'] = idShops.toString();
       if (idOrders != null) request.fields['id_orders'] = idOrders.toString();
-      if (idServices != null) {
-        request.fields['id_services'] = idServices.toString();
+      if (idServices != null && idServices.isNotEmpty) {
+        request.fields['id_services'] = idServices.join(',');
       }
 
       if (fotoUlasan != null && fotoUlasan.isNotEmpty) {

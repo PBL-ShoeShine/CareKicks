@@ -21,11 +21,9 @@ class InputOffController extends ChangeNotifier {
 
   double get totalHarga {
     double total = 0;
-
     for (var service in _selectedServices) {
       total += _toDouble(service['harga']);
     }
-
     return total;
   }
 
@@ -85,9 +83,10 @@ class InputOffController extends ChangeNotifier {
     final orderData = {
       'nama_customer': namaCustomer.trim(),
       'nomor_telepon': nomorTelepon.trim(),
-      'jenis_sepatu': jenisSepatu,
-      'merk': merk.trim().isEmpty ? '-' : merk.trim(),
-      'warna': warna.trim().isEmpty ? '-' : warna.trim(),
+      'jenis_sepatu': jenisSepatu.trim(),
+      // FIX: hapus fallback '-', kirim apa adanya (validasi sudah di FE)
+      'merk': merk.trim(),
+      'warna': warna.trim(),
       'catatan': catatan.trim(),
       'metode_bayar': metodeBayar,
       'services': _selectedServices.map((s) {
