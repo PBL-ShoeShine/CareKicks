@@ -250,6 +250,7 @@ class _UlasanAdminPageState extends State<UlasanAdminPage> {
     final int rating = int.tryParse(item['rating']?.toString() ?? '0') ?? 0;
     final String teksUlasan = item['ulasan'] ?? '';
     final List<dynamic> fotoUlasan = item['foto_ulasan'] ?? [];
+    final String? namaLayanan = item['nama_layanan'];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -317,6 +318,24 @@ class _UlasanAdminPageState extends State<UlasanAdminPage> {
               ),
             ],
           ),
+          if (namaLayanan != null && namaLayanan.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBlue.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'Layanan: $namaLayanan',
+                style: const TextStyle(
+                  color: AppColors.primaryBlue,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
           const Divider(height: 24, color: Color(0xFFF1F5F9)),
           Text(
             teksUlasan,

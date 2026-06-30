@@ -628,6 +628,16 @@ class _DetailDialogState extends State<_DetailDialog> {
 
   int _stepIndex(String status) {
     final s = status.toLowerCase();
+
+    // OFFLINE: 3 steps → Pesanan Baru(0), Sedang Dicuci(1), Siap(2)
+    if (_isOffline) {
+      if (s == 'dikonfirmasi' || s == 'menunggu_konfirmasi') return 0;
+      if (s == 'washing' || s == 'dicuci') return 1;
+      if (s == 'selesai') return 2;
+      return 0;
+    }
+
+    // ONLINE: 4 steps → Pengambilan(0), Cuci(1), Pengantaran(2), Selesai(3)
     if (s == 'menunggu_dijemput' ||
         s == 'sedang_dijemput' ||
         s == 'sudah_dijemput') {
@@ -863,7 +873,9 @@ class _DetailDialogState extends State<_DetailDialog> {
   @override
   Widget build(BuildContext context) {
     final act = _action;
-    final stepLabels = ['Pengambilan', 'Cuci', 'Pengantaran', 'Selesai'];
+    final stepLabels = _isOffline
+        ? ['Pesanan Baru', 'Sedang Dicuci', 'Siap']
+        : ['Pengambilan', 'Cuci', 'Pengantaran', 'Selesai'];
     final activeStep = _stepIndex(currentStatus);
 
     final namaLayanan =
