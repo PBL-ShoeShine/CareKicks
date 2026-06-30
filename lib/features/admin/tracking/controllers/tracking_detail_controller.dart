@@ -90,20 +90,19 @@ class TrackingDetailController extends ChangeNotifier {
                 ?.toString()
                 .toLowerCase();
 
-            // Update route from courier to customer
-            final customer = _detailData?['order']?['customers'];
-            if (customer != null) {
-              final dest = _toLatLng(
-                customer['latitude'],
-                customer['longitude'],
+            // Update route dari kurir ke lokasi order (lat_order/long_order)
+            // BUKAN ke koordinat profil customer — keduanya bisa berbeda
+            final order = _detailData?['order'];
+            final customer = order?['customers'];
+            final dest =
+                _toLatLng(order?['lat_order'], order?['long_order']) ??
+                _toLatLng(customer?['latitude'], customer?['longitude']);
+            if (dest != null) {
+              debugPrint('CALLING fetchRoute from GPS stream to dest=$dest');
+              await fetchRoute(
+                origin: _currentCourierLocation!,
+                destination: dest,
               );
-              if (dest != null) {
-                debugPrint('CALLING fetchRoute from GPS stream to dest=$dest');
-                await fetchRoute(
-                  origin: _currentCourierLocation!,
-                  destination: dest,
-                );
-              }
             }
 
             // Send to backend
@@ -423,10 +422,12 @@ class TrackingDetailController extends ChangeNotifier {
             _toLatLng(lastLog?['latitude'], lastLog?['longitude']) ??
             _toLatLng(shop['lat_toko'], shop['long_toko']);
 
-        final destination = _toLatLng(
-          customer['latitude'],
-          customer['longitude'],
-        );
+        // PENTING: gunakan lat_order/long_order dari order sebagai tujuan rute,
+        // bukan koordinat profil customer — keduanya bisa berbeda jika customer
+        // memilih alamat berbeda saat pesan.
+        final destination =
+            _toLatLng(order['lat_order'], order['long_order']) ??
+            _toLatLng(customer['latitude'], customer['longitude']);
 
         debugPrint('ROUTE ORIGIN: $origin');
         debugPrint('ROUTE DESTINATION: $destination');
