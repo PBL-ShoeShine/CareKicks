@@ -1,0 +1,1612 @@
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/custom_appbar.dart';
+import '../../../../core/widgets/custom_scaffold.dart';
+import '../models/antrean_model.dart';
+import '../controllers/antrean_controller.dart';
+import '../../../../core/utils/date_utils.dart';
+import '../../tracking/views/tracking_detail_page.dart';
+
+class AntreanDetailScreen extends StatefulWidget {
+  final String token;
+  final AntreanModel antrean;
+  final Map<String, dynamic>? user;
+
+  const AntreanDetailScreen({
+    super.key,
+    required this.token,
+    required this.antrean,
+    this.user,
+  });
+
+  @override
+  State<AntreanDetailScreen> createState() => _AntreanDetailScreenState();
+}
+
+class _AntreanDetailScreenState extends State<AntreanDetailScreen> {
+  late AntreanController _controller;
+  bool _isLoading = false;
+  bool _isDownloadingQr = false;
+  late String _currentStatus;
+  bool _isStatusUpdated = false;
+  int _currentDetailIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AntreanController();
+    _controller.setToken(widget.token);
+    _currentStatus = widget.antrean.statusOrder;
+  }
+
+  Future<void> _updateStatus(String nextStatus, {String? keterangan}) async {
+    setState(() => _isLoading = true);
+    try {
+      final success = await _controller.updateStatus(
+        widget.antrean.idOrders,
+        nextStatus,
+        keterangan: keterangan,
+      );
+      if (success && mounted) {
+        setState(() {
+          _currentStatus = nextStatus;
+          _isStatusUpdated = true;
+        });
+        if (nextStatus == 'sedang_diantar' && widget.user != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TrackingDetailPage(
+                token: widget.token,
+                user: widget.user!,
+                orderId: widget.antrean.idOrders,
+              ),
+            ),
+          );
+          return;
+        }
+      }
+    } catch (e) {
+      if (mounted) {}
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleOrderConfirmation(String action) async {
+    String? reason;
+    if (action == 'reject') {
+      reason = await _showRejectReasonDialog();
+      if (reason == null || reason.trim().isEmpty) return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final result = await _controller.processOrder(
+        idOrders: widget.antrean.idOrders,
+        action: action,
+        reason: reason,
+      );
+      if (mounted) {
+        if (result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Berhasil diproses'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Gagal memproses'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handlePaymentConfirmation(
+    String action, {
+    String? reason,
+  }) async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await _controller.processPayment(
+        idOrders: widget.antrean.idOrders,
+        action: action,
+        reason: reason,
+      );
+      if (result['success'] == true && mounted) {
+        if (action == 'approve') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pembayaran disetujui. Pesanan masuk ke Pesanan Baru.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+          return;
+        }
+        setState(() {
+          _currentStatus = 'menunggu_pembayaran';
+          _isStatusUpdated = true;
+        });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Gagal memproses'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Bawa fungsi utilitas dari layar sebelumnya
+  String? _nextStatus(String s, String metodeOrder) {
+    if (metodeOrder == 'offline') {
+      switch (s) {
+        case 'dikonfirmasi':
+          return 'washing';
+        case 'washing':
+          return 'selesai';
+        default:
+          return null;
+      }
+    } else {
+      switch (s) {
+        case 'pending':
+          return 'menunggu_pembayaran';
+        case 'menunggu_pembayaran':
+        case 'menunggu_konfirmasi':
+          return 'menunggu_dijemput';
+        case 'menunggu_dijemput':
+          return 'sedang_dijemput';
+        case 'sedang_dijemput':
+          return 'sudah_dijemput';
+        case 'sudah_dijemput':
+          return 'washing';
+        case 'washing':
+          return 'selesai_cuci';
+        case 'selesai_cuci':
+          return 'sedang_diantar';
+        case 'sedang_diantar':
+          return 'selesai';
+        case 'selesai':
+        case 'dibatalkan':
+          return null;
+        default:
+          return null;
+      }
+    }
+  }
+
+  String _btnLabel(String s, String metodeOrder) {
+    if (metodeOrder == 'offline') {
+      switch (s) {
+        case 'dikonfirmasi':
+          return 'Mulai Cuci';
+        case 'washing':
+          return 'Selesai Cuci';
+        default:
+          return '';
+      }
+    } else {
+      switch (s) {
+        case 'pending':
+          return 'Setujui Pesanan';
+        case 'menunggu_pembayaran':
+        case 'menunggu_konfirmasi':
+          return 'Cek Pembayaran';
+        case 'menunggu_dijemput':
+          return 'Mulai Jemput';
+        case 'sedang_dijemput':
+          return 'Sepatu Dijemput';
+        case 'sudah_dijemput':
+          return 'Mulai Cuci';
+        case 'washing':
+          return 'Selesai Cuci';
+        case 'selesai_cuci':
+          return 'Mulai Antar';
+        case 'sedang_diantar':
+          return 'Selesaikan Order';
+        default:
+          return '';
+      }
+    }
+  }
+
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'pending':
+        return AppColors.primaryBlue;
+      case 'menunggu_pembayaran':
+      case 'menunggu_konfirmasi':
+        return Colors.amber.shade700;
+      case 'menunggu_dijemput':
+        return AppColors.successGreen;
+      case 'sedang_dijemput':
+        return Colors.orange;
+      case 'sudah_dijemput':
+        return Colors.orange.shade700;
+      case 'washing':
+        return Colors.purple;
+      case 'selesai_cuci':
+        return Colors.teal;
+      case 'sedang_diantar':
+        return Colors.indigo;
+      case 'selesai':
+        return AppColors.successGreen;
+      case 'dibatalkan':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _formatTgl(String tgl) {
+    try {
+      final dt = DateTimeUtils.parseToWib(tgl);
+      return '${dt.day}/${dt.month}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return tgl;
+    }
+  }
+
+  String _formatDateTime(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '-';
+    try {
+      final date = DateTimeUtils.parseToWib(dateStr);
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des',
+      ];
+      final time =
+          '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      return '${date.day} ${months[date.month - 1]} ${date.year}, $time';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
+  String? get _qrImageUrl {
+    final qrImage = widget.antrean.qrImage?.trim();
+    if (qrImage != null && qrImage.isNotEmpty && qrImage.startsWith('http')) {
+      return qrImage;
+    }
+
+    final linkQr = widget.antrean.linkQr?.trim();
+    if (linkQr != null && linkQr.isNotEmpty && linkQr.startsWith('http')) {
+      return linkQr;
+    }
+
+    return null;
+  }
+
+  Future<void> _rejectPayment() async {
+    final reason = await _showRejectReasonDialog();
+    if (reason == null || reason.trim().isEmpty) return;
+    await _handlePaymentConfirmation('reject', reason: reason);
+  }
+
+  Future<String?> _showRejectReasonDialog() async {
+    final reasonController = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final canSubmit = reasonController.text.trim().isNotEmpty;
+
+            return Dialog(
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.errorRed.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.receipt_long_outlined,
+                            color: AppColors.errorRed,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tolak Pembayaran',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Alasan akan ditampilkan ke customer.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    TextField(
+                      controller: reasonController,
+                      autofocus: true,
+                      maxLines: 4,
+                      minLines: 3,
+                      maxLength: 180,
+                      textInputAction: TextInputAction.newline,
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: Nominal transfer tidak sesuai',
+                        filled: true,
+                        fillColor: const Color(0xFFF9FAFB),
+                        counterStyle: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                        contentPadding: const EdgeInsets.all(14),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: AppColors.errorRed,
+                            width: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              foregroundColor: AppColors.textPrimary,
+                              side: const BorderSide(color: AppColors.border),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text(
+                              'Batal',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: canSubmit
+                                ? () => Navigator.pop(
+                                    context,
+                                    reasonController.text.trim(),
+                                  )
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              backgroundColor: AppColors.errorRed,
+                              disabledBackgroundColor: AppColors.errorRed
+                                  .withOpacity(0.32),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text(
+                              'Tolak',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String? get _paymentProofUrl {
+    final proofUrl = widget.antrean.uploadBktByr?.trim();
+    if (proofUrl != null &&
+        proofUrl.isNotEmpty &&
+        proofUrl.startsWith('http')) {
+      return proofUrl;
+    }
+    return null;
+  }
+
+  Future<void> _downloadQr() async {
+    final qrUrl = _qrImageUrl;
+    if (qrUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('QR belum tersedia'),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isDownloadingQr = true);
+    try {
+      final response = await http.get(Uri.parse(qrUrl));
+      if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+        throw Exception('Gagal mengunduh gambar QR');
+      }
+
+      final imageBytes = Uint8List.fromList(response.bodyBytes);
+      final result = await ImageGallerySaverPlus.saveImage(
+        imageBytes,
+        quality: 100,
+        name: 'qr_order_${widget.antrean.kodeOrder}',
+      );
+
+      final isSuccess = result is Map
+          ? result['isSuccess'] == true
+          : result != null;
+
+      if (!isSuccess) {
+        throw Exception('Gagal menyimpan QR ke gallery');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('QR berhasil disimpan ke gallery'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengunduh QR: $e'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isDownloadingQr = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = widget.antrean.detail;
+    final nextStatus = _nextStatus(_currentStatus, widget.antrean.metodeOrder);
+    final statusColor = _statusColor(_currentStatus);
+    final paymentProofUrl = _paymentProofUrl;
+
+    return WillPopScope(
+      onWillPop: () async {
+        // Kembalikan nilai _isStatusUpdated saat tombol back bawaan ditekan
+        Navigator.pop(context, _isStatusUpdated);
+        return false;
+      },
+      child: CustomScaffold(
+        backgroundColor: const Color(0xFFF7F8FA),
+        appBar: CustomAppBar(
+          title: 'Detail Pesanan',
+          showBackButton: true,
+          onBack: () => Navigator.pop(context, _isStatusUpdated),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Card 1: Informasi Status & Kode
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Expanded ditambahkan di sini agar teks tidak overflow
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Kode Order',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '#${widget.antrean.kodeOrder}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                                overflow: TextOverflow
+                                    .ellipsis, // Menambahkan titik-titik jika kepanjangan
+                                maxLines: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            // --- PERBAIKAN: MENGHILANGKAN UNDERSCORE DI SINI ---
+                            _currentStatus.replaceAll('_', ' ').toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: statusColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Divider(height: 1, color: Color(0xFFEEEEEE)),
+                    ),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 16,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Tanggal Masuk: ${_formatTgl(widget.antrean.tglOrder)}',
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // --- TAMBAHAN MENAMPILKAN NAMA STAFF ---
+                    if (widget.antrean.namaStaff != null &&
+                        widget.antrean.namaStaff!.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.badge_outlined,
+                            size: 16,
+                            color: AppColors.primaryBlue,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Diproses oleh: ${widget.antrean.namaStaff}',
+                            style: const TextStyle(
+                              color: AppColors.primaryBlue,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Card 2: Detail Sepatu (Multi-item Carousel)
+              if (widget.antrean.detailOrders.length > 1) ...[
+                SizedBox(
+                  height: 560,
+                  child: PageView.builder(
+                    itemCount: widget.antrean.detailOrders.length,
+                    onPageChanged: (index) {
+                      setState(() => _currentDetailIndex = index);
+                    },
+                    itemBuilder: (context, index) {
+                      return SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: _buildDetailOrderCard(index),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    widget.antrean.detailOrders.length,
+                    (index) => Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: _currentDetailIndex == index ? 16 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: _currentDetailIndex == index
+                            ? AppColors.primaryBlue
+                            : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                if (widget.antrean.detailOrders.isNotEmpty)
+                  _buildDetailOrderCard(0),
+              ],
+              const SizedBox(height: 20),
+
+              // QR Code Section - hanya tampil setelah masuk Pesanan Baru (sudah dikonfirmasi)
+              if (_currentStatus != 'pending' &&
+                  _currentStatus != 'menunggu_pembayaran' &&
+                  _currentStatus != 'menunggu_konfirmasi') ...[
+              const Text(
+                'QR Code Pesanan',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A2E),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Builder(
+                      builder: (context) {
+                        final qrUrl = _qrImageUrl;
+                        if (qrUrl != null) {
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              qrUrl,
+                              width: 220,
+                              height: 220,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) =>
+                                  _buildQrPlaceholder(),
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return _buildQrPlaceholder(isLoading: true);
+                              },
+                            ),
+                          );
+                        }
+                        return _buildQrPlaceholder();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '#${widget.antrean.kodeOrder}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _isDownloadingQr ? null : _downloadQr,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primaryBlue,
+                          side: const BorderSide(color: AppColors.primaryBlue),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        icon: _isDownloadingQr
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primaryBlue),
+                              )
+                            : const Icon(Icons.download_rounded, size: 20),
+                        label: Text(
+                          _isDownloadingQr
+                              ? 'Mengunduh...'
+                              : 'Simpan QR ke Galeri',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              ],
+
+              if (_currentStatus == 'menunggu_konfirmasi') ...[
+                const Text(
+                  'Bukti Pembayaran',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A2E),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInfoItem(
+                        'Status Pembayaran',
+                        widget.antrean.statusPembayaran.isEmpty
+                            ? '-'
+                            : widget.antrean.statusPembayaran,
+                      ),
+                      const SizedBox(height: 16),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: paymentProofUrl != null
+                            ? Image.network(
+                                paymentProofUrl,
+                                width: double.infinity,
+                                height: 260,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _buildPaymentProofPlaceholder(),
+                              )
+                            : _buildPaymentProofPlaceholder(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ],
+          ),
+        ),
+
+        // Bottom Navigation Bar untuk Tombol Aksi
+        bottomNavigationBar: nextStatus != null
+            ? Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: _buildBottomActions(nextStatus),
+              )
+            : null,
+      ),
+    );
+  }
+
+  Widget _buildBottomActions(String nextStatus) {
+    if (_isLoading) {
+      return const SizedBox(
+        height: 54,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: AppColors.primaryBlue,
+            strokeWidth: 2.5,
+          ),
+        ),
+      );
+    }
+
+    if (_currentStatus == 'pending') {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.errorRed,
+                side: const BorderSide(color: AppColors.errorRed),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                minimumSize: const Size.fromHeight(54),
+              ),
+              onPressed: () => _handleOrderConfirmation('reject'),
+              icon: const Icon(Icons.close_rounded),
+              label: const Text(
+                'Tolak',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SizedBox(
+              height: 54,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Setujui Pesanan'),
+                      content: Text(
+                        'Apakah Anda yakin ingin menyetujui pesanan #${widget.antrean.kodeOrder}?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Batal'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Ya, Setujui'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await _handleOrderConfirmation('approve');
+                  }
+                },
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Setujui',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Icon(Icons.check, color: Colors.white, size: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_currentStatus == 'menunggu_konfirmasi') {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.errorRed,
+                side: const BorderSide(color: AppColors.errorRed),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                minimumSize: const Size.fromHeight(54),
+              ),
+              onPressed: _rejectPayment,
+              icon: const Icon(Icons.close_rounded),
+              label: const Text(
+                'Tolak',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SizedBox(
+              height: 54,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.successGreen,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Setujui Pembayaran'),
+                      content: Text(
+                        'Apakah Anda yakin ingin menyetujui pembayaran untuk pesanan #${widget.antrean.kodeOrder}?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Batal'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Ya, Setujui'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await _handlePaymentConfirmation('approve');
+                  }
+                },
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Setujui',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Icon(Icons.check, color: Colors.white, size: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return _buildPrimaryBottomButton(nextStatus);
+  }
+
+  Widget _buildPrimaryBottomButton(String nextStatus) {
+    return SizedBox(
+      height: 54,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryBlue,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          elevation: 0,
+        ),
+        onPressed: () => _updateStatus(nextStatus),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                _btnLabel(_currentStatus, widget.antrean.metodeOrder),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.arrow_forward_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+            color: Color(0xFF1A1A2E),
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailOrderCard(int index) {
+    final item = widget.antrean.detailOrders[index];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pesanan ${index + 1}',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1A1A2E),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Builder(
+                builder: (context) {
+                  List<String> splitUrls(String? path) {
+                    if (path == null || path.isEmpty) return [];
+                    return path.split(',').map((u) => u.trim()).where((u) => u.isNotEmpty).toList();
+                  }
+
+                  final List<String> sebelumUrls = splitUrls(item.fotoSebelum);
+                  final List<String> sesudahUrls = splitUrls(item.fotoSesudah);
+
+                  final List<Map<String, String>> photos = [
+                    ...sebelumUrls.map((url) => {'url': url, 'label': 'Sebelum'}),
+                    ...sesudahUrls.map((url) => {'url': url, 'label': 'Sesudah'}),
+                  ];
+
+                  if (photos.isEmpty) {
+                    return _buildPlaceholderImage(
+                      label: 'Foto sebelum & sesudah tidak tersedia',
+                      height: 200,
+                    );
+                  }
+
+                  return _ImageCarousel(
+                    photos: photos,
+                    onImageTap: (initialIndex) {
+                      _showFullscreenImage(
+                        context,
+                        photos,
+                        initialIndex,
+                        'Pesanan ${index + 1}',
+                      );
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildInfoItem(
+                      'Merk Sepatu',
+                      item.merk.isEmpty ? '-' : item.merk,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildInfoItem(
+                      'Warna',
+                      item.warna.isEmpty ? '-' : item.warna,
+                    ),
+                  ),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Divider(height: 1, color: Color(0xFFEEEEEE)),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildInfoItem(
+                      'Jenis Layanan',
+                      item.namaLayanan ?? '-',
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildInfoItem(
+                      'Harga',
+                      _formatHarga(item.totalHarga),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlaceholderImage({String label = 'Foto tidak tersedia', double height = 140}) {
+    return Container(
+      width: double.infinity,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.image_not_supported_outlined,
+            size: 32,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullscreenImage(
+    BuildContext context,
+    List<Map<String, String>> photos,
+    int initialPage,
+    String baseTitle,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(10),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PageView.builder(
+                itemCount: photos.length,
+                controller: PageController(initialPage: initialPage),
+                itemBuilder: (context, index) {
+                  final photo = photos[index];
+                  return InteractiveViewer(
+                    panEnabled: true,
+                    boundaryMargin: const EdgeInsets.all(20),
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          photo['url']!,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            );
+                          },
+                          errorBuilder: (_, __, ___) => Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.all(20),
+                            child: const Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 48,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Gagal memuat gambar',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: CircleAvatar(
+                  backgroundColor: Colors.black.withOpacity(0.5),
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+              if (photos.length > 1) ...[
+                Positioned(
+                  left: 10,
+                  child: IgnorePointer(
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 36,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 10,
+                  child: IgnorePointer(
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 36,
+                    ),
+                  ),
+                ),
+              ],
+              // Bottom title overlay removed as per user request to show only images
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatHarga(double value) {
+    final intValue = value.toInt();
+    final formatter = intValue.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+$)'),
+      (match) => '${match[1]}.',
+    );
+    return 'Rp $formatter';
+  }
+
+  Widget _buildPaymentProofPlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: 260,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 48,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Bukti pembayaran tidak tersedia',
+            style: TextStyle(color: Colors.grey.shade500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQrPlaceholder({bool isLoading = false}) {
+    return Container(
+      width: 220,
+      height: 220,
+      decoration: BoxDecoration(
+        color: AppColors.lightBlue.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryBlue.withOpacity(0.18)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (isLoading)
+            const SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(
+                color: AppColors.primaryBlue,
+                strokeWidth: 2.5,
+              ),
+            )
+          else
+            Icon(
+              Icons.qr_code_2_rounded,
+              size: 56,
+              color: AppColors.primaryBlue.withOpacity(0.55),
+            ),
+          const SizedBox(height: 10),
+          Text(
+            isLoading ? 'Memuat QR...' : 'QR belum tersedia',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ImageCarousel extends StatefulWidget {
+  final List<Map<String, String>> photos;
+  final Function(int) onImageTap;
+
+  const _ImageCarousel({required this.photos, required this.onImageTap});
+
+  @override
+  State<_ImageCarousel> createState() => _ImageCarouselState();
+}
+
+class _ImageCarouselState extends State<_ImageCarousel> {
+  int _currentPage = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          height: 220,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              children: [
+                PageView.builder(
+                  itemCount: widget.photos.length,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    final photo = widget.photos[index];
+                    return GestureDetector(
+                      onTap: () => widget.onImageTap(index),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(
+                            photo['url']!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: const Color(0xFFF0F0F0),
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.broken_image_outlined,
+                                    size: 40,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Gagal memuat gambar',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Image label overlay removed as per user request to show only images
+                          Positioned(
+                            top: 12,
+                            right: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${index + 1}/${widget.photos.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                if (widget.photos.length > 1) ...[
+                  Positioned(
+                    left: 4,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: Icon(
+                        Icons.chevron_left_rounded,
+                        color: Colors.white.withOpacity(0.6),
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 4,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.white.withOpacity(0.6),
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        if (widget.photos.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(widget.photos.length, (index) {
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: _currentPage == index ? 16 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: _currentPage == index
+                      ? AppColors.primaryBlue
+                      : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
+        ],
+      ],
+    );
+  }
+}
