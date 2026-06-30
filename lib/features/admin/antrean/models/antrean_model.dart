@@ -86,6 +86,7 @@ class AntreanModel {
   final CustomerInfo? customer;
   final String metodeOrder;
   final String? namaStaff;
+  final List<dynamic>? timeline;
 
   AntreanModel({
     required this.idOrders,
@@ -102,6 +103,7 @@ class AntreanModel {
     this.customer,
     required this.metodeOrder,
     this.namaStaff,
+    this.timeline,
   });
 
   factory AntreanModel.fromJson(Map<String, dynamic> json) {
@@ -136,9 +138,22 @@ class AntreanModel {
       customer: cust,
       metodeOrder: json['metode_order'] ?? 'online',
       namaStaff: staffName,
+      timeline: json['order_status_history'] as List<dynamic>?,
     );
   }
 
   DetailOrder? get detail =>
       detailOrders.isNotEmpty ? detailOrders.first : null;
+
+  /// created_at dari order_status_history untuk status saat ini
+  String? get statusTimestamp {
+    if (timeline == null || timeline!.isEmpty) return null;
+    for (var i = timeline!.length - 1; i >= 0; i--) {
+      final item = timeline![i] as Map<String, dynamic>;
+      if (item['status'] == statusOrder) {
+        return item['created_at']?.toString();
+      }
+    }
+    return null;
+  }
 }

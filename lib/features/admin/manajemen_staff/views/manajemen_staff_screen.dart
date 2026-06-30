@@ -64,7 +64,7 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
     setState(() {
       _filteredStaff = _allStaff.where((s) {
         return s.nama.toLowerCase().contains(query) ||
-               s.email.toLowerCase().contains(query);
+            s.email.toLowerCase().contains(query);
       }).toList();
     });
   }
@@ -73,7 +73,8 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ManajemenStaffFormScreen(token: widget.token, existingStaff: staff),
+        builder: (_) =>
+            ManajemenStaffFormScreen(token: widget.token, existingStaff: staff),
       ),
     );
     if (result == true) _loadStaff();
@@ -91,7 +92,12 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
         children: [
           Container(
             color: AppColors.primary,
-            padding: const EdgeInsets.fromLTRB(AppSizes.paddingMd, 0, AppSizes.paddingMd, AppSizes.paddingMd),
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.paddingMd,
+              0,
+              AppSizes.paddingMd,
+              AppSizes.paddingMd,
+            ),
             child: CustomSearchField(
               controller: _searchController,
               hintText: 'Cari staf...',
@@ -105,7 +111,12 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
-                ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
+                ? Center(
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  )
                 : _filteredStaff.isEmpty
                 ? const Center(child: Text('Tidak ada data staff'))
                 : RefreshIndicator(
@@ -134,7 +145,7 @@ class _ManajemenStaffScreenState extends State<ManajemenStaffScreen> {
   }
 }
 
-// ─── Staff Card (Tanpa Role) ────────────────────────────────────────────────
+// ─── Staff Card (Tanpa Status) ───────────────────────────────────────────────
 class _StaffCard extends StatelessWidget {
   final ManajemenStaffModel staff;
   final VoidCallback onTap;
@@ -151,7 +162,13 @@ class _StaffCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -160,7 +177,11 @@ class _StaffCard extends StatelessWidget {
               backgroundColor: const Color(0xFFEEF2FF),
               child: Text(
                 staff.nama.isNotEmpty ? staff.nama[0].toUpperCase() : '?',
-                style: const TextStyle(color: Color(0xFF1A1A2E), fontWeight: FontWeight.bold, fontSize: 18),
+                style: const TextStyle(
+                  color: Color(0xFF1A1A2E),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -168,26 +189,19 @@ class _StaffCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(staff.nama, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF1A1A2E))),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: staff.statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          staff.statusLabel,
-                          style: TextStyle(color: staff.statusColor, fontSize: 10, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    staff.nama,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: Color(0xFF1A1A2E),
+                    ),
                   ),
                   const SizedBox(height: 3),
-                  Text(staff.email, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(
+                    staff.email,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
                 ],
               ),
             ),

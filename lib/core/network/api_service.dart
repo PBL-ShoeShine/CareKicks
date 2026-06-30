@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../auth/session_manager.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://172.16.162.103:5000/api/v1';
+  static const String baseUrl = 'http://10.155.187.20:5000/api/v1';
 
   // ─── Role Helpers ─────────────────────────────────────────────────────────
 
@@ -62,6 +62,30 @@ class ApiService {
     return null;
   }
 
+  /// Check the user's latest role and shop status from the database.
+  static Future<Map<String, dynamic>?> checkRole({
+    required String token,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/user/check-role'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 401) {
+        return await _decodeJsonResponse(response);
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend (checkRole): $e');
+    }
+    return null;
+  }
+
   static Future<Map<String, dynamic>?> register({
     required String nama,
     required String noHp,
@@ -89,6 +113,48 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('Gagal menghubungi backend: $e');
+    }
+    return null;
+  }
+
+  // ─── PERBAIKAN: TAMBAHAN ENDPOINT OTP REGISTRASI BARU ───
+  static Future<Map<String, dynamic>?> verifyRegisterOtp(
+    String email,
+    String otpCode,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/user/verify-register-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'otpCode': otpCode}),
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 404) {
+        return await _decodeJsonResponse(response);
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend verifyRegisterOtp: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> resendRegisterOtp(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/user/resend-register-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 404) {
+        return await _decodeJsonResponse(response);
+      }
+    } catch (e) {
+      debugPrint('Gagal menghubungi backend resendRegisterOtp: $e');
     }
     return null;
   }
@@ -300,7 +366,6 @@ class ApiService {
 
   // ─── Pemindai ─────────────────────────────────────────────────────────────
 
-  // --- PERBAIKAN: MENGIRIM TOKEN SAAT SCAN AGAR TIDAK "DATA TIDAK DITEMUKAN" ---
   static Future<Map<String, dynamic>?> cekSepatu(
     String token,
     String qrCode,
@@ -310,15 +375,15 @@ class ApiService {
         Uri.parse('$baseUrl/admin/pemindai/verify'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token', // <- TOKEN DIKIRIM DI SINI
+          'Authorization': 'Bearer $token', // <--- Token dikirim
         },
         body: jsonEncode({'qr_code': qrCode}),
       );
 
       if (response.statusCode == 200 ||
           response.statusCode == 404 ||
-          response.statusCode == 401 ||
           response.statusCode == 500 ||
+          response.statusCode == 401 ||
           response.statusCode == 400) {
         return await _decodeJsonResponse(response);
       } else {
@@ -330,28 +395,20 @@ class ApiService {
     return null;
   }
 
-  // --- PERBAIKAN: MENAMBAHKAN TIMEOUT & TOKEN PADA UPDATE STATUS ---
   static Future<Map<String, dynamic>?> updateStatusPesanan({
-    required String token,
+    required String token, // <--- Wajib menerima token
     required String kodeOrder,
     required String statusBaru,
   }) async {
     try {
-      final response = await http
-          .put(
-            Uri.parse('$baseUrl/admin/pemindai/update-status'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode({
-              'kode_order': kodeOrder,
-              'status_baru': statusBaru,
-            }),
-          )
-          .timeout(
-            const Duration(seconds: 15),
-          ); // <- Mencegah muter-muter tanpa batas
+      final response = await http.put(
+        Uri.parse('$baseUrl/admin/pemindai/update-status'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token', // <--- Token dikirim
+        },
+        body: jsonEncode({'kode_order': kodeOrder, 'status_baru': statusBaru}),
+      );
 
       return jsonDecode(response.body);
     } catch (e) {
@@ -1504,15 +1561,10 @@ class ApiService {
     String? metodeOrder,
   }) async {
     try {
-      final queryParams = {
-        'tab': tab,
-        if (metodeOrder != null) 'metode_order': metodeOrder,
-      };
-      final uri = Uri.parse(
-        '$baseUrl/admin/konfirmasi_pesanan',
-      ).replace(queryParameters: queryParams);
+      final queryParams =
+          'tab=$tab${metodeOrder != null ? '&metode_order=$metodeOrder' : ''}';
       final response = await http.get(
-        uri,
+        Uri.parse('$baseUrl/admin/konfirmasi_pesanan?$queryParams'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -2182,7 +2234,6 @@ class ApiService {
 
   // ─── Customer Ulasan (Reviews) ────────────────────────────────────────────
 
-  /// Mengambil ulasan berdasarkan id_services (atau id_shops) tanpa token
   static Future<Map<String, dynamic>?> getCustomerReviews({
     int? serviceId,
     int? shopId,
@@ -2221,7 +2272,6 @@ class ApiService {
     return null;
   }
 
-  /// Mengambil ulasan — wrapper dengan parameter idShops & rating (dipakai UlasanService)
   static Future<Map<String, dynamic>?> getUlasan({
     int? idShops,
     String? rating,
@@ -2235,9 +2285,8 @@ class ApiService {
     required String ulasan,
     int? idShops,
     int? idOrders,
-    int? idServices,
+    List<int>? idServices,
     List<File>? fotoUlasan,
-    File? videoUlasan, // Parameter tambahan untuk video
   }) async {
     try {
       final request = http.MultipartRequest(
@@ -2252,11 +2301,10 @@ class ApiService {
       request.fields['ulasan'] = ulasan;
       if (idShops != null) request.fields['id_shops'] = idShops.toString();
       if (idOrders != null) request.fields['id_orders'] = idOrders.toString();
-      if (idServices != null) {
-        request.fields['id_services'] = idServices.toString();
+      if (idServices != null && idServices.isNotEmpty) {
+        request.fields['id_services'] = idServices.join(',');
       }
 
-      // Memproses maksimal 5 foto
       if (fotoUlasan != null && fotoUlasan.isNotEmpty) {
         for (final foto in fotoUlasan) {
           final extension = foto.path.split('.').last.toLowerCase();
@@ -2272,22 +2320,6 @@ class ApiService {
             ),
           );
         }
-      }
-
-      // Memproses 1 video
-      if (videoUlasan != null) {
-        final extension = videoUlasan.path.split('.').last.toLowerCase();
-        String mimeType = 'video/mp4';
-        if (extension == 'mov') mimeType = 'video/quicktime';
-        if (extension == 'avi') mimeType = 'video/x-msvideo';
-
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'video_ulasan',
-            videoUlasan.path,
-            contentType: MediaType.parse(mimeType),
-          ),
-        );
       }
 
       final response = await request.send();
@@ -2434,7 +2466,7 @@ class ApiService {
     return null;
   }
 
-  static Future<Map<String, dynamic>?> createOrderFromCart({
+  static Future<Map<String, dynamic>> createOrderFromCart({
     required String token,
     required List<int> selectedIds,
     required String namaPemilik,
@@ -2467,7 +2499,8 @@ class ApiService {
 
       debugPrint('POST createOrderFromCart → ${response.statusCode}');
       if ([200, 201, 400, 401, 404, 500].contains(response.statusCode)) {
-        return _decodeJsonResponse(response);
+        return (await _decodeJsonResponse(response)) ??
+            {'success': false, 'message': 'Respon server kosong'};
       }
     } catch (e) {
       debugPrint('createOrderFromCart error: $e');
@@ -2543,8 +2576,9 @@ class ApiService {
       request.fields['id_shops'] = idShops;
       request.fields['id_services'] = idServices;
       request.fields['harga_layanan'] = hargaLayanan;
-      if (catatan != null && catatan.isNotEmpty)
+      if (catatan != null && catatan.isNotEmpty) {
         request.fields['catatan'] = catatan;
+      }
       request.fields['merk'] = merk;
       request.fields['jenis_sepatu'] = jenisSepatu;
       request.fields['warna'] = warna;

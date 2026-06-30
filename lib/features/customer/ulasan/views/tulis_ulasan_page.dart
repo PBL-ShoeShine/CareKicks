@@ -9,14 +9,16 @@ class TulisUlasanPage extends StatefulWidget {
   final String token;
   final int? idShops;
   final int? idOrders;
-  final int? idServices;
+
+  // FIX Bug 10: ganti idServices (single) → idServicesList (list semua layanan yg dipesan)
+  final List<int> idServicesList;
 
   const TulisUlasanPage({
     super.key,
     required this.token,
     this.idShops,
     this.idOrders,
-    this.idServices,
+    this.idServicesList = const [],
   });
 
   @override
@@ -49,11 +51,9 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
     super.dispose();
   }
 
-  // --- FUNGSI BATCH PICKING (BANYAK GAMBAR SEKALIGUS) ---
   Future<void> _pickMultipleImages() async {
     try {
       final List<XFile> images = await _picker.pickMultiImage();
-
       if (images.isNotEmpty) {
         setState(() {
           for (var img in images) {
@@ -108,14 +108,13 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
       return;
     }
 
-    // Mengirim ulasan tanpa parameter video
     final success = await _controller.submitUlasan(
       token: widget.token,
       rating: _rating,
       ulasan: _ulasanTextController.text,
       idShops: finalIdShops,
       idOrders: finalIdOrders,
-      idServices: widget.idServices,
+      idServices: widget.idServicesList,
       fotoUlasan: _selectedImages,
     );
 
@@ -131,7 +130,7 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
         ),
       );
     }
-  }
+  } // <-- Penambahan kurung kurawal tutup yang sebelumnya hilang
 
   @override
   Widget build(BuildContext context) {
@@ -190,6 +189,41 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
                   ),
                   const SizedBox(height: 24),
                 ],
+
+                // Info layanan yang akan diulas
+                if (widget.idServicesList.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppColors.primaryBlue.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: AppColors.primaryBlue,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Ulasan ini akan dikirim untuk ${widget.idServicesList.length} layanan yang Anda pesan.',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primaryBlue,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
                 const Text(
                   'Seberapa puas kamu dengan layanan cuci sepatu kami?',
                   style: TextStyle(
@@ -267,7 +301,6 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
                 ),
                 const SizedBox(height: 32),
 
-                // --- BAGIAN UNGGAH MEDIA (HANYA FOTO) ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -290,7 +323,6 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    // Render Foto Terpilih
                     ...List.generate(_selectedImages.length, (index) {
                       return Stack(
                         children: [
@@ -318,8 +350,6 @@ class _TulisUlasanPageState extends State<TulisUlasanPage> {
                         ],
                       );
                     }),
-
-                    // Tombol Tambah Foto
                     if (_selectedImages.length < 5)
                       GestureDetector(
                         onTap: _pickMultipleImages,

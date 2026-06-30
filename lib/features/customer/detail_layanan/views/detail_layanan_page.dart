@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../controllers/detail_layanan_controller.dart';
 import 'semua_ulasan_page.dart';
@@ -58,8 +59,18 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
     try {
       final date = DateTime.parse(isoString);
       final months = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
       ];
       return '${months[date.month - 1]} ${date.day}, ${date.year}';
     } catch (_) {
@@ -75,7 +86,11 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            color: Colors.black87,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: ListenableBuilder(
@@ -133,23 +148,39 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
           final toko = data['toko'] ?? {};
           final rating = toko['rating'] ?? 0.0;
           final isOpen = toko['is_open'] == true;
-          final rekomendasi = List<Map<String, dynamic>>.from(data['rekomendasi'] ?? []);
+          final rekomendasi = List<Map<String, dynamic>>.from(
+            data['rekomendasi'] ?? [],
+          );
 
           return Stack(
             children: [
               SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 100), // Ruang untuk tombol fixed
+                padding: const EdgeInsets.only(
+                  bottom: 100,
+                ), // Ruang untuk tombol fixed
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Header Image
                     if (data['foto_layanan'] != null)
-                      Image.network(
-                        data['foto_layanan'],
+                      CachedNetworkImage(
+                        imageUrl: data['foto_layanan'],
                         width: double.infinity,
                         height: 250,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
+                        placeholder: (context, url) => Container(
+                          width: double.infinity,
+                          height: 250,
+                          color: Colors.grey.shade100,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => _buildPlaceholderImage(),
                       )
                     else
                       _buildPlaceholderImage(),
@@ -183,14 +214,20 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                                 if (toko['foto_toko'] != null)
                                   CircleAvatar(
                                     radius: 16,
-                                    backgroundImage: NetworkImage(toko['foto_toko']),
+                                    backgroundImage: CachedNetworkImageProvider(
+                                      toko['foto_toko'],
+                                    ),
                                     backgroundColor: Colors.grey.shade200,
                                   )
                                 else
                                   CircleAvatar(
                                     radius: 16,
                                     backgroundColor: Colors.grey.shade200,
-                                    child: const Icon(Icons.storefront, size: 16, color: Colors.grey),
+                                    child: const Icon(
+                                      Icons.storefront,
+                                      size: 16,
+                                      color: Colors.grey,
+                                    ),
                                   ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -214,8 +251,8 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                               return Icon(
                                 Icons.star,
                                 size: 18,
-                                color: index < rating.floor() 
-                                    ? Colors.orange 
+                                color: index < rating.floor()
+                                    ? Colors.orange
                                     : Colors.grey.shade300,
                               );
                             }),
@@ -228,7 +265,8 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primaryBlue, // Atau warna biru muda dari referensi
+                              color: AppColors
+                                  .primaryBlue, // Atau warna biru muda dari referensi
                             ),
                           ),
                           const SizedBox(height: 32),
@@ -246,7 +284,10 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Jenis Layanan:', style: TextStyle(color: Colors.black87)),
+                              const Text(
+                                'Jenis Layanan:',
+                                style: TextStyle(color: Colors.black87),
+                              ),
                               Text(
                                 data['nama_layanan'] ?? '-',
                                 style: const TextStyle(color: Colors.grey),
@@ -257,7 +298,10 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Estimasi Waktu:', style: TextStyle(color: Colors.black87)),
+                              const Text(
+                                'Estimasi Waktu:',
+                                style: TextStyle(color: Colors.black87),
+                              ),
                               Text(
                                 data['estimasi_waktu'] ?? '-',
                                 style: const TextStyle(color: Colors.grey),
@@ -265,11 +309,17 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          const Text('Deskripsi Singkat:', style: TextStyle(color: Colors.black87)),
+                          const Text(
+                            'Deskripsi Singkat:',
+                            style: TextStyle(color: Colors.black87),
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             data['deskripsi'] ?? '-',
-                            style: const TextStyle(color: Colors.grey, height: 1.5),
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              height: 1.5,
+                            ),
                           ),
                           const SizedBox(height: 32),
 
@@ -300,7 +350,10 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                                     );
                                   },
                                   child: const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 4.0,
+                                      horizontal: 8.0,
+                                    ),
                                     child: Text(
                                       'Selengkapnya',
                                       style: TextStyle(
@@ -314,11 +367,14 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          
+
                           if (_controller.isLoadingReviews)
                             const Center(child: CircularProgressIndicator())
                           else if (_controller.reviews.isEmpty)
-                            const Text('Belum ada ulasan untuk toko ini.', style: TextStyle(color: Colors.grey))
+                            const Text(
+                              'Belum ada ulasan untuk toko ini.',
+                              style: TextStyle(color: Colors.grey),
+                            )
                           else
                             _buildReviewItem(_controller.reviews.first),
 
@@ -340,20 +396,23 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: rekomendasi.length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 12),
                                 itemBuilder: (context, index) {
-                                  return _buildRecommendationCard(rekomendasi[index]);
+                                  return _buildRecommendationCard(
+                                    rekomendasi[index],
+                                  );
                                 },
                               ),
                             ),
-                          ]
+                          ],
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
-              
+
               // Bottom Fixed Buttons
               Positioned(
                 bottom: 0,
@@ -377,20 +436,28 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                         child: SizedBox(
                           height: 50,
                           child: OutlinedButton(
-                            onPressed: !isOpen ? null : () => _showAddToCartSheet(data, toko),
+                            onPressed: !isOpen
+                                ? null
+                                : () => _showAddToCartSheet(data, toko),
                             style: OutlinedButton.styleFrom(
                               side: BorderSide(
-                                color: isOpen ? AppColors.primaryBlue : Colors.grey.shade300,
+                                color: isOpen
+                                    ? AppColors.primaryBlue
+                                    : Colors.grey.shade300,
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
                             ),
                             child: Text(
                               isOpen ? '+ Keranjang' : 'Toko Tutup',
                               style: TextStyle(
-                                color: isOpen ? AppColors.primaryBlue : Colors.grey.shade400,
+                                color: isOpen
+                                    ? AppColors.primaryBlue
+                                    : Colors.grey.shade400,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -404,34 +471,42 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                         child: SizedBox(
                           height: 50,
                           child: ElevatedButton(
-                            onPressed: !isOpen ? null : () {
-                              final idShops = toko['id_shops'];
-                              if (idShops == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Data toko tidak ditemukan'),
-                                  ),
-                                );
-                                return;
-                              }
+                            onPressed: !isOpen
+                                ? null
+                                : () {
+                                    final idShops = toko['id_shops'];
+                                    if (idShops == null) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Data toko tidak ditemukan',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
 
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => KirimPesananPage(
-                                    token: widget.token,
-                                    idShops: idShops is int
-                                        ? idShops
-                                        : int.parse(idShops.toString()),
-                                    prefillNama: widget.user['nama'],
-                                    prefillNoHp: widget.user['no_hp'],
-                                    prefillServiceId: widget.serviceId,
-                                  ),
-                                ),
-                              );
-                            },
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => KirimPesananPage(
+                                          token: widget.token,
+                                          idShops: idShops is int
+                                              ? idShops
+                                              : int.parse(idShops.toString()),
+                                          prefillNama: widget.user['nama'],
+                                          prefillNoHp: widget.user['no_hp'],
+                                          prefillServiceId: widget.serviceId,
+                                        ),
+                                      ),
+                                    );
+                                  },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isOpen ? AppColors.primaryBlue : Colors.grey,
+                              backgroundColor: isOpen
+                                  ? AppColors.primaryBlue
+                                  : Colors.grey,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -471,7 +546,9 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundImage: user['foto'] != null ? NetworkImage(user['foto']) : null,
+              backgroundImage: user['foto'] != null
+                  ? CachedNetworkImageProvider(user['foto'])
+                  : null,
               backgroundColor: Colors.grey.shade200,
               child: user['foto'] == null
                   ? const Icon(Icons.person, color: Colors.grey)
@@ -483,7 +560,10 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
               children: [
                 Text(
                   user['nama'] ?? 'User',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF223263)),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF223263),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -491,8 +571,8 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                     return Icon(
                       Icons.star,
                       size: 14,
-                      color: index < rating.floor() 
-                          ? Colors.orange 
+                      color: index < rating.floor()
+                          ? Colors.orange
                           : Colors.grey.shade300,
                     );
                   }),
@@ -517,11 +597,29 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
               itemBuilder: (context, index) {
                 return ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    photos[index],
+                  child: CachedNetworkImage(
+                    imageUrl: photos[index],
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      width: 60,
+                      height: 60,
+                      color: Colors.grey.shade100,
+                      child: const Center(
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      width: 60,
+                      height: 60,
+                      color: Colors.grey.shade100,
+                      child: const Icon(Icons.error, size: 16),
+                    ),
                   ),
                 );
               },
@@ -563,15 +661,29 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: service['foto_layanan'] != null
-                    ? Image.network(
-                        service['foto_layanan'],
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade100),
-                      )
-                    : Container(color: Colors.grey.shade100),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+                 child: service['foto_layanan'] != null
+                     ? CachedNetworkImage(
+                         imageUrl: service['foto_layanan'],
+                         width: double.infinity,
+                         fit: BoxFit.cover,
+                         placeholder: (context, url) => Container(
+                           width: double.infinity,
+                           color: Colors.grey.shade100,
+                           child: const Center(
+                             child: SizedBox(
+                               width: 20,
+                               height: 20,
+                               child: CircularProgressIndicator(strokeWidth: 2),
+                             ),
+                           ),
+                         ),
+                         errorWidget: (context, url, error) =>
+                             Container(color: Colors.grey.shade100),
+                       )
+                     : Container(color: Colors.grey.shade100),
               ),
             ),
             Padding(
@@ -616,7 +728,10 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
     );
   }
 
-  void _showAddToCartSheet(Map<String, dynamic> data, Map<String, dynamic> toko) {
+  void _showAddToCartSheet(
+    Map<String, dynamic> data,
+    Map<String, dynamic> toko,
+  ) {
     final merkCtrl = TextEditingController();
     final jenisCtrl = TextEditingController();
     final warnaCtrl = TextEditingController();
@@ -633,7 +748,9 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             final hasAny = selectedImages.any((img) => img != null);
-            final filledCount = selectedImages.where((img) => img != null).length;
+            final filledCount = selectedImages
+                .where((img) => img != null)
+                .length;
 
             return Padding(
               padding: EdgeInsets.fromLTRB(
@@ -669,7 +786,10 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                     const SizedBox(height: 4),
                     Text(
                       'Isi detail sepatu dan upload 5 foto kondisi sepatu',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     TextField(
@@ -677,8 +797,13 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                       decoration: InputDecoration(
                         labelText: 'Merk Sepatu *',
                         hintText: 'Contoh: Nike, Adidas, Vans',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -687,8 +812,13 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                       decoration: InputDecoration(
                         labelText: 'Jenis Sepatu *',
                         hintText: 'Contoh: Sneakers, Canvas, Leather',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -697,8 +827,13 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                       decoration: InputDecoration(
                         labelText: 'Warna Sepatu *',
                         hintText: 'Contoh: Putih, Hitam, Abu-abu',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -708,8 +843,13 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                       decoration: InputDecoration(
                         labelText: 'Catatan (opsional)',
                         hintText: 'Misal: Tolong sikat bagian bawah perlahan',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -729,7 +869,9 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: hasAny ? AppColors.primaryBlue : Colors.grey.shade500,
+                            color: hasAny
+                                ? AppColors.primaryBlue
+                                : Colors.grey.shade500,
                           ),
                         ),
                       ],
@@ -738,12 +880,13 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 5,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 1,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 5,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                            childAspectRatio: 1,
+                          ),
                       itemCount: 5,
                       itemBuilder: (ctx, index) {
                         final image = selectedImages[index];
@@ -755,12 +898,16 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                               imageQuality: 80,
                             );
                             if (picked != null) {
-                              setSheetState(() => selectedImages[index] = picked);
+                              setSheetState(
+                                () => selectedImages[index] = picked,
+                              );
                             }
                           },
                           child: Container(
                             decoration: BoxDecoration(
-                              color: image != null ? null : Colors.grey.shade100,
+                              color: image != null
+                                  ? null
+                                  : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: image != null
@@ -801,12 +948,17 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                                         right: 2,
                                         child: GestureDetector(
                                           onTap: () {
-                                            setSheetState(() => selectedImages[index] = null);
+                                            setSheetState(
+                                              () =>
+                                                  selectedImages[index] = null,
+                                            );
                                           },
                                           child: Container(
                                             padding: const EdgeInsets.all(2),
                                             decoration: BoxDecoration(
-                                              color: Colors.black.withOpacity(0.6),
+                                              color: Colors.black.withOpacity(
+                                                0.6,
+                                              ),
                                               shape: BoxShape.circle,
                                             ),
                                             child: const Icon(
@@ -835,14 +987,22 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
 
                           if (merk.isEmpty || jenis.isEmpty || warna.isEmpty) {
                             ScaffoldMessenger.of(ctx).showSnackBar(
-                              const SnackBar(content: Text('Merk, jenis, dan warna sepatu wajib diisi')),
+                              const SnackBar(
+                                content: Text(
+                                  'Merk, jenis, dan warna sepatu wajib diisi',
+                                ),
+                              ),
                             );
                             return;
                           }
 
                           if (!hasAny) {
                             ScaffoldMessenger.of(ctx).showSnackBar(
-                              const SnackBar(content: Text('Upload minimal 1 foto kondisi sepatu')),
+                              const SnackBar(
+                                content: Text(
+                                  'Upload minimal 1 foto kondisi sepatu',
+                                ),
+                              ),
                             );
                             return;
                           }
@@ -859,7 +1019,11 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
 
                           if (files.isEmpty) {
                             ScaffoldMessenger.of(ctx).showSnackBar(
-                              const SnackBar(content: Text('Gagal membaca file foto, coba pilih ulang')),
+                              const SnackBar(
+                                content: Text(
+                                  'Gagal membaca file foto, coba pilih ulang',
+                                ),
+                              ),
                             );
                             return;
                           }
@@ -888,7 +1052,9 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                           if (success && mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Berhasil ditambahkan ke keranjang'),
+                                content: Text(
+                                  'Berhasil ditambahkan ke keranjang',
+                                ),
                                 backgroundColor: AppColors.successGreen,
                               ),
                             );
@@ -896,7 +1062,8 @@ class _DetailLayananPageState extends State<DetailLayananPage> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  _cartController.errorMessage ?? 'Gagal menambahkan ke keranjang',
+                                  _cartController.errorMessage ??
+                                      'Gagal menambahkan ke keranjang',
                                 ),
                                 backgroundColor: Colors.red,
                               ),

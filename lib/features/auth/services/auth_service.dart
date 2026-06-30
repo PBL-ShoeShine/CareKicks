@@ -47,10 +47,7 @@ class AuthService {
       return {'success': false, 'message': 'Respon tidak valid dari server'};
     } catch (e) {
       debugPrint('Error in AuthService.login: $e');
-      return {
-        'success': false,
-        'message': 'Terjadi kesalahan: ${e.toString()}',
-      };
+      return {'success': false, 'message': 'Terjadi kesalahan: $e'};
     }
   }
 
@@ -84,28 +81,57 @@ class AuthService {
         return {'success': false, 'message': 'Gagal menghubungi server'};
       }
 
-      if (response.containsKey('message')) {
-        final message = response['message'];
-        if (message.toString().toLowerCase().contains('berhasil') ||
-            response.containsKey('token')) {
-          return {
-            'success': true,
-            'message': message,
-            'token': response['token'],
-            'user': response['user'],
-          };
-        } else {
-          return {'success': false, 'message': message};
-        }
+      // --- PERBAIKAN: COCOKKAN DENGAN BALASAN OTP BACKEND ---
+      if (response['success'] == true && response['message'] == 'OTP_SENT') {
+        return {'success': true, 'message': 'OTP_SENT'};
       }
 
-      return {'success': false, 'message': 'Respon tidak valid dari server'};
+      return {
+        'success': false,
+        'message': response['message'] ?? 'Gagal memproses pendaftaran',
+      };
     } catch (e) {
       debugPrint('Error in AuthService.register: $e');
       return {
         'success': false,
         'message': 'Terjadi kesalahan: ${e.toString()}',
       };
+    }
+  }
+
+  // --- FUNGSI BARU: TERUSKAN VERIFIKASI KE API_SERVICE ---
+  static Future<Map<String, dynamic>> verifyRegisterOtp(
+    String email,
+    String otpCode,
+  ) async {
+    try {
+      final response = await ApiService.verifyRegisterOtp(email, otpCode);
+      if (response == null) {
+        return {'success': false, 'message': 'Gagal menghubungi server'};
+      }
+
+      if (response['success'] == true) {
+        return {
+          'success': true,
+          'token': response['token'],
+          'user': response['user'],
+        };
+      }
+      return {'success': false, 'message': response['message'] ?? 'OTP Salah'};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> resendRegisterOtp(String email) async {
+    try {
+      final response = await ApiService.resendRegisterOtp(email);
+      if (response == null) {
+        return {'success': false, 'message': 'Gagal menghubungi server'};
+      }
+      return response;
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan: $e'};
     }
   }
 }

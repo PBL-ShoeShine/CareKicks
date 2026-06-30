@@ -25,6 +25,8 @@ class _AntreanScreenState extends State<AntreanScreen>
   int _currentTab = 0;
   String _metodeOrder = 'online';
 
+  bool get _isStaff => widget.user['jenis_role'] == 'staff';
+
   List<Map<String, String>> get _tabs {
     if (_metodeOrder == 'offline') {
       return const [
@@ -33,6 +35,15 @@ class _AntreanScreenState extends State<AntreanScreen>
         {'label': 'Siap', 'status': 'siap'},
       ];
     } else {
+      if (_isStaff) {
+        // Staff: hide Pesanan Masuk and Pembayaran tabs
+        return const [
+          {'label': 'Pickup', 'status': 'pickup'},
+          {'label': 'Sedang Dicuci', 'status': 'sedang_dicuci'},
+          {'label': 'Siap', 'status': 'siap'},
+          {'label': 'Delivery', 'status': 'delivery'},
+        ];
+      }
       return const [
         {'label': 'Pesanan Masuk', 'status': 'pesanan_masuk'},
         {'label': 'Pembayaran', 'status': 'pembayaran'},
@@ -347,7 +358,7 @@ class _AntreanScreenState extends State<AntreanScreen>
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              _formatTgl(antrean.tglOrder),
+                              _formatTgl(antrean.statusTimestamp ?? antrean.tglOrder),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.orange.shade600,
@@ -935,10 +946,13 @@ class _AntreanScreenState extends State<AntreanScreen>
 
   String _formatTgl(String tgl) {
     try {
-      final dt = DateTime.parse(tgl).toLocal();
-      return '${dt.day}/${dt.month}/${dt.year} '
-          '${dt.hour.toString().padLeft(2, '0')}:'
-          '${dt.minute.toString().padLeft(2, '0')}';
+      final dt = DateTimeUtils.parseToWib(tgl);
+      final day = dt.day.toString().padLeft(2, '0');
+      final month = dt.month.toString().padLeft(2, '0');
+      final year = dt.year.toString();
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      return '$day/$month/$year $hour:$minute';
     } catch (_) {
       return tgl;
     }

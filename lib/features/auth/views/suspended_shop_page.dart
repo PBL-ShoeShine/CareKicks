@@ -1,7 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/custom_scaffold.dart';
+import '../../../core/auth/session_manager.dart';
+import '../../../core/network/api_service.dart';
+import '../../admin/views/admin_main_page.dart';
 import '../controllers/auth_controller.dart';
 import 'login_page.dart';
 
@@ -16,17 +22,84 @@ class SuspendedShopPage extends StatefulWidget {
 
 class _SuspendedShopPageState extends State<SuspendedShopPage> {
   late final AuthController _authController;
+  Timer? _unsuspendCheckTimer;
+  bool _isTransitioning = false;
+  late Map<String, dynamic> _currentShop;
 
   @override
   void initState() {
     super.initState();
     _authController = AuthController();
+    _currentShop = widget.shop;
+
+    // Poll every 15 seconds to check if the shop is unsuspended
+    _unsuspendCheckTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _checkUnsuspend();
+    });
   }
 
   @override
   void dispose() {
+    _unsuspendCheckTimer?.cancel();
     _authController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkUnsuspend() async {
+    if (_isTransitioning) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(AuthSessionManager.tokenKey);
+      final userStr = prefs.getString(AuthSessionManager.userKey);
+
+      if (token == null || token.isEmpty || userStr == null) return;
+
+      final response = await ApiService.getShopProfile(token: token);
+      if (response == null || response['success'] != true) return;
+
+      final shopData = response['data'];
+      if (shopData == null) return;
+
+      final status = shopData['status_verifikasi']?.toString().toLowerCase();
+
+      // Update local state shop data if it's still suspended or appealed
+      if (status == 'suspended' || status == 'appealed') {
+        if (mounted) {
+          setState(() {
+            _currentShop = Map<String, dynamic>.from(shopData);
+          });
+        }
+      }
+
+      if (status != 'suspended' && status != 'appealed' && mounted) {
+        _unsuspendCheckTimer?.cancel();
+        setState(() {
+          _isTransitioning = true;
+        });
+
+        // Update stored session with new status
+        final user = jsonDecode(userStr);
+        final updatedUser = Map<String, dynamic>.from(user);
+        updatedUser['shop'] = shopData;
+        await prefs.setString(AuthSessionManager.userKey, jsonEncode(updatedUser));
+
+        if (!mounted) return;
+
+        // Redirect back to AdminMainPage
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => AdminMainPage(
+              token: token,
+              user: updatedUser,
+            ),
+          ),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      debugPrint('Unsuspend check error: $e');
+    }
   }
 
   Future<void> _logout() async {
@@ -40,7 +113,7 @@ class _SuspendedShopPageState extends State<SuspendedShopPage> {
   }
 
   Future<void> _openChromeLink() async {
-    final Uri url = Uri.parse('http://localhost:3000/toko-saya');
+    final Uri url = Uri.parse('http://localhost:5000/toko-saya');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -52,8 +125,10 @@ class _SuspendedShopPageState extends State<SuspendedShopPage> {
 
   @override
   Widget build(BuildContext context) {
-    final shopName = widget.shop['nm_toko']?.toString().trim();
-    final reason = widget.shop['alasan_penangguhan']?.toString().trim();
+    final shopName = _currentShop['nm_toko']?.toString().trim();
+    final reason = _currentShop['alasan_penangguhan']?.toString().trim();
+    final status = _currentShop['status_verifikasi']?.toString().toLowerCase();
+    final isAppealed = status == 'appealed';
 
     return CustomScaffold(
       useSafeArea: true,
@@ -82,20 +157,20 @@ class _SuspendedShopPageState extends State<SuspendedShopPage> {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
+                    color: isAppealed ? Colors.blue.shade50 : Colors.red.shade50,
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Icon(
-                    Icons.warning_amber_rounded,
+                    isAppealed ? Icons.hourglass_empty_rounded : Icons.warning_amber_rounded,
                     size: 38,
-                    color: Colors.red.shade600,
+                    color: isAppealed ? Colors.blue.shade600 : Colors.red.shade600,
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Maaf, Toko anda disuspend',
+                Text(
+                  isAppealed ? 'Banding Sedang Ditinjau' : 'Maaf, Toko anda disuspend',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryDark,
@@ -116,19 +191,19 @@ class _SuspendedShopPageState extends State<SuspendedShopPage> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    border: Border.all(color: Colors.red.shade100),
+                    color: isAppealed ? Colors.blue.shade50 : Colors.red.shade50,
+                    border: Border.all(color: isAppealed ? Colors.blue.shade100 : Colors.red.shade100),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Alasan penangguhan',
+                        isAppealed ? 'Status Banding Anda' : 'Alasan penangguhan',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.red.shade600,
+                          color: isAppealed ? Colors.blue.shade600 : Colors.red.shade600,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -140,7 +215,7 @@ class _SuspendedShopPageState extends State<SuspendedShopPage> {
                           fontSize: 14,
                           height: 1.5,
                           fontWeight: FontWeight.w600,
-                          color: Colors.red.shade900,
+                          color: isAppealed ? Colors.blue.shade900 : Colors.red.shade900,
                         ),
                       ),
                     ],
@@ -151,20 +226,21 @@ class _SuspendedShopPageState extends State<SuspendedShopPage> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton.icon(
-                    onPressed: _openChromeLink,
-                    icon: const Icon(
-                      Icons.open_in_browser,
-                      color: Colors.white,
+                    onPressed: isAppealed ? null : _openChromeLink,
+                    icon: Icon(
+                      isAppealed ? Icons.hourglass_bottom_rounded : Icons.open_in_browser,
+                      color: isAppealed ? Colors.black38 : Colors.white,
                     ),
-                    label: const Text(
-                      'Ajukan Banding',
+                    label: Text(
+                      isAppealed ? 'Banding Sedang Ditinjau' : 'Ajukan Banding',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: isAppealed ? Colors.black38 : Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
+                      backgroundColor: isAppealed ? Colors.grey.shade300 : AppColors.primaryBlue,
+                      disabledBackgroundColor: Colors.grey.shade300,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),

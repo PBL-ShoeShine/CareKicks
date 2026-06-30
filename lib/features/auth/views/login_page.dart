@@ -7,10 +7,7 @@ import 'register_page.dart';
 import '../../admin/views/admin_main_page.dart';
 import '../../customer/view/customer_main_page.dart';
 import 'suspended_shop_page.dart';
-
-// --- TAMBAHAN IMPORT HALAMAN LUPA PASSWORD ---
 import 'lupa_password_view.dart';
-// ---------------------------------------------
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -47,7 +44,10 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan password tidak boleh kosong')),
+        const SnackBar(
+          content: Text('Email dan password tidak boleh kosong'),
+          backgroundColor: AppColors.errorRed,
+        ),
       );
       return;
     }
@@ -72,24 +72,24 @@ class _LoginPageState extends State<LoginPage> {
 
       if (role == 'shops_admin' || role == 'staff') {
         final shop = user['shop'];
-        debugPrint('DEBUG LOGIN: role=$role, shop=$shop, shop_type=${shop?.runtimeType}');
-        if (shop is Map && shop['status_verifikasi'] == 'suspended') {
-          debugPrint('DEBUG LOGIN: Redirecting to SuspendedShopPage because shop is suspended');
+        final shopStatus = shop is Map ? shop['status_verifikasi']?.toString().toLowerCase() : null;
+        if (shop is Map && (shopStatus == 'suspended' || shopStatus == 'appealed')) {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (_) => SuspendedShopPage(
-                shop: Map<String, dynamic>.from(shop),
-              ),
+              builder: (_) =>
+                  SuspendedShopPage(shop: Map<String, dynamic>.from(shop)),
             ),
             (route) => false,
           );
           return;
         }
 
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Login berhasil!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login berhasil!'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (_) => AdminMainPage(token: token, user: user),
@@ -105,9 +105,12 @@ class _LoginPageState extends State<LoginPage> {
           user: user,
         );
         if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Login berhasil!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login berhasil!'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (_) => CustomerMainPage(token: token, user: user),
@@ -135,123 +138,147 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_authController.errorMessage ?? 'Login gagal')),
+        SnackBar(
+          content: Text(_authController.errorMessage ?? 'Login gagal'),
+          backgroundColor: AppColors.errorRed,
+        ),
       );
     }
+  }
+
+  // DESAIN INPUT FORM YANG LEBIH RAPI
+  InputDecoration _buildInputDecoration(
+    String hint,
+    IconData prefixIcon, {
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade500),
+      prefixIcon: Icon(
+        prefixIcon,
+        color: AppColors.primaryBlue.withOpacity(0.7),
+      ),
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return CustomScaffold(
-      useSafeArea: false,
-      backgroundColor: const Color(0xFFEFEFEF),
+      useSafeArea: false, // Penting agar header nabrak atas layar dengan cantik
+      backgroundColor: const Color(
+        0xFFF8F9FA,
+      ), // Sedikit lebih terang dari EFEFEF
       body: ListenableBuilder(
         listenable: _authController,
         builder: (context, child) {
           return SingleChildScrollView(
             child: Column(
               children: [
-                // TOP HEADER
+                // TOP HEADER MELENGKUNG
                 Container(
-                  height: 250,
+                  height: 280,
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: AppColors.primaryBlue,
                     borderRadius: BorderRadius.vertical(
-                      bottom: Radius.circular(40),
+                      bottom: Radius.circular(50),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
                   ),
-                  child: const Center(
+                  child: const SafeArea(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          "Login",
-                          style: TextStyle(color: Colors.white, fontSize: 20),
+                        Icon(
+                          Icons.lock_person_rounded,
+                          size: 60,
+                          color: Colors.white,
                         ),
-                        SizedBox(height: 10),
+                        SizedBox(height: 16),
                         Text(
                           "Welcome Back!",
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 22,
+                            fontSize: 26,
                             fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
                           ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          "Silakan login untuk melanjutkan",
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                       ],
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 50),
+                const SizedBox(height: 40),
 
-                // FORM
+                // AREA FORM
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 30),
                   child: Column(
                     children: [
                       // EMAIL
-                      TextField(
+                      TextFormField(
                         controller: _emailController,
                         enabled: !_authController.isLoading,
-                        decoration: InputDecoration(
-                          hintText: "Email",
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: const BorderSide(
-                              color: AppColors.lightBlue,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: const BorderSide(
-                              color: AppColors.lightBlue,
-                            ),
-                          ),
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: _buildInputDecoration(
+                          "Email Address",
+                          Icons.email_outlined,
                         ),
                       ),
 
                       const SizedBox(height: 20),
 
                       // PASSWORD
-                      TextField(
+                      TextFormField(
                         controller: _passwordController,
                         enabled: !_authController.isLoading,
                         obscureText: isHidden,
-                        decoration: InputDecoration(
-                          hintText: "Password",
-                          filled: true,
-                          fillColor: Colors.white,
+                        decoration: _buildInputDecoration(
+                          "Password",
+                          Icons.lock_outline_rounded,
                           suffixIcon: IconButton(
                             icon: Icon(
                               isHidden
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: Colors.grey,
                             ),
-                            onPressed: () {
-                              setState(() {
-                                isHidden = !isHidden;
-                              });
-                            },
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: const BorderSide(
-                              color: AppColors.lightBlue,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: const BorderSide(
-                              color: AppColors.lightBlue,
-                            ),
+                            onPressed: () =>
+                                setState(() => isHidden = !isHidden),
                           ),
                         ),
                       ),
 
-                      // --- TAMBAHAN: TOMBOL LUPA PASSWORD ---
+                      // LUPA PASSWORD
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
@@ -261,17 +288,12 @@ class _LoginPageState extends State<LoginPage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      // Ganti nama class ini jika berbeda di file lupa_password_view.dart milikmu
                                       builder: (_) => const LupaPasswordView(),
                                     ),
                                   );
                                 },
                           style: TextButton.styleFrom(
-                            padding: const EdgeInsets.only(
-                              top: 8,
-                              bottom: 8,
-                              right: 4,
-                            ),
+                            padding: const EdgeInsets.only(top: 12, bottom: 8),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
@@ -280,24 +302,24 @@ class _LoginPageState extends State<LoginPage> {
                             style: TextStyle(
                               color: AppColors.primaryBlue,
                               fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ),
 
-                      // --------------------------------------
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 25),
 
-                      // BUTTON
+                      // TOMBOL SIGN IN
                       SizedBox(
                         width: double.infinity,
-                        height: 50,
+                        height: 55,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryDark,
+                            elevation: 2,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                           onPressed: _authController.isLoading
@@ -305,29 +327,38 @@ class _LoginPageState extends State<LoginPage> {
                               : _handleLogin,
                           child: _authController.isLoading
                               ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
+                                  height: 24,
+                                  width: 24,
                                   child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                    strokeWidth: 2.5,
                                   ),
                                 )
                               : const Text(
-                                  "Sign in",
-                                  style: TextStyle(color: Colors.white),
+                                  "Sign In",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1,
+                                  ),
                                 ),
                         ),
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 30),
 
                       // REGISTER LINK
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text("Belum punya akun? "),
+                          Text(
+                            "Belum punya akun? ",
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 14,
+                            ),
+                          ),
                           GestureDetector(
                             onTap: _authController.isLoading
                                 ? null
@@ -341,13 +372,16 @@ class _LoginPageState extends State<LoginPage> {
                                   },
                             child: const Text(
                               "Register",
-                              style: TextStyle(color: AppColors.primaryBlue),
+                              style: TextStyle(
+                                color: AppColors.primaryBlue,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
                       ),
-
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),

@@ -78,6 +78,12 @@ class _DashboardPageState extends State<DashboardPage> {
         'Toko Sepatu';
   }
 
+  String? get _userPhotoUrl {
+    final url = (widget.user['foto'] ?? widget.user['path_gambar'])?.toString().trim();
+    if (url != null && url.isNotEmpty && url != 'null') return url;
+    return null;
+  }
+
   String get _userName {
     return _firstString([
           widget.user['nama'],
@@ -216,10 +222,15 @@ class _DashboardPageState extends State<DashboardPage> {
                                             radius: 22,
                                             backgroundColor: Colors.white
                                                 .withOpacity(0.2),
-                                            child: const Icon(
-                                              Icons.store,
-                                              color: Colors.white,
-                                            ),
+                                            backgroundImage: _userPhotoUrl != null
+                                                ? NetworkImage(_userPhotoUrl!)
+                                                : null,
+                                            child: _userPhotoUrl == null
+                                                ? const Icon(
+                                                    Icons.store,
+                                                    color: Colors.white,
+                                                  )
+                                                : null,
                                           ),
                                         ),
                                         const SizedBox(width: 12),
@@ -398,78 +409,80 @@ class _DashboardPageState extends State<DashboardPage> {
                       _buildUlasanCard(context),
                       const SizedBox(height: 16),
 
-                      // INPUT MANUAL OFFLINE BANNER
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFE6F0FA), Color(0xFFDBEAFE)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: const Color(0xFFBFDBFE).withOpacity(0.5),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Registrasi Pesanan Offline',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E3A8A),
-                              ),
+                      // INPUT MANUAL OFFLINE BANNER (hidden for staff role)
+                      if (widget.user['jenis_role'] != 'staff') ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFE6F0FA), Color(0xFFDBEAFE)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Daftarkan pelanggan walk-in / offline langsung ke sistem.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF1E40AF),
-                              ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFFBFDBFE).withOpacity(0.5),
                             ),
-                            const SizedBox(height: 14),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 44,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          InputOffPage(token: widget.token),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Registrasi Pesanan Offline',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1E3A8A),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Daftarkan pelanggan walk-in / offline langsung ke sistem.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF1E40AF),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 44,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            InputOffPage(token: widget.token),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.add_circle_outline_rounded,
+                                    size: 18,
+                                  ),
+                                  label: const Text(
+                                    'Buat Pesanan Walk-In',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
                                     ),
-                                  );
-                                },
-                                icon: const Icon(
-                                  Icons.add_circle_outline_rounded,
-                                  size: 18,
-                                ),
-                                label: const Text(
-                                  'Buat Pesanan Walk-In',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
                                   ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryDark,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryDark,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
 
                       const SizedBox(height: 26),
 
@@ -485,16 +498,17 @@ class _DashboardPageState extends State<DashboardPage> {
                               letterSpacing: -0.3,
                             ),
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      HistoryPage(token: widget.token),
-                                ),
-                              );
-                            },
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => HistoryPage(
+                                        token: widget.token,
+                                      ),
+                                    ),
+                                  ).then((_) => setState(() {}));
+                                },
                             child: const Row(
                               children: [
                                 Text(

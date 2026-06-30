@@ -1,9 +1,9 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/auth/session_manager.dart';
 import '../services/auth_service.dart';
+import '../../../core/network/api_service.dart';
 
 class AuthController extends ChangeNotifier {
   bool _isLoading = false;
@@ -39,9 +39,14 @@ class AuthController extends ChangeNotifier {
         return true;
       } else {
         if (result['code'] == 'SHOP_SUSPENDED') {
+          _token = result['token'];
+          _user = Map<String, dynamic>.from(result['user'] ?? {});
           _suspendedShop = Map<String, dynamic>.from(result['data'] ?? {});
-        } else {
-          _suspendedShop = null;
+          await saveSession();
+          _isLoading = false;
+          _errorMessage = 'Toko Anda ditangguhkan';
+          notifyListeners();
+          return false;
         }
         _errorMessage = result['message'] ?? 'Login gagal';
         _isLoading = false;
@@ -75,12 +80,12 @@ class AuthController extends ChangeNotifier {
       );
 
       if (result['success']) {
-        _token = result['token'];
-        _user = Map<String, dynamic>.from(result['user'] ?? {});
-        await saveSession();
-        _isLoading = false;
-        notifyListeners();
-        return true;
+        if (result['message'] == 'OTP_SENT') {
+          _isLoading = false;
+          notifyListeners();
+          return true; // Sukses memicu kirim OTP ke email
+        }
+        return false;
       } else {
         _errorMessage = result['message'] ?? 'Register gagal';
         _isLoading = false;
@@ -95,56 +100,126 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  void clearError() {
+  // --- FUNGSI BARU UNTUK VERIFIKASI OTP PENDAFTARAN ---
+  Future<bool> verifyRegisterOtp(String email, String otpCode) async {
+    _isLoading = true;
     _errorMessage = null;
     notifyListeners();
+
+    try {
+      final result = await AuthService.verifyRegisterOtp(email, otpCode);
+      if (result['success']) {
+        _token = result['token'];
+        _user = Map<String, dynamic>.from(result['user'] ?? {});
+        await saveSession(); // Simpan sesi login resmi setelah OTP sukses
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result['message'] ?? 'Verifikasi OTP gagal';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Terjadi kesalahan: $e';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<bool> checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final savedToken = prefs.getString(AuthSessionManager.tokenKey);
-    final savedUser = prefs.getString(AuthSessionManager.userKey);
-    final savedLoginTime = prefs.getInt(AuthSessionManager.loginTimeKey);
+    final savedUserStr = prefs.getString(AuthSessionManager.userKey);
 
-    if (savedToken == null ||
-        savedToken.isEmpty ||
-        savedUser == null ||
-        savedUser.isEmpty ||
-        savedLoginTime == null) {
-      await logout();
-      return false;
+    // PERBAIKAN: Mengubah savedStr menjadi savedUserStr agar sesuai deklarasi
+    if (savedToken != null && savedToken.isNotEmpty && savedUserStr != null) {
+      _token = savedToken;
+      _user = jsonDecode(savedUserStr);
+      
+      final shop = _user?['shop'];
+      final role = _user?['jenis_role'];
+      if ((role == 'shops_admin' || role == 'staff') && shop is Map) {
+        final status = shop['status_verifikasi']?.toString().toLowerCase();
+        if (status == 'suspended' || status == 'appealed') {
+          _suspendedShop = Map<String, dynamic>.from(shop);
+          _errorMessage = 'Toko Anda ditangguhkan';
+        } else {
+          _suspendedShop = null;
+          _errorMessage = null;
+        }
+      } else {
+        _suspendedShop = null;
+        _errorMessage = null;
+      }
+      
+      notifyListeners();
+      return true;
     }
+    return false;
+  }
 
-    final loggedInAt = DateTime.fromMillisecondsSinceEpoch(savedLoginTime);
-    if (DateTime.now().difference(loggedInAt) >
-        AuthSessionManager.maxSessionAge) {
-      await logout();
+  Future<bool> resendRegisterOtp(String email) async {
+    _isLoading = true;
+    notifyListeners();
+    final result = await AuthService.resendRegisterOtp(email);
+    if (result['success'] == false) {
+      _errorMessage = result['message'];
+    }
+    _isLoading = false;
+    notifyListeners();
+    return result['success'] ?? false;
+  }
+
+  Future<bool> checkSuspendedStatus() async {
+    final token = _token;
+    debugPrint("checkSuspendedStatus called. Token: $token");
+    if (token == null || token.isEmpty) {
+      debugPrint("checkSuspendedStatus: Token is null or empty");
       return false;
     }
 
     try {
-      final decodedUser = jsonDecode(savedUser);
-      if (decodedUser is! Map) {
-        await logout();
+      final response = await ApiService.getShopProfile(token: token);
+      debugPrint("getShopProfile response: $response");
+      if (response == null || response['success'] != true) {
+        debugPrint("checkSuspendedStatus: Response is null or success is not true");
         return false;
       }
 
-      _token = savedToken;
-      _user = Map<String, dynamic>.from(decodedUser);
-      if (_isSavedShopSuspended(_user)) {
-        _suspendedShop = Map<String, dynamic>.from(_user?['shop'] ?? {});
-        _errorMessage = 'Toko Anda ditangguhkan';
-        notifyListeners();
-        return false;
+      final shopData = response['data'];
+      debugPrint("shopData: $shopData");
+
+      if (shopData != null) {
+        final status = shopData['status_verifikasi']?.toString().toLowerCase();
+        debugPrint("shop status: $status");
+        if (status == 'suspended' || status == 'appealed') {
+          _suspendedShop = Map<String, dynamic>.from(shopData);
+          _errorMessage = 'Toko Anda ditangguhkan';
+          notifyListeners();
+          return false;
+        }
       }
 
       _suspendedShop = null;
       _errorMessage = null;
       notifyListeners();
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint("Error in checkSuspendedStatus: $e");
       await logout();
       return false;
+    }
+  }
+
+  void updateField(String key, dynamic value) {
+    if (_user != null) {
+      _user = Map<String, dynamic>.from(_user!);
+      _user![key] = value;
+      saveSession();
+      notifyListeners();
     }
   }
 
@@ -179,12 +254,8 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool _isSavedShopSuspended(Map<String, dynamic>? user) {
-    final role = user?['jenis_role'];
-    final shop = user?['shop'];
-
-    if ((role != 'shops_admin' && role != 'staff') || shop is! Map) return false;
-
-    return shop['status_verifikasi'] == 'suspended';
+  @override
+  void dispose() {
+    // No-op because AuthController is a singleton and should never be disposed.
   }
 }
